@@ -1,0 +1,79 @@
+{
+  "variant": "v4_vec_reg",
+  "shape": [
+    128,
+    4096
+  ],
+  "ncu_version": "2022.3.0.0",
+  "kernel_name": "void <unnamed>::rmsnorm_v4_half_kernel<(int)16>(const __half *, const __half *, __half *, int, float)",
+  "kernel_duration_us": 6.752,
+  "dram_throughput_pct": 30.91,
+  "sm_throughput_pct": 7.74,
+  "achieved_occupancy_pct": 41.48,
+  "registers_per_thread": 30,
+  "shared_memory_bytes": 132,
+  "warp_stalls": {
+    "long_scoreboard": {
+      "stalled_cycles_per_issue": 15.228,
+      "pct_of_stalls": 58.1
+    },
+    "barrier": {
+      "stalled_cycles_per_issue": 3.853,
+      "pct_of_stalls": 14.7
+    },
+    "drain": {
+      "stalled_cycles_per_issue": 2.25,
+      "pct_of_stalls": 8.6
+    },
+    "wait": {
+      "stalled_cycles_per_issue": 1.33,
+      "pct_of_stalls": 5.1
+    },
+    "short_scoreboard": {
+      "stalled_cycles_per_issue": 1.167,
+      "pct_of_stalls": 4.5
+    },
+    "selected": {
+      "stalled_cycles_per_issue": 1.0,
+      "pct_of_stalls": 3.8
+    },
+    "lg_throttle": {
+      "stalled_cycles_per_issue": 0.49,
+      "pct_of_stalls": 1.9
+    },
+    "not_selected": {
+      "stalled_cycles_per_issue": 0.227,
+      "pct_of_stalls": 0.9
+    },
+    "no_instruction": {
+      "stalled_cycles_per_issue": 0.18,
+      "pct_of_stalls": 0.7
+    },
+    "mio_throttle": {
+      "stalled_cycles_per_issue": 0.168,
+      "pct_of_stalls": 0.6
+    },
+    "branch_resolving": {
+      "stalled_cycles_per_issue": 0.13,
+      "pct_of_stalls": 0.5
+    },
+    "math_pipe_throttle": {
+      "stalled_cycles_per_issue": 0.103,
+      "pct_of_stalls": 0.4
+    },
+    "dispatch_stall": {
+      "stalled_cycles_per_issue": 0.078,
+      "pct_of_stalls": 0.3
+    },
+    "sleeping": {
+      "stalled_cycles_per_issue": 0.0,
+      "pct_of_stalls": 0.0
+    },
+    "membar": {
+      "stalled_cycles_per_issue": 0.0,
+      "pct_of_stalls": 0.0
+    }
+  },
+  "n_launches_profiled": 4,
+  "raw_report": "/root/code/cuda/profiles/rmsnorm/raw/v4_vec_reg_M128_H4096.ncu.txt"
+}

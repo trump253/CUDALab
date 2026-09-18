@@ -1,0 +1,100 @@
+// CUDALab RMSNorm — v3: wider blocks (512 threads), scalar accesses.
+//
+// Hypothesis (to be falsified): the baseline's 256-thread blocks yield only
+// ~8 warps per SM-block; doubling the block size to 512 threads doubles the
+// resident warps per block, which should hide global-memory latency better
+// *within* the reduction passes. No other change (still scalar loads,
+// two-pass) so the effect of block size is isolated.
+//
+// Expected risk: the block-wide reduction barrier now spans 16 warps, and
+// total grid parallelism (M blocks) is unchanged — a genuine test of the
+// REJECT/NEUTRAL decision branch.
+//
+// Requires H % 512 == 0.
+
+#include "rmsnorm_common.h"
+#include <ATen/cuda/CUDAContext.h>
+#include <c10/cuda/CUDAGuard.h>
+#include <cuda.h>
+#include <cuda_fp16.h>
+
+namespace {
+
+constexpr int V3_BLOCK = 512;
+
+template <typename T>
+__global__ void rmsnorm_v3_kernel(const T* __restrict__ x,
+                                  const T* __restrict__ w,
+                                  T* __restrict__ y,
+                                  int H, float eps) {
+    const int row = blockIdx.x;
+    const int tid = threadIdx.x;
+    const int nthreads = blockDim.x;
+    const T* __restrict__ xrow = x + (size_t)row * H;
+    T* __restrict__ yrow = y + (size_t)row * H;
+
+    float ss = 0.f;
+    for (int i = tid; i < H; i += nthreads) {
+        float v = el_to_float(xrow[i]);
+        ss += v * v;
+    }
+
+#pragma unroll
+    for (int offset = 16; offset > 0; offset >>= 1)
+        ss += __shfl_down_sync(0xffffffffu, ss, offset);
+
+    const int nwarp = (nthreads + 31) >> 5;
+    __shared__ float warp_sums[32];
+    __shared__ float s_inv_rms;
+    if ((tid & 31) == 0) warp_sums[tid >> 5] = ss;
+    __syncthreads();
+    if (tid < 32) {
+        float v = (tid < nwarp) ? warp_sums[tid] : 0.f;
+#pragma unroll
+        for (int offset = 16; offset > 0; offset >>= 1)
+            v += __shfl_down_sync(0xffffffffu, v, offset);
+        if (tid == 0) s_inv_rms = rsqrtf(v / (float)H + eps);
+    }
+    __syncthreads();
+    const float inv_rms = s_inv_rms;
+
+    for (int i = tid; i < H; i += nthreads) {
+        float v = el_to_float(xrow[i]);
+        float wv = el_to_float(w[i]);
+        yrow[i] = el_from_float<T>(v * inv_rms * wv);
+    }
+}
+
+template <typename T>
+void launch(const at::Tensor& x, const at::Tensor& w, at::Tensor& out,
+            double eps) {
+    const int M = x.size(0);
+    const int H = x.size(1);
+    TORCH_CHECK(H % V3_BLOCK == 0, "v3 requires H % 512 == 0; got H=", H);
+    cudaStream_t stream = at::cuda::getCurrentCUDAStream();
+    rmsnorm_v3_kernel<T><<<dim3(M), V3_BLOCK, 0, stream>>>(
+        reinterpret_cast<const T*>(x.data_ptr()),
+        reinterpret_cast<const T*>(w.data_ptr()),
+        reinterpret_cast<T*>(out.data_ptr()), H, (float)eps);
+}
+
+void rmsnorm_v3_fwd(const at::Tensor& x, const at::Tensor& w,
+                    at::Tensor& out, double eps) {
+    c10::cuda::CUDAGuard guard(x.device());
+    switch (x.scalar_type()) {
+        case at::kHalf:
+            launch<__half>(x, w, out, eps);
+            break;
+        case at::kFloat:
+            launch<float>(x, w, out, eps);
+            break;
+        default:
+            TORCH_CHECK(false, "unsupported dtype for rmsnorm v3");
+    }
+}
+
+}  // namespace
+
+static struct RmsnormV3Registrar {
+    RmsnormV3Registrar() { register_rmsnorm_variant("v3_wideblock", rmsnorm_v3_fwd); }
+} rmsnorm_v3_registrar;

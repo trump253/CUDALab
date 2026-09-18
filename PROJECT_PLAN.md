@@ -39,8 +39,8 @@ reference → correctness → benchmark → GPU profiling → bottleneck analysi
 
 ### Phase 3 — Correctness harness
 - `cudalab/correctness.py`: max_abs_error, max_rel_error, NaN/Inf, allclose.
-  Fixed recorded tolerance (fp16: atol=1e-2, rtol=2e-2 — fixed for all
-  candidates, never relaxed per-candidate).
+  Fixed recorded tolerance (fp16: atol=2e-3, rtol=5e-3; fp32: atol=1e-5,
+  rtol=1e-4 — fixed for all candidates, never relaxed per-candidate).
 - Matrix: M ∈ {1,16,128,1024} × H ∈ {1024,2048,4096,8192} subset + edge cases
   (zeros, tiny values, multiple scales, multiple seeds).
 - JSON + human-readable output.

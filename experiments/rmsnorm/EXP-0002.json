@@ -1,0 +1,140 @@
+{
+  "id": "EXP-0002",
+  "parent": "baseline",
+  "variant": "v1_vec",
+  "hypothesis": "Baseline is memory-latency bound (ncu: 80% long_scoreboard stalls, DRAM 14%, SM 12%, 256-thread blocks, 2B scalar loads = only 2 of 4 sectors per warp instruction). 16B vectorized (float4=8xfp16) loads/stores in both passes should reduce instruction count and increase memory-level parallelism per issued instruction.",
+  "changes": [
+    "float4 vectorized x/w loads and y stores in pass1 and pass2",
+    " reduction unchanged",
+    " H%8==0 required"
+  ],
+  "correctness": {
+    "n_total": 76,
+    "n_pass": 76,
+    "n_fail": 0,
+    "all_pass": true,
+    "max_abs_error": 0.00390625,
+    "max_rel_error": 0.00097656,
+    "failed": []
+  },
+  "benchmark": {
+    "baseline_median_us": 20.48,
+    "candidate_median_us": 24.256,
+    "speedup": 0.8443,
+    "primary_shape": [
+      128,
+      4096
+    ],
+    "full_matrix_vs_parent": {
+      "parent": [
+        {
+          "shape": [
+            1,
+            4096
+          ],
+          "median_us": 23.168
+        },
+        {
+          "shape": [
+            16,
+            4096
+          ],
+          "median_us": 23.2
+        },
+        {
+          "shape": [
+            128,
+            4096
+          ],
+          "median_us": 20.48
+        },
+        {
+          "shape": [
+            1024,
+            4096
+          ],
+          "median_us": 53.248
+        },
+        {
+          "shape": [
+            128,
+            8192
+          ],
+          "median_us": 32.928
+        },
+        {
+          "shape": [
+            1,
+            1024
+          ],
+          "median_us": 23.104
+        },
+        {
+          "shape": [
+            128,
+            1024
+          ],
+          "median_us": 23.2
+        }
+      ],
+      "candidate": [
+        {
+          "shape": [
+            1,
+            4096
+          ],
+          "median_us": 32.928
+        },
+        {
+          "shape": [
+            16,
+            4096
+          ],
+          "median_us": 23.424
+        },
+        {
+          "shape": [
+            128,
+            4096
+          ],
+          "median_us": 24.256
+        },
+        {
+          "shape": [
+            1024,
+            4096
+          ],
+          "median_us": 36.864
+        },
+        {
+          "shape": [
+            128,
+            8192
+          ],
+          "median_us": 22.56
+        },
+        {
+          "shape": [
+            1,
+            1024
+          ],
+          "median_us": 22.592
+        },
+        {
+          "shape": [
+            128,
+            1024
+          ],
+          "median_us": 23.936
+        }
+      ]
+    }
+  },
+  "profile_observation": "{\"variant\": \"v1_vec\", \"shape\": [128, 4096], \"ncu_version\": \"2022.3.0.0\", \"kernel_name\": \"void <unnamed>::rmsnorm_v1_kernel<__half>(const T1 *, const T1 *, T1 *, int, float)\", \"kernel_duration_us\": 6.128, \"dram_throughput_pct\": 29.98, \"sm_throughput_pct\": 10.16, \"achieved_occupancy_pct\": 44.76, \"registers_per_thread\": 22, \"shared_memory_bytes\": 132, \"warp_stalls\": {\"long_scoreboard\": {\"stalled_cycles_per_issue\": 14.65, \"pct_of_stalls\": 66.3}, \"barrier\": {\"stalled_cycles_per_issue\": 2.467, \"pct_of_stalls\": 11.2}, \"wait\": {\"stalled_cycles_per_issue\": 2.02, \"pct_of_stalls\": 9.1}, \"selected\": {\"stalled_cycles_per_issue\": 1.0, \"pct_of_stalls\": 4.5}, \"short_scoreboard\": {\"stalled_cycles_per_issue\": 0.718, \"pct_of_stalls\": 3.2}, \"not_selected\": {\"stalled_cycles_per_issue\": 0.397, \"pct_of_stalls\": 1.8}, \"math_pipe_throttle\": {\"stalled_cycles_per_issue\": 0.19, \"pct_of_stalls\": 0.9}, \"no_instruction\": {\"stalled_cycles_per_issue\": 0.18, \"pct_of_stalls\": 0.8}, \"mio_throttle\": {\"stalled_cycles_per_issue\": 0.155, \"pct_of_stalls\": 0.7}, \"branch_resolving\": {\"stalled_cycles_per_issue\": 0.13, \"pct_of_stalls\": 0.6}, \"drain\": {\"stalled_cycles_per_issue\": 0.09, \"pct_of_stalls\": 0.4}, \"dispatch_stall\": {\"stalled_cycles_per_issue\": 0.088, \"pct_of_stalls\": 0.4}, \"lg_throttle\": {\"stalled_cycles_per_issue\": 0.028, \"pct_of_stalls\": 0.1}, \"sleeping\": {\"stalled_cycles_per_issue\": 0.0, \"pct_of_stalls\": 0.0}, \"membar\": {\"stalled_cycles_per_issue\": 0.0, \"pct_of_stalls\": 0.0}}, \"n_launches_profiled\": 4, \"raw_report\": \"/root/code/cuda/profiles/rmsnorm/raw/v1_vec_M128_H4096.ncu.txt\"}",
+  "decision": "REJECT",
+  "decision_rule": "speedup 0.844x <= 0.95 AND only 0/5 rounds faster -> REJECT",
+  "timestamp": 1789744653.0133955,
+  "harness": "cuda-event-single-launch-v0",
+  "superseded": true,
+  "superseded_note": "single-launch cuda-event timing added ~6us launch overhead noise that swamped 5-15us kernels; ncu showed v1_vec kernel was actually 2.35x faster than baseline but event median said slower. Re-measured all variants with cuda-event-batched-v1 harness in later experiments."
+}

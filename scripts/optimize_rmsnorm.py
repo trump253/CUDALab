@@ -28,7 +28,8 @@ from pathlib import Path
 from _common import ROOT, get_ext
 import torch
 
-from cudalab.benchmark import bench_matrix, annotate_speedups, save_bench, BENCH_MATRIX
+from cudalab.benchmark import (bench_matrix, annotate_speedups, save_bench,
+                               BENCH_MATRIX, HARNESS_VERSION)
 from cudalab.correctness import run_suite, summarize, save_results
 from cudalab.experiment import (evaluate, save_experiment, current_best,
                                 set_best, KEEP)
@@ -97,6 +98,7 @@ def cmd_baseline(args):
                       "candidate_median_us": rec["median_us"], "speedup": 1.0},
         "profile_observation": json.dumps(prof),
         "decision": "KEEP",
+        "harness": HARNESS_VERSION,
         "notes": "baseline accepted as current best",
     })
     print("[baseline] current best = baseline")
@@ -154,6 +156,7 @@ def cmd_evaluate(args):
         "profile_observation": (json.dumps(prof) if prof else None),
         "decision": decision,
         "decision_rule": verdict["detail"].get("rule"),
+        "harness": HARNESS_VERSION,
         "timestamp": time.time(),
     }
     p = save_experiment(exp)

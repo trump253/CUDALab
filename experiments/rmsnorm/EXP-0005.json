@@ -1,0 +1,140 @@
+{
+  "id": "EXP-0005",
+  "parent": "v1_vec",
+  "variant": "v2_reg",
+  "hypothesis": "v1 (current best) is still 66% long_scoreboard stalls and re-reads x from L2 in pass 2. For H<=8192 each thread owns <=32 elements, so the row slice fits in registers: load x ONCE (vectorized half2/float4), accumulate ss during the load, and make the output pass pure register work. Removes the second read entirely: less L2/DRAM traffic, no second-pass memory dependency after the reduction.",
+  "changes": [
+    "single-pass register-resident kernel",
+    " x loaded once into registers (<=32 per thread)",
+    " weights still streamed",
+    " template on PER in {2,4,8,16,32}",
+    " H in {512..8192} required"
+  ],
+  "correctness": {
+    "n_total": 76,
+    "n_pass": 76,
+    "n_fail": 0,
+    "all_pass": true,
+    "max_abs_error": 0.00390625,
+    "max_rel_error": 0.00097561,
+    "failed": []
+  },
+  "benchmark": {
+    "baseline_median_us": 5.61,
+    "candidate_median_us": 5.673,
+    "speedup": 0.9889,
+    "primary_shape": [
+      128,
+      4096
+    ],
+    "full_matrix_vs_parent": {
+      "parent": [
+        {
+          "shape": [
+            1,
+            4096
+          ],
+          "median_us": 5.63
+        },
+        {
+          "shape": [
+            16,
+            4096
+          ],
+          "median_us": 5.62
+        },
+        {
+          "shape": [
+            128,
+            4096
+          ],
+          "median_us": 5.61
+        },
+        {
+          "shape": [
+            1024,
+            4096
+          ],
+          "median_us": 35.086
+        },
+        {
+          "shape": [
+            128,
+            8192
+          ],
+          "median_us": 5.648
+        },
+        {
+          "shape": [
+            1,
+            1024
+          ],
+          "median_us": 4.565
+        },
+        {
+          "shape": [
+            128,
+            1024
+          ],
+          "median_us": 4.45
+        }
+      ],
+      "candidate": [
+        {
+          "shape": [
+            1,
+            4096
+          ],
+          "median_us": 4.56
+        },
+        {
+          "shape": [
+            16,
+            4096
+          ],
+          "median_us": 5.611
+        },
+        {
+          "shape": [
+            128,
+            4096
+          ],
+          "median_us": 5.673
+        },
+        {
+          "shape": [
+            1024,
+            4096
+          ],
+          "median_us": 33.075
+        },
+        {
+          "shape": [
+            128,
+            8192
+          ],
+          "median_us": 5.696
+        },
+        {
+          "shape": [
+            1,
+            1024
+          ],
+          "median_us": 5.696
+        },
+        {
+          "shape": [
+            128,
+            1024
+          ],
+          "median_us": 5.632
+        }
+      ]
+    }
+  },
+  "profile_observation": "{\"variant\": \"v2_reg\", \"shape\": [128, 4096], \"ncu_version\": \"2022.3.0.0\", \"kernel_name\": \"void <unnamed>::rmsnorm_v2_kernel<__half, (int)16>(const T1 *, const T1 *, T1 *, int, float)\", \"kernel_duration_us\": 6.008, \"dram_throughput_pct\": 33.34, \"sm_throughput_pct\": 22.74, \"achieved_occupancy_pct\": 45.37, \"registers_per_thread\": 50, \"shared_memory_bytes\": 132, \"warp_stalls\": {\"long_scoreboard\": {\"stalled_cycles_per_issue\": 9.498, \"pct_of_stalls\": 55.5}, \"lg_throttle\": {\"stalled_cycles_per_issue\": 2.0, \"pct_of_stalls\": 11.7}, \"wait\": {\"stalled_cycles_per_issue\": 1.422, \"pct_of_stalls\": 8.3}, \"barrier\": {\"stalled_cycles_per_issue\": 1.125, \"pct_of_stalls\": 6.6}, \"selected\": {\"stalled_cycles_per_issue\": 1.0, \"pct_of_stalls\": 5.8}, \"short_scoreboard\": {\"stalled_cycles_per_issue\": 0.843, \"pct_of_stalls\": 4.9}, \"not_selected\": {\"stalled_cycles_per_issue\": 0.417, \"pct_of_stalls\": 2.4}, \"dispatch_stall\": {\"stalled_cycles_per_issue\": 0.17, \"pct_of_stalls\": 1.0}, \"drain\": {\"stalled_cycles_per_issue\": 0.165, \"pct_of_stalls\": 1.0}, \"math_pipe_throttle\": {\"stalled_cycles_per_issue\": 0.155, \"pct_of_stalls\": 0.9}, \"no_instruction\": {\"stalled_cycles_per_issue\": 0.13, \"pct_of_stalls\": 0.8}, \"mio_throttle\": {\"stalled_cycles_per_issue\": 0.11, \"pct_of_stalls\": 0.6}, \"branch_resolving\": {\"stalled_cycles_per_issue\": 0.08, \"pct_of_stalls\": 0.5}, \"sleeping\": {\"stalled_cycles_per_issue\": 0.0, \"pct_of_stalls\": 0.0}, \"membar\": {\"stalled_cycles_per_issue\": 0.0, \"pct_of_stalls\": 0.0}}, \"n_launches_profiled\": 4, \"raw_report\": \"/root/code/cuda/profiles/rmsnorm/raw/v2_reg_M128_H4096.ncu.txt\"}",
+  "decision": "NEUTRAL",
+  "decision_rule": "speedup 0.989x within +/-5% or mixed rounds (0/5 faster) -> NEUTRAL",
+  "harness": "cuda-event-batched-v1",
+  "timestamp": 1789744817.365533
+}

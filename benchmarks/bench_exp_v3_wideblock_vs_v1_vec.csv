@@ -1,0 +1,15 @@
+variant,M,H,dtype,median_us,p95_us,min_us,max_us,effective_bw_gbps,speedup_vs_cuda_baseline,speedup_vs_pytorch_reference
+v1_vec,1,4096,float16,6.741,10.816,6.528,11.998,3.6,None,None
+v1_vec,16,4096,float16,6.773,10.982,6.615,31.616,39.9,None,None
+v1_vec,128,4096,float16,6.724,10.847,6.576,11.68,313.1,None,None
+v1_vec,1024,4096,float16,34.881,35.253,34.688,37.131,481.2,None,None
+v1_vec,128,8192,float16,5.248,6.544,5.084,7.74,802.3,None,None
+v1_vec,1,1024,float16,5.38,7.764,5.006,11.511,1.1,None,None
+v1_vec,128,1024,float16,5.922,10.901,5.824,17.898,88.9,None,None
+v3_wideblock,1,4096,float16,8.779,11.264,8.576,14.592,2.8,None,None
+v3_wideblock,16,4096,float16,5.766,6.4,5.649,10.368,46.9,None,None
+v3_wideblock,128,4096,float16,8.759,9.224,6.912,16.322,240.4,None,None
+v3_wideblock,1024,4096,float16,41.28,41.471,40.924,44.672,406.6,None,None
+v3_wideblock,128,8192,float16,7.744,8.192,7.68,11.679,543.7,None,None
+v3_wideblock,1,1024,float16,5.824,6.592,5.649,11.193,1.1,None,None
+v3_wideblock,128,1024,float16,5.085,7.151,4.824,10.981,103.5,None,None

@@ -7,12 +7,21 @@ measurement):
 - Compilation must finish BEFORE any timing (callers: build first).
 - Fixed input tensors: the SAME x/w tensors (same values) are reused for
   every variant of a given (shape, dtype). Inputs are generated once.
+- Timing method (v1 harness, "cuda-event-batched"):
+  a single-launch event measurement was found to add ~6us of launch
+  overhead and noise, which swamps 5-15us kernels (it even flipped a real
+  2.35x ncu kernel-time improvement into an apparent regression — see
+  EXP-0002 superseded record). Therefore each sample is a BATCH of
+  `batch` consecutive kernel launches between two cuda events, with a full
+  synchronize after each sample; sample time = elapsed / batch. Consecutive
+  launches on the same input are the realistic steady state for a
+  normalization op inside a model loop, and the method is identical for
+  every variant.
 - Per (variant, shape, dtype):
-    warmup iterations (>=100) untimed,
-    then `iters` (>=200) timed iterations per round,
-    `rounds` (>=5) independent rounds, each round = fresh warmup + timed
-    batch. Per-iteration event pairs.
-- Primary metric: MEDIAN of all per-iteration samples (across rounds).
+    warmup launches (>=150) untimed,
+    then `iters` (>=100) timed samples of `batch` (>=32) launches each,
+    `rounds` (>=5) independent rounds (fresh warmup each round).
+- Primary metric: MEDIAN of all per-launch samples (across rounds).
   Also report p95, min, max, and per-round medians (for the decision rule
   that requires "most rounds consistently faster").
 - Effective DRAM bandwidth: (M*H*2 + H*2 + M*H*2) bytes / median time
@@ -37,9 +46,11 @@ import torch
 
 ROOT = Path(__file__).resolve().parent.parent
 
-WARMUP = 150
-ITERS = 300
+WARMUP = 150      # untimed launches
+ITERS = 100       # timed samples per round
+BATCH = 32        # launches per timed sample
 ROUNDS = 5
+HARNESS_VERSION = "cuda-event-batched-v1"
 
 # Benchmark matrix: (M, H). Primary optimization target: (128, 4096).
 BENCH_MATRIX = [
@@ -79,28 +90,34 @@ def gpu_state() -> dict:
         return {"error": str(e)}
 
 
-def _time_one_round(fn, warmup: int, iters: int) -> list[float]:
-    """One independent round: untimed warmup, then `iters` event-timed calls."""
+def _time_one_round(fn, warmup: int, iters: int, batch: int) -> list[float]:
+    """One independent round.
+
+    Untimed warmup, then `iters` samples; each sample = `batch` consecutive
+    launches between two cuda events, synchronized, time/batch = per-launch
+    time in us. Synchronizing per sample keeps every sample an independent,
+    fully-drained measurement (no unsynchronized timing anywhere).
+    """
     for _ in range(warmup):
         fn()
     torch.cuda.synchronize()
     times = []
-    starts = [torch.cuda.Event(enable_timing=True) for _ in range(iters)]
-    stops = [torch.cuda.Event(enable_timing=True) for _ in range(iters)]
-    for i in range(iters):
-        starts[i].record()
-        fn()
-        stops[i].record()
-    torch.cuda.synchronize()
-    for i in range(iters):
-        times.append(starts[i].elapsed_time(stops[i]) * 1e3)  # ms -> us
+    start = torch.cuda.Event(enable_timing=True)
+    stop = torch.cuda.Event(enable_timing=True)
+    for _ in range(iters):
+        start.record()
+        for _ in range(batch):
+            fn()
+        stop.record()
+        torch.cuda.synchronize()
+        times.append(start.elapsed_time(stop) * 1e3 / batch)  # us per launch
     return times
 
 
 def bench_variant(variant: str, ext, M: int, H: int,
                   dtype: torch.dtype = torch.float16,
                   warmup: int = WARMUP, iters: int = ITERS,
-                  rounds: int = ROUNDS) -> dict:
+                  batch: int = BATCH, rounds: int = ROUNDS) -> dict:
     """Benchmark one (variant, shape, dtype). Returns a full record."""
     dev = "cuda"
     g = torch.Generator(device=dev)
@@ -121,7 +138,7 @@ def bench_variant(variant: str, ext, M: int, H: int,
     all_times: list[float] = []
     round_medians: list[float] = []
     for _ in range(rounds):
-        t = _time_one_round(fn, warmup, iters)
+        t = _time_one_round(fn, warmup, iters, batch)
         all_times.extend(t)
         round_medians.append(statistics.median(t))
     state_after = gpu_state()
@@ -141,7 +158,8 @@ def bench_variant(variant: str, ext, M: int, H: int,
         "max_us": round(max(all_times), 3),
         "round_medians_us": [round(r, 3) for r in round_medians],
         "n_samples": len(all_times),
-        "warmup": warmup, "iters": iters, "rounds": rounds,
+        "warmup": warmup, "iters": iters, "batch": batch, "rounds": rounds,
+        "harness": HARNESS_VERSION,
         "effective_bw_gbps": round(bytes_moved / (med_us * 1e-6) / 1e9, 1),
         "gpu_state_before": state_before,
         "gpu_state_after": state_after,
