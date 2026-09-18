@@ -12,7 +12,10 @@
 //
 // Requires H/256 (elements/thread) to be in {2,4,8,16,32}, i.e. for the
 // 256-thread block: H in {512, 1024, 2048, 4096, 8192}.
-// fp16: loads/stores as half2 (4B); fp32: as float4 (16B).
+// NOTE: loads/stores are deliberately SCALAR (2B fp16 / 4B fp32) element
+// accesses (stride nthreads), so this variant isolates the register-
+// residency effect from vectorization. (See EXP-0005: NEUTRAL — the
+// scalar access masked the single-pass win; v4 combines both.)
 
 #include "rmsnorm_common.h"
 #include <ATen/cuda/CUDAContext.h>
