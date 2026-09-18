@@ -1,0 +1,338 @@
+[
+  {
+    "variant": "baseline",
+    "shape": [
+      1,
+      4096
+    ],
+    "dtype": "float16",
+    "median_us": 25.728,
+    "p95_us": 44.352,
+    "min_us": 24.352,
+    "max_us": 75.584,
+    "round_medians_us": [
+      43.136,
+      26.432,
+      25.184,
+      24.992,
+      24.96
+    ],
+    "n_samples": 1500,
+    "warmup": 150,
+    "iters": 300,
+    "rounds": 5,
+    "effective_bw_gbps": 1.0,
+    "gpu_state_before": {
+      "gpu_index": 0,
+      "name": " NVIDIA GeForce RTX 2080 Ti",
+      "temp_c": 31,
+      "sm_clock_mhz": 1350,
+      "mem_clock_mhz": 6800,
+      "power_w": 66.51,
+      "gpu_util_pct": 0,
+      "mem_util_pct": 0,
+      "ts": 1789744374.5769958
+    },
+    "gpu_state_after": {
+      "gpu_index": 0,
+      "name": " NVIDIA GeForce RTX 2080 Ti",
+      "temp_c": 31,
+      "sm_clock_mhz": 1350,
+      "mem_clock_mhz": 6800,
+      "power_w": 57.88,
+      "gpu_util_pct": 0,
+      "mem_util_pct": 0,
+      "ts": 1789744374.725064
+    },
+    "speedup_vs_cuda_baseline": 1.0,
+    "speedup_vs_pytorch_reference": null
+  },
+  {
+    "variant": "baseline",
+    "shape": [
+      16,
+      4096
+    ],
+    "dtype": "float16",
+    "median_us": 25.92,
+    "p95_us": 41.568,
+    "min_us": 24.576,
+    "max_us": 63.328,
+    "round_medians_us": [
+      26.624,
+      25.392,
+      25.984,
+      25.792,
+      25.392
+    ],
+    "n_samples": 1500,
+    "warmup": 150,
+    "iters": 300,
+    "rounds": 5,
+    "effective_bw_gbps": 10.4,
+    "gpu_state_before": {
+      "gpu_index": 0,
+      "name": " NVIDIA GeForce RTX 2080 Ti",
+      "temp_c": 32,
+      "sm_clock_mhz": 1350,
+      "mem_clock_mhz": 6800,
+      "power_w": 58.94,
+      "gpu_util_pct": 0,
+      "mem_util_pct": 0,
+      "ts": 1789744374.7965028
+    },
+    "gpu_state_after": {
+      "gpu_index": 0,
+      "name": " NVIDIA GeForce RTX 2080 Ti",
+      "temp_c": 32,
+      "sm_clock_mhz": 1350,
+      "mem_clock_mhz": 6800,
+      "power_w": 58.03,
+      "gpu_util_pct": 0,
+      "mem_util_pct": 0,
+      "ts": 1789744374.9412224
+    },
+    "speedup_vs_cuda_baseline": 1.0,
+    "speedup_vs_pytorch_reference": null
+  },
+  {
+    "variant": "baseline",
+    "shape": [
+      128,
+      4096
+    ],
+    "dtype": "float16",
+    "median_us": 24.768,
+    "p95_us": 33.6,
+    "min_us": 23.2,
+    "max_us": 79.904,
+    "round_medians_us": [
+      32.672,
+      25.056,
+      24.576,
+      24.624,
+      24.576
+    ],
+    "n_samples": 1500,
+    "warmup": 150,
+    "iters": 300,
+    "rounds": 5,
+    "effective_bw_gbps": 85.0,
+    "gpu_state_before": {
+      "gpu_index": 0,
+      "name": " NVIDIA GeForce RTX 2080 Ti",
+      "temp_c": 32,
+      "sm_clock_mhz": 1350,
+      "mem_clock_mhz": 6800,
+      "power_w": 59.59,
+      "gpu_util_pct": 0,
+      "mem_util_pct": 0,
+      "ts": 1789744375.006258
+    },
+    "gpu_state_after": {
+      "gpu_index": 0,
+      "name": " NVIDIA GeForce RTX 2080 Ti",
+      "temp_c": 32,
+      "sm_clock_mhz": 1350,
+      "mem_clock_mhz": 6800,
+      "power_w": 62.98,
+      "gpu_util_pct": 0,
+      "mem_util_pct": 0,
+      "ts": 1789744375.1538112
+    },
+    "speedup_vs_cuda_baseline": 1.0,
+    "speedup_vs_pytorch_reference": null
+  },
+  {
+    "variant": "baseline",
+    "shape": [
+      1024,
+      4096
+    ],
+    "dtype": "float16",
+    "median_us": 53.248,
+    "p95_us": 61.6,
+    "min_us": 51.52,
+    "max_us": 76.128,
+    "round_medians_us": [
+      53.248,
+      53.248,
+      53.248,
+      53.248,
+      53.248
+    ],
+    "n_samples": 1500,
+    "warmup": 150,
+    "iters": 300,
+    "rounds": 5,
+    "effective_bw_gbps": 315.2,
+    "gpu_state_before": {
+      "gpu_index": 0,
+      "name": " NVIDIA GeForce RTX 2080 Ti",
+      "temp_c": 32,
+      "sm_clock_mhz": 1350,
+      "mem_clock_mhz": 6800,
+      "power_w": 62.98,
+      "gpu_util_pct": 13,
+      "mem_util_pct": 2,
+      "ts": 1789744375.2204268
+    },
+    "gpu_state_after": {
+      "gpu_index": 0,
+      "name": " NVIDIA GeForce RTX 2080 Ti",
+      "temp_c": 33,
+      "sm_clock_mhz": 1350,
+      "mem_clock_mhz": 6800,
+      "power_w": 118.46,
+      "gpu_util_pct": 13,
+      "mem_util_pct": 2,
+      "ts": 1789744375.4178207
+    },
+    "speedup_vs_cuda_baseline": 1.0,
+    "speedup_vs_pytorch_reference": null
+  },
+  {
+    "variant": "baseline",
+    "shape": [
+      128,
+      8192
+    ],
+    "dtype": "float16",
+    "median_us": 26.144,
+    "p95_us": 42.944,
+    "min_us": 24.576,
+    "max_us": 66.24,
+    "round_medians_us": [
+      27.776,
+      26.368,
+      25.904,
+      25.376,
+      25.552
+    ],
+    "n_samples": 1500,
+    "warmup": 150,
+    "iters": 300,
+    "rounds": 5,
+    "effective_bw_gbps": 161.1,
+    "gpu_state_before": {
+      "gpu_index": 0,
+      "name": " NVIDIA GeForce RTX 2080 Ti",
+      "temp_c": 33,
+      "sm_clock_mhz": 1665,
+      "mem_clock_mhz": 6800,
+      "power_w": 79.88,
+      "gpu_util_pct": 13,
+      "mem_util_pct": 2,
+      "ts": 1789744375.4835413
+    },
+    "gpu_state_after": {
+      "gpu_index": 0,
+      "name": " NVIDIA GeForce RTX 2080 Ti",
+      "temp_c": 33,
+      "sm_clock_mhz": 1665,
+      "mem_clock_mhz": 6800,
+      "power_w": 70.59,
+      "gpu_util_pct": 13,
+      "mem_util_pct": 2,
+      "ts": 1789744375.6305087
+    },
+    "speedup_vs_cuda_baseline": 1.0,
+    "speedup_vs_pytorch_reference": null
+  },
+  {
+    "variant": "baseline",
+    "shape": [
+      1,
+      1024
+    ],
+    "dtype": "float16",
+    "median_us": 24.672,
+    "p95_us": 32.128,
+    "min_us": 23.072,
+    "max_us": 65.76,
+    "round_medians_us": [
+      28.608,
+      24.672,
+      24.672,
+      24.576,
+      24.576
+    ],
+    "n_samples": 1500,
+    "warmup": 150,
+    "iters": 300,
+    "rounds": 5,
+    "effective_bw_gbps": 0.2,
+    "gpu_state_before": {
+      "gpu_index": 0,
+      "name": " NVIDIA GeForce RTX 2080 Ti",
+      "temp_c": 33,
+      "sm_clock_mhz": 1665,
+      "mem_clock_mhz": 6800,
+      "power_w": 77.76,
+      "gpu_util_pct": 13,
+      "mem_util_pct": 2,
+      "ts": 1789744375.758148
+    },
+    "gpu_state_after": {
+      "gpu_index": 0,
+      "name": " NVIDIA GeForce RTX 2080 Ti",
+      "temp_c": 33,
+      "sm_clock_mhz": 1665,
+      "mem_clock_mhz": 6800,
+      "power_w": 65.58,
+      "gpu_util_pct": 13,
+      "mem_util_pct": 2,
+      "ts": 1789744375.8987334
+    },
+    "speedup_vs_cuda_baseline": 1.0,
+    "speedup_vs_pytorch_reference": null
+  },
+  {
+    "variant": "baseline",
+    "shape": [
+      128,
+      1024
+    ],
+    "dtype": "float16",
+    "median_us": 26.016,
+    "p95_us": 42.88,
+    "min_us": 24.576,
+    "max_us": 65.536,
+    "round_medians_us": [
+      41.472,
+      26.176,
+      25.728,
+      25.616,
+      25.296
+    ],
+    "n_samples": 1500,
+    "warmup": 150,
+    "iters": 300,
+    "rounds": 5,
+    "effective_bw_gbps": 20.2,
+    "gpu_state_before": {
+      "gpu_index": 0,
+      "name": " NVIDIA GeForce RTX 2080 Ti",
+      "temp_c": 33,
+      "sm_clock_mhz": 1665,
+      "mem_clock_mhz": 6800,
+      "power_w": 63.91,
+      "gpu_util_pct": 13,
+      "mem_util_pct": 2,
+      "ts": 1789744375.9622257
+    },
+    "gpu_state_after": {
+      "gpu_index": 0,
+      "name": " NVIDIA GeForce RTX 2080 Ti",
+      "temp_c": 33,
+      "sm_clock_mhz": 1665,
+      "mem_clock_mhz": 6800,
+      "power_w": 68.14,
+      "gpu_util_pct": 13,
+      "mem_util_pct": 2,
+      "ts": 1789744376.1054482
+    },
+    "speedup_vs_cuda_baseline": 1.0,
+    "speedup_vs_pytorch_reference": null
+  }
+]

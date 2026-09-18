@@ -1,0 +1,8 @@
+variant,M,H,dtype,median_us,p95_us,min_us,max_us,effective_bw_gbps,speedup_vs_cuda_baseline,speedup_vs_pytorch_reference
+baseline,1,4096,float16,25.728,44.352,24.352,75.584,1.0,1.0,None
+baseline,16,4096,float16,25.92,41.568,24.576,63.328,10.4,1.0,None
+baseline,128,4096,float16,24.768,33.6,23.2,79.904,85.0,1.0,None
+baseline,1024,4096,float16,53.248,61.6,51.52,76.128,315.2,1.0,None
+baseline,128,8192,float16,26.144,42.944,24.576,66.24,161.1,1.0,None
+baseline,1,1024,float16,24.672,32.128,23.072,65.76,0.2,1.0,None
+baseline,128,1024,float16,26.016,42.88,24.576,65.536,20.2,1.0,None

@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+
+# PyTorch extension build artifacts
+*.so
+*.o
+build/
+torch_extensions/
+~/.cache/torch_extensions/
+.cache/
+
+# Compilation / toolchain temp
+*.cubin
+*.ptx
+*.sass
+/tmp/
+*.tmp
+
+# Raw profiler dumps (keep only structured summaries)
+profiles/**/raw/
+*.ncu-rep
+*.nsys-rep
+*.sqlite
+
+# Misc generated temp
+.DS_Store
+*.log
+!experiments/**/*.json
+!benchmarks/**/*.json
+!benchmarks/**/*.csv

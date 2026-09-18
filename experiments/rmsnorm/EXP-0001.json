@@ -1,0 +1,26 @@
+{
+  "id": "EXP-0001",
+  "kind": "baseline",
+  "parent": null,
+  "hypothesis": "reference implementation: one block per row, scalar loads, two-pass FP32-accumulated reduction",
+  "changes": [
+    "new baseline kernel (rmsnorm_baseline.cu)"
+  ],
+  "correctness": {
+    "n_total": 76,
+    "n_pass": 76,
+    "n_fail": 0,
+    "all_pass": true,
+    "max_abs_error": 0.00390625,
+    "max_rel_error": 0.00097561,
+    "failed": []
+  },
+  "benchmark": {
+    "baseline_median_us": 24.768,
+    "candidate_median_us": 24.768,
+    "speedup": 1.0
+  },
+  "profile_observation": "{\"variant\": \"baseline\", \"shape\": [128, 4096], \"ncu_version\": \"2022.3.0.0\", \"kernel_name\": \"void <unnamed>::rmsnorm_baseline_kernel<__half>(const T1 *, const T1 *, T1 *, int, float)\", \"kernel_duration_us\": 14.392, \"dram_throughput_pct\": 14.04, \"sm_throughput_pct\": 11.7, \"achieved_occupancy_pct\": 46.56, \"registers_per_thread\": 16, \"shared_memory_bytes\": 132, \"warp_stalls\": {\"long_scoreboard\": {\"stalled_cycles_per_issue\": 24.185, \"pct_of_stalls\": 80.3}, \"wait\": {\"stalled_cycles_per_issue\": 2.627, \"pct_of_stalls\": 8.7}, \"selected\": {\"stalled_cycles_per_issue\": 1.0, \"pct_of_stalls\": 3.3}, \"short_scoreboard\": {\"stalled_cycles_per_issue\": 0.663, \"pct_of_stalls\": 2.2}, \"barrier\": {\"stalled_cycles_per_issue\": 0.65, \"pct_of_stalls\": 2.2}, \"dispatch_stall\": {\"stalled_cycles_per_issue\": 0.232, \"pct_of_stalls\": 0.8}, \"branch_resolving\": {\"stalled_cycles_per_issue\": 0.22, \"pct_of_stalls\": 0.7}, \"not_selected\": {\"stalled_cycles_per_issue\": 0.215, \"pct_of_stalls\": 0.7}, \"no_instruction\": {\"stalled_cycles_per_issue\": 0.182, \"pct_of_stalls\": 0.6}, \"math_pipe_throttle\": {\"stalled_cycles_per_issue\": 0.1, \"pct_of_stalls\": 0.3}, \"drain\": {\"stalled_cycles_per_issue\": 0.03, \"pct_of_stalls\": 0.1}, \"lg_throttle\": {\"stalled_cycles_per_issue\": 0.007, \"pct_of_stalls\": 0.0}, \"mio_throttle\": {\"stalled_cycles_per_issue\": 0.0, \"pct_of_stalls\": 0.0}, \"sleeping\": {\"stalled_cycles_per_issue\": 0.0, \"pct_of_stalls\": 0.0}, \"membar\": {\"stalled_cycles_per_issue\": 0.0, \"pct_of_stalls\": 0.0}}, \"n_launches_profiled\": 4, \"raw_report\": \"/root/code/cuda/profiles/rmsnorm/raw/baseline_M128_H4096.ncu.txt\"}",
+  "decision": "KEEP",
+  "notes": "baseline accepted as current best"
+}
