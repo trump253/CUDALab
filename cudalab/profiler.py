@@ -6,10 +6,18 @@ JSON 摘要。指标取不到时字段为 null —— 绝不伪造数字。ncu �
 
 指标名已在本 GPU / 本 ncu 版本上用 `ncu --query-metrics` 核实。
 
-v0.2 方法学审计（NCU 2022.3.0）:
-- `--cache-control {all,none}`，默认 **all** = 剖析前不失效缓存（L2 保持
-  热）。v0.1 未传该参数，因此 v0.1 报告中 "cold L2" 的说法没有配置
-  依据，实际是热缓存。v0.2 起两种模式都显式记录在 JSON 里。
+v0.2 方法学审计（NCU 2022.3.0；v0.2.1 修正 --cache-control 语义，此前写反）:
+- `--cache-control {all,none}`，默认 **all**。语义（依据本机 ncu 2022.3
+  --help + 本仓 raw 输出 + NVIDIA 文档核实）：
+  - **all**（默认）= cache flush/reset profiling：NCU 在每个 replay pass
+    前失效全部 GPU 缓存，得到确定性的 flushed 状态；
+  - **none** = no-flush profiling：不失效缓存，缓存状态不受控（可能保留
+    前序活动残留），ncu 输出 "Running with uncontrolled GPU caches" 警告。
+  为避免歧义，本仓统一称 all 为 "cache flush/reset"、none 为 "no-flush"，
+  不称 "hot/cold L2"（除非能从 replay 配置严格推出）。
+- v0.1 未传该参数，走默认 **all**（= 失效/flush），其 "cold L2" 说法与
+  默认配置**一致**（此前 v0.2 误判为"无配置依据/实际热"，v0.2.1 更正）。
+  v0.2 起两种模式都显式记录在 JSON 里。
 - `--clock-control {base,none,reset}`，默认 base = 尝试锁到 base clock；
   容器内可能失败，stderr 警告会被提取到 `clock_lock_warning` 字段。
 
@@ -141,11 +149,14 @@ def profile_variant(variant: str, M: int = 128, H: int = 4096,
                     clock_control: str = "base") -> dict:
     """剖析单个变体在单个形状上的表现；返回（并保存）摘要。
 
-    cache_control:
-      "all"  (ncu 默认) —— 剖析前 **不** 失效 GPU 缓存，L2 保持热；
-      "none"            —— 剖析前失效全部缓存（L1/L2 冷启动）。
-    注意 v0.1 的 "cold L2" 说法并无配置依据：v0.1 未传 --cache-control，
-    实际走的就是默认 "all"（热缓存）。v0.2 显式记录该参数。
+    cache_control（v0.2.1 修正语义，此前写反）:
+      "all"  (ncu 默认) —— cache flush/reset profiling：NCU 在每个
+          replay pass 前失效全部 GPU 缓存（确定性 flushed 状态）；
+      "none"            —— no-flush profiling：不失效缓存，状态不受控
+          （可能保留前序残留），ncu 警告 "Running with uncontrolled GPU
+          caches"。
+    注意 v0.1 未传 --cache-control，走默认 "all"（= 失效/flush），其
+    "cold L2" 说法与默认配置一致。v0.2 显式记录该参数。
 
     clock_control:
       "base" (ncu 默认) —— 尝试把 GPU 锁定到 base clock（容器内可能

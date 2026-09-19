@@ -20,7 +20,7 @@ v0.1 的 best，`best.json` 为 v0.2 当前最佳。
 | fp32 | **v2_reg 为最佳**（vs v4：1.37× streaming / 1.62× hot，KEEP） |
 | (128,8192) 两 dtype | **v2_reg 为最佳**（fp16 paired 1.38× KEEP；v4 在 H=8192 退化） |
 | EXP-0007 1.231× | **REVISED**：同频复验 v4 vs v1 = 1.011×（streaming）/ v4 快约 7%（hot，median 0.9327）；原值系 1350 vs ~1905 MHz 混频膨胀 |
-| NCU 方法学 | v0.1 "cold L2" 说法**推翻**（`--cache-control` 默认 all = 不失效缓存）；v0.2 双缓存模式剖析（`profiles/rmsnorm/v0.2/`）；小 kernel 下 cc=all/none 差异可忽略 → 缓存杠杆在 bench 层 |
+| NCU 方法学 | `--cache-control` 语义修正（v0.2.1，此前写反）：`all`（默认）= cache flush/reset（每 replay 前失效缓存，确定性 flushed 状态）、`none` = no-flush（不失效，状态不受控）；v0.1 走默认 all（= 失效），其 "cold L2" 说法与默认配置一致（v0.2 曾误判"推翻"，已更正）；v0.2 双缓存模式剖析（`profiles/rmsnorm/v0.2/`）；小 kernel 下 cc=all/none 差异可忽略 → 缓存杠杆在 bench 层 |
 | 统计 | round-level paired speedup + bootstrap CI95（固定种子 20260919）+ KEEP/REJECT/NEUTRAL/UNSTABLE；18 个 CPU 单元测试全过 |
 | 分派 | `cudalab/dispatch.py`：28 单元格实测分发表 + 保守 fallback（5 个 CPU 测试 + e2e 验证） |
 | API 加固 | Finding A–D 修复（非法 H 显式报错、对齐契约、forward_into 验证、launch 检查）；28 例负例套件 |

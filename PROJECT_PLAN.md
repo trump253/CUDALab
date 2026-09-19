@@ -170,14 +170,18 @@ tests/test_evaluator_cpu.py 18/18 通过）
 - 决策规则: KEEP / REJECT / NEUTRAL / **UNSTABLE**（新增）；全部 CPU 单元测试
 
 ### Phase 7 — Profiler methodology audit ✅ 已完成
-（aca86a6/517d548：确认 ncu 2022.3 --cache-control 默认 all=不失效缓存 →
-v0.1 "cold L2" 说法无配置依据；profiler 显式化 cache_control/clock_control +
+（aca86a6/517d548 初版；v0.2.1 修正 --cache-control 语义（此前写反）：默认
+all = cache flush/reset（每 replay 前失效缓存，确定性 flushed 状态）、none =
+no-flush（不失效，状态不受控，ncu 警告 "Running with uncontrolled GPU caches"）
+→ v0.1 走默认 all（= 失效），其 "cold L2" 说法与默认配置一致（v0.2 曾误判
+"无配置依据"，已更正）；profiler 显式化 cache_control/clock_control +
 L1/L2 命中率；scripts/profile_v2.py 双模式剖析 → profiles/rmsnorm/v0.2/）
 
 原计划:
-- 用本机 ncu 2022.3 真实验证 `--cache-control {all|none}`（已确认存在，默认 all）
-- 双模式剖析（缓存保留 / 缓存失效）；README 只保留已验证的描述，
-  删除无配置保证的 "cold L2" 说法
+- 用本机 ncu 2022.3 真实验证 `--cache-control {all|none}`（已确认存在，默认 all；
+  v0.2.1 依据 --help + raw 输出 + NVIDIA 文档核实语义并修正此前写反的标注）
+- 双模式剖析（cache flush/reset vs no-flush）；README 只保留已验证的描述，
+  用 cache-flush / no-flush 术语（不称 hot/cold L2，除非可从 replay 配置严格推出）
 
 ### Phase 8 — Full v0.2 revalidation ✅ 已完成
 （5 变体 76/76 ×5 + 负例复跑 + 28 组全矩阵（369/369 valid）+ 13 组主形状/关键形状

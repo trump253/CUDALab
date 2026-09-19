@@ -5,10 +5,13 @@
     profiles/rmsnorm/v0.2/<variant>_M128_H4096_cc<mode>_clkbase.json
     profiles/rmsnorm/v0.2/v02_profile_comparison.json
 
-方法学说明见 cudalab/profiler.py 模块头：
-- cc=all  = ncu 默认，剖析前不失效缓存（热 L2）；
-- cc=none = 剖析前失效全部缓存（冷 L2）。
-v0.1 的所有 ncu 数据均为默认 cc=all（"cold L2" 说法无配置依据）。
+方法学说明见 cudalab/profiler.py 模块头（v0.2.1 修正语义，此前写反）：
+- cc=all  = ncu 默认 = cache flush/reset profiling（每个 replay pass 前
+  失效全部缓存，确定性 flushed 状态）；
+- cc=none = no-flush profiling（不失效缓存，状态不受控，ncu 警告
+  "Running with uncontrolled GPU caches"）。
+v0.1 的所有 ncu 数据均为默认 cc=all（= 失效/flush，其 "cold L2" 说法与
+默认配置一致）。
 """
 import argparse
 import json
@@ -68,10 +71,12 @@ def main():
             for cc_key, cc in modes.items()
             if cc.get("clock_lock_warning")
         },
-        "note": ("cc=all 为 ncu 默认（热缓存，v0.1 所有数据即此模式）；"
-                 "cc=none 剖析前失效全部缓存（冷）。kernel_duration 在两种"
-                 "缓存状态下不可直接跨模式比较绝对值，只作各自模式内的"
-                 "变体相对比较。"),
+        "note": ("cc=all 为 ncu 默认 = cache flush/reset profiling（每个 "
+                 "replay pass 前失效全部缓存，确定性 flushed 状态；v0.1 所有"
+                 "数据即此模式）；cc=none = no-flush profiling（不失效缓存，"
+                 "状态不受控，ncu 警告 'Running with uncontrolled GPU caches'）。"
+                 "kernel_duration 在两种缓存状态下不可直接跨模式比较绝对值，"
+                 "只作各自模式内的变体相对比较。"),
         "variants": results,
     }
     cmp_path.write_text(json.dumps(cmp, indent=2))

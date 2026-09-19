@@ -26,8 +26,12 @@ v0.2 交付：
   预分配缓冲池（streaming 工作集 33.5 MB > 5.5 MB L2）；
 - **round-level 统计与决策引擎**（纯 CPU、可单测）：paired speedup 中位数 +
   bootstrap 95% CI（固定种子 20260919）+ KEEP/REJECT/NEUTRAL/UNSTABLE 四态判定；
-- **NCU 方法学审计**：v0.1 "cold L2" 说法被推翻（`--cache-control` 默认 `all`
-  = 不失效缓存）；v0.2 双缓存模式显式剖析并记录；
+- **NCU 方法学审计**：`--cache-control` 语义修正（v0.2.1，此前写反）——
+  `all`（默认）= cache flush/reset profiling（每 replay 前失效缓存，确定性
+  flushed 状态）、`none` = no-flush profiling（不失效，状态不受控，ncu 警告
+  "Running with uncontrolled GPU caches"）；v0.1 走默认 `all`（= 失效/flush），
+  其 "cold L2" 说法与默认配置一致（v0.2 曾误判为"无配置依据/实际热"，已更正）；
+  v0.2 双缓存模式显式剖析并记录；
 - **完整复验**：7 形状 × {fp16,fp32} × {hot,streaming} × 5 变体（28 组矩阵，
   全部 9/9 valid rounds）+ 13 组主目标配对精度测量 + 双模式 NCU 剖析；
 - **形状/dtype 分发表**（仅基于实测显著证据的保守 dispatch，`cudalab/dispatch.py`）；
@@ -94,7 +98,8 @@ CPU 输入、非连续输入、out 张量错配、bf16、eps=NaN/负、v1/v4 指
 
 ### v0.2 NCU 剖析（M=128×H=4096 fp16，双缓存模式）
 
-`profiles/rmsnorm/v0.2/`（cc=all 为 ncu 默认热缓存，cc=none 剖析前失效全部缓存）：
+`profiles/rmsnorm/v0.2/`（cc=all 为 ncu 默认 = cache flush/reset，cc=none = no-flush；
+v0.2.1 修正语义，此前写反）：
 
 | 变体 | µs (all/none) | DRAM % (all/none) | L2 read hit % | L1 hit % | 寄存器 |
 |---|---|---|---|---|---|
@@ -104,11 +109,15 @@ CPU 输入、非连续输入、out 张量错配、bf16、eps=NaN/负、v1/v4 指
 | v3_wideblock | 9.39 / 9.31 | 22.3 / 28.9 | 41.5 | 45.4 | 16 |
 | v4_vec_reg | 7.04 / 7.14 | 30.5 / 36.1 | 36.1 | **57.8** | 30 |
 
-- **方法学审计结论**：ncu 2022.3 `--cache-control` 默认 `all`（不失效缓存）——
-  v0.1 报告中 "cold L2" 的说法没有配置依据，实际是热 L2。v0.2 起该参数显式记录。
+- **方法学审计结论（v0.2.1 修正，此前写反）**：ncu 2022.3 `--cache-control`
+  默认 `all` = **cache flush/reset profiling**（每个 replay pass 前失效全部
+  缓存，确定性 flushed 状态）；`none` = **no-flush profiling**（不失效缓存，
+  状态不受控，ncu 警告 "Running with uncontrolled GPU caches"）。v0.1 未传
+  该参数，走默认 `all`（= 失效/flush），其 "cold L2" 说法与默认配置一致
+  （v0.2 曾误判为"无配置依据/实际热"，已更正）。v0.2 起该参数显式记录。
 - 本 kernel 工作集 ~1 MB，cc=all 与 cc=none 的 duration/DRAM%/hit rate 几乎无
-  差异：NCU 单次 launch 的 "冷 L2" 对这种小工作负载不敏感；真正的缓存效应杠杆
-  是基准层的 hot/streaming buffer 策略。
+  差异：NCU 单次 launch 的缓存状态（flushed vs 不受控）对这种小工作负载不
+  敏感；真正的缓存效应杠杆是基准层的 hot/streaming buffer 策略。
 - `--clock-control base`（ncu 默认）未报告锁频警告，但也无锁频成功的正面证据
   （容器内 `nvidia-smi` default_applications=[N/A]）；所有变体同一设置下相对比较有效。
 - v4 的 L1 命中率最高（57.8%）：寄存器驻留设计让 x 的第二次访问留在 L1。
