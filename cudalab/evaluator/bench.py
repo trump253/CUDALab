@@ -28,6 +28,49 @@ launch / 算法 IO / 记录目录）隔离到 cudalab/operators 的 adapter：
    round-level paired speedup → median/mean/min/max + faster_frac +
    95% bootstrap CI（见 stats.py / decision.py）。
 
+v2.1 加固（2026-09-19，RMSNorm 回归门发现；详见
+`docs/evaluator_hardening_v0.3.md`）:
+7. **idle-gap 降级态**: 实测（2026-09-19，RTX 2080 Ti / 本容器环境）
+   发现：一次 nvidia-smi 查询造成的 ~40ms GPU 空闲缺口会把 GPU 推入
+   一个**降级性能态**（kernel 时间 ~1.3–1.8x，host 侧 launch 同步变
+   慢）；期间 `nvidia-smi clocks.sm` 读到的不是负载时钟（缺口/空闲
+   采样值，当日实测 1350 MHz，而持续负载下 gpu_state 读 1905–1920
+   MHz，dmon 空闲读 405 MHz）——DVFS guard 的轮询采样对真实负载
+   时钟是盲的。v0.2 harness 的 warmup 仅 150 次 launch（~1ms），
+   不足以覆盖衰减（衰减时间实测逐日漂移: 早期 ~8–10ms，当日
+   150ms burn 后仍停在 6.6–7.7µs 平台、300ms burn 后 2/2 试次回到
+   5.1–5.7µs 紧带）。修复:
+   - warmup 从固定 150 次改为 **≥150 次且 ≥WARMUP_MS(300ms) wall
+     time**（时间制 burn，保证最后一个 idle 缺口后的降级态衰减完毕）;
+   - 测量内 **per-sample spike guard**: 相对运行中 clean 基线中位数
+     > SPIKE_FACTOR(1.5x) 的样本标记为 spike 并剔除出 block 中位数;
+     单 block clean 样本 < MIN_CLEAN_SAMPLES(50) → 该 round 无效
+     （`invalid_reason="INVALID_SPIKES"`），走与 DVFS 无效相同的
+     重试路径。
+
+v2.2 加固（2026-09-19 同日，R6 之后）:
+8. **guard 采样本身是触发源**: R6（v2.1 + 300ms burn）仍有 7/36
+   block 均匀变慢（无 spike、中位数整体抬高，spike guard 不可见）；
+   受控实验证明：测量路径零采样时 400 样本全程平坦（v4/v1 hot
+   比值 0.9987 紧带），而 500ms 周期的后台 dmon 轮询也会扰动结果
+   （比值漂移到 0.9468、样本整体漂移 + 单发 30µs spike）。结论:
+   round 内任何时钟采样（进程内 nvidia-smi 或后台 NVML 轮询）都
+   不可接受。v2.2 因此:
+   - round 循环内**不再做任何 nvidia-smi 采样**（v0.2 DVFS guard
+     的"5% 时钟相对差"判据退役；其目的——检出 A/B 测量区间间的
+     状态漂移——由下述跨 block 一致性 guard 承接，且不再受"采样值
+     是缺口/空闲时钟"的盲区影响）;
+   - **cross-block consistency guard**: 每个 variant 维护本 run 内
+     已测 block 中位数的运行中位数；warmup（前 CROSSBLOCK_WARMUP=3
+     个 block）后，某 block 中位数 > 运行中位数 × CROSSBLOCK_FACTOR
+     (1.15) → 该 round 无效（`invalid_reason="INVALID_CROSSBLOCK"`），
+     走相同的重试路径（≤3 次）。均匀慢块（spike guard 不可见的
+     失效模式）由此变为可检出、可重试；
+   - run 级环境快照保留: `gpu_state_before/after`（各一次 nvidia-smi；
+     before 的空隙由首 block 的 300ms burn 吸收）。
+   决策语义（KEEP/REJECT/NEUTRAL/UNSTABLE 判据）不变；v0.2/v2.1
+   冻结记录不受影响（按其各自 harness 版本解释）。
+
 adapter 协议（cudalab/operators/base.py::Operator）:
 - `op.name` / `op.bench_shapes` / `op.primary_target`
 - `op.make_bench_pool(M, H, dtype, mode, seed, pool_size) -> BenchPool`
@@ -36,6 +79,7 @@ adapter 协议（cudalab/operators/base.py::Operator）:
 from __future__ import annotations
 
 import statistics
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Optional
@@ -43,17 +87,29 @@ from typing import Callable, Optional
 import torch
 
 from . import stats as _stats
-from .gpu import now_iso, gpu_state, gpu_clocks, condense_clocks
+from .gpu import now_iso, gpu_state
 
-HARNESS_VERSION = "paired-streaming-v2"
+HARNESS_VERSION = "paired-streaming-v2.2"
 
-WARMUP = 150        # 每 variant 每 round 不计时预热启动
+WARMUP = 150        # 每 variant 每 round 不计时预热启动（v2.1: 最小次数）
+WARMUP_MS = 300.0   # v2.1: 预热还需满足的 wall time（ms）。idle-gap 降级态
+                    # 衰减时间实测逐日漂移: 2026-09-19 早期 ~8–10ms, 当日
+                    # 150ms burn 后仍停在 6.6–7.7µs 平台（2/2 试次），
+                    # 300ms burn 后 2/2 试次回到 5.1–5.7µs 紧带
+                    # （burn_probe 数据, 见 docs/evaluator_hardening_v0.3.md）
 ITERS = 100         # 每 round 计时样本数
 BATCH = 32          # 每样本连续启动数
 ROUNDS = 9          # 独立 round 数（>=7 推荐值）
-MAX_RETRIES = 3     # DVFS 无效 round 的最大重试次数
+MAX_RETRIES = 3     # 无效 round（SPIKES / CROSSBLOCK）的最大重试次数
 MIN_VALID_ROUNDS = 5
-DVFS_TOL = 0.05     # A/B 有效 SM clock 相对差 > 5% -> round 无效
+DVFS_TOL = 0.05     # v0.2 判据（v2.2 起 round 内不再采样；常量保留以
+                    # 维持 stats.check_dvfs_* 的默认签名与旧记录可解释性）
+SPIKE_FACTOR = 1.5  # v2.1: 样本 > 运行中 clean 基线中位数 * 1.5 -> spike
+MIN_CLEAN_SAMPLES = 50  # v2.1: 单 block clean 样本下限，低于则 round 无效
+CROSSBLOCK_FACTOR = 1.15   # v2.2: block 中位数 > variant 运行中位数 * 1.15
+                           # -> round 无效（均匀慢块检出）
+CROSSBLOCK_WARMUP = 3      # v2.2: 每 variant 前 3 个 block 不判（吸收
+                           # 首 block 的 run 前空隙 / first-touch 态）
 POOL_SIZE = 16      # streaming 模式缓冲池大小
 SEED = 1234         # 输入张量生成 seed（固定，可复现）
 L2_BYTES = 5.5 * 1024 * 1024  # RTX 2080 Ti L2（记录用；小 shape 无法
@@ -87,10 +143,20 @@ class BenchPool:
 
 def measure_block(pool: BenchPool, ext, variant: str,
                   warmup: int = WARMUP, iters: int = ITERS,
-                  batch: int = BATCH) -> float:
+                  batch: int = BATCH, warmup_ms: float = WARMUP_MS,
+                  spike_factor: float = SPIKE_FACTOR) -> dict:
     """测量一个 variant 在一个 round 内的中位单发时间（us）。
 
     hot: 固定 buffer 连续启动；streaming: 轮换 buffer（每次启动换 buffer）。
+
+    v2.1:
+    - 预热 = ≥warmup 次 launch **且** ≥warmup_ms wall time（时间制
+      burn）。block 之前总有一次 nvidia-smi 空闲缺口，缺口后的 GPU
+      降级态衰减时间逐日漂移（实测 8–10ms 至 >150ms）；固定 150 次
+      （~1ms）不够，300ms burn 实测 2/2 试次干净。
+    - per-sample spike guard: 样本 gpu_us > 运行中 clean 基线中位数
+      × spike_factor → 标记 spike，不进入 block 中位数。
+    - 返回 {"median_us", "n_clean", "n_spike"}。
     """
     if pool.mode == "hot":
         def one():
@@ -104,10 +170,15 @@ def measure_block(pool: BenchPool, ext, variant: str,
             pool.launch(ext, variant, i)
             state["i"] = (i + 1) % xs_n
 
-    for _ in range(warmup):
+    # 时间制预热 burn: 覆盖最后一个 idle 缺口后的降级态衰减
+    t_burn = time.perf_counter()
+    n_warm = 0
+    while n_warm < warmup or (time.perf_counter() - t_burn) * 1e3 < warmup_ms:
         one()
+        n_warm += 1
     torch.cuda.synchronize()
-    times: list[float] = []
+    clean: list[float] = []
+    n_spike = 0
     start = torch.cuda.Event(enable_timing=True)
     stop = torch.cuda.Event(enable_timing=True)
     for _ in range(iters):
@@ -116,8 +187,13 @@ def measure_block(pool: BenchPool, ext, variant: str,
             one()
         stop.record()
         torch.cuda.synchronize()
-        times.append(start.elapsed_time(stop) * 1e3 / batch)
-    return statistics.median(times)
+        t_us = start.elapsed_time(stop) * 1e3 / batch
+        if clean and t_us > spike_factor * statistics.median(clean[-50:]):
+            n_spike += 1
+        else:
+            clean.append(t_us)
+    return {"median_us": statistics.median(clean) if clean else None,
+            "n_clean": len(clean), "n_spike": n_spike}
 
 
 def bench_pair(op, ext, parent: str, candidate: str, M: int, H: int,
@@ -151,11 +227,39 @@ def bench_pair(op, ext, parent: str, candidate: str, M: int, H: int,
         "clock_policy": {"sm_clock_rel_tolerance": DVFS_TOL,
                          "min_valid_rounds": MIN_VALID_ROUNDS,
                          "max_retries": max_retries,
-                         "note": "有效时钟 = variant 测量区间前后两次 "
-                                 "nvidia-smi 采样的均值（轮询采样近似）"},
+                         "warmup_ms": WARMUP_MS,
+                         "spike_factor": SPIKE_FACTOR,
+                         "min_clean_samples": MIN_CLEAN_SAMPLES,
+                          "crossblock_factor": CROSSBLOCK_FACTOR,
+                          "crossblock_warmup": CROSSBLOCK_WARMUP,
+                         "note": "v2.2: round 内不做 nvidia-smi 采样"
+                                 "（采样本身是 idle-gap 触发源, 且采样值"
+                                 " 为缺口/空闲时钟而非负载时钟）; "
+                                 "A/B 状态漂移由跨 block 一致性 guard "
+                                 "（block 中位数 vs 该 variant 本 run "
+                                 "运行中位数）检出; run 级 gpu_state "
+                                 "before/after 快照保留"},
         "generated": now_iso(),
     }
     record["gpu_state_before"] = gpu_state()
+
+    # v2.2 跨 block 一致性 guard 的 per-variant 历史（含重试 block）
+    block_hist: dict[str, list[float]] = {parent: [], candidate: []}
+
+    def _crossblock_check(variant: str, block: dict) -> dict:
+        hist = block_hist[variant]
+        med = block["median_us"]
+        info: dict = {"running_med_us": None, "ratio": None,
+                      "flagged": False}
+        if med is not None and len(hist) >= CROSSBLOCK_WARMUP:
+            running_med = statistics.median(hist)
+            ratio = med / running_med
+            info["running_med_us"] = round(running_med, 3)
+            info["ratio"] = round(ratio, 4)
+            info["flagged"] = ratio > CROSSBLOCK_FACTOR
+        if med is not None:
+            hist.append(med)
+        return info
 
     rounds_out: list[dict] = []
     for slot in range(rounds):
@@ -163,16 +267,28 @@ def bench_pair(op, ext, parent: str, candidate: str, M: int, H: int,
         order = [parent, candidate] if slot % 2 == 0 else [candidate, parent]
         res = None
         for attempt in range(max_retries + 1):
-            c0 = gpu_clocks()
-            t_first = measure_block(pool, ext, order[0], warmup, iters, batch)
-            c1 = gpu_clocks()
-            t_second = measure_block(pool, ext, order[1], warmup, iters, batch)
-            c2 = gpu_clocks()
-            t_parent = t_first if order[0] == parent else t_second
-            t_cand = t_second if order[0] == parent else t_first
-            dvfs_ok, reason, eff_parent, eff_cand = _stats.check_dvfs_pair(
-                c0.get("sm_clock_mhz"), c1.get("sm_clock_mhz"),
-                c2.get("sm_clock_mhz"), order[0] == parent, tol=DVFS_TOL)
+            # v2.2: 此处无 nvidia-smi 采样（见模块 docstring 第 8 条）
+            b_first = measure_block(pool, ext, order[0], warmup, iters, batch)
+            b_second = measure_block(pool, ext, order[1], warmup, iters, batch)
+            first_is_parent = order[0] == parent
+            t_parent = b_first["median_us"] if first_is_parent else b_second["median_us"]
+            t_cand = b_second["median_us"] if first_is_parent else b_first["median_us"]
+            b_parent = b_first if first_is_parent else b_second
+            b_cand = b_second if first_is_parent else b_first
+            crossblock_info = {
+                parent: _crossblock_check(parent, b_parent),
+                candidate: _crossblock_check(candidate, b_cand),
+            }
+            spikes_ok = (b_parent["n_clean"] >= MIN_CLEAN_SAMPLES
+                         and b_cand["n_clean"] >= MIN_CLEAN_SAMPLES)
+            cross_ok = not (crossblock_info[parent]["flagged"]
+                            or crossblock_info[candidate]["flagged"])
+            if not spikes_ok:
+                invalid_reason = "INVALID_SPIKES"
+            elif not cross_ok:
+                invalid_reason = "INVALID_CROSSBLOCK"
+            else:
+                invalid_reason = None
             res = {
                 "round": slot + 1,
                 "order": order,
@@ -180,17 +296,17 @@ def bench_pair(op, ext, parent: str, candidate: str, M: int, H: int,
                 "parent_us": round(t_parent, 3),
                 "candidate_us": round(t_cand, 3),
                 "speedup": round(t_parent / t_cand, 6),
-                "valid": dvfs_ok,
-                "invalid_reason": reason if not dvfs_ok else None,
-                "clocks": {
-                    "before_pair": condense_clocks(c0),
-                    "after_first": condense_clocks(c1),
-                    "after_second": condense_clocks(c2),
-                    "eff_sm_parent_mhz": eff_parent,
-                    "eff_sm_candidate_mhz": eff_cand,
+                "valid": spikes_ok and cross_ok,
+                "invalid_reason": invalid_reason,
+                "samples": {
+                    "parent": {"n_clean": b_parent["n_clean"],
+                               "n_spike": b_parent["n_spike"]},
+                    "candidate": {"n_clean": b_cand["n_clean"],
+                                  "n_spike": b_cand["n_spike"]},
                 },
+                "crossblock": crossblock_info,
             }
-            if dvfs_ok:
+            if spikes_ok and cross_ok:
                 break
         rounds_out.append(res)
 
@@ -206,6 +322,14 @@ def bench_pair(op, ext, parent: str, candidate: str, M: int, H: int,
         "n_rounds": len(rounds_out),
         "valid_rounds": len(valid),
         "invalid_dvfs_rounds": len(rounds_out) - len(valid),
+        "invalid_dvfs_only_rounds":
+            sum(1 for r in rounds_out if r["invalid_reason"] != "INVALID_SPIKES"
+                and not r["valid"]),
+        "invalid_spikes_rounds":
+            sum(1 for r in rounds_out if r["invalid_reason"] == "INVALID_SPIKES"),
+        "invalid_crossblock_rounds":
+            sum(1 for r in rounds_out
+                if r["invalid_reason"] == "INVALID_CROSSBLOCK"),
         "rounds": rounds_out,
         "speedups": speedups,
         "median_speedup": s["median"],
@@ -256,36 +380,72 @@ def bench_matrix(op, ext, variants: list[str], M: int, H: int,
         "clock_policy": {"sm_clock_rel_tolerance": DVFS_TOL,
                          "min_valid_rounds": MIN_VALID_ROUNDS,
                          "max_retries": max_retries,
-                         "note": "round 有效 = 该 round 内所有 variant 有效 "
-                                 "SM clock 的极差/均值 <= 5%"},
+                         "warmup_ms": WARMUP_MS,
+                         "spike_factor": SPIKE_FACTOR,
+                         "min_clean_samples": MIN_CLEAN_SAMPLES,
+                          "crossblock_factor": CROSSBLOCK_FACTOR,
+                          "crossblock_warmup": CROSSBLOCK_WARMUP,
+                         "note": "v2.2: round 内不做 nvidia-smi 采样"
+                                 "（采样本身是 idle-gap 触发源, 且采样值"
+                                 " 为缺口/空闲时钟而非负载时钟）; "
+                                 "A/B 状态漂移由跨 block 一致性 guard "
+                                 "（block 中位数 vs 该 variant 本 run "
+                                 "运行中位数）检出; run 级 gpu_state "
+                                 "before/after 快照保留"},
         "generated": now_iso(),
     }
     record["gpu_state_before"] = gpu_state()
+
+    # v2.2 跨 block 一致性 guard 的 per-variant 历史（含重试 block）
+    block_hist: dict[str, list[float]] = {v: [] for v in variants}
+
+    def _crossblock_check(variant: str, block: dict) -> dict:
+        hist = block_hist[variant]
+        med = block["median_us"]
+        info: dict = {"running_med_us": None, "ratio": None,
+                      "flagged": False}
+        if med is not None and len(hist) >= CROSSBLOCK_WARMUP:
+            running_med = statistics.median(hist)
+            ratio = med / running_med
+            info["running_med_us"] = round(running_med, 3)
+            info["ratio"] = round(ratio, 4)
+            info["flagged"] = ratio > CROSSBLOCK_FACTOR
+        if med is not None:
+            hist.append(med)
+        return info
 
     rounds_out: list[dict] = []
     for slot in range(rounds):
         order = variants[slot % n:] + variants[:slot % n]  # round-robin
         res = None
         for attempt in range(max_retries + 1):
-            clocks: list[dict] = [gpu_clocks()]
-            per: dict[str, float] = {}
+            per: dict[str, dict] = {}
             for v in order:
                 per[v] = measure_block(pool, ext, v, warmup, iters, batch)
-                clocks.append(gpu_clocks())
-            sms = [c.get("sm_clock_mhz") for c in clocks]
-            dvfs_ok, reason, effs = _stats.check_dvfs_matrix(sms, tol=DVFS_TOL)
-            eff = {v: e for v, e in zip(order, effs)}
+            crossblock_info = {v: _crossblock_check(v, per[v])
+                               for v in order}
+            spikes_ok = all(per[v]["n_clean"] >= MIN_CLEAN_SAMPLES
+                            for v in order)
+            cross_ok = all(not info["flagged"]
+                            for info in crossblock_info.values())
+            if not spikes_ok:
+                invalid_reason = "INVALID_SPIKES"
+            elif not cross_ok:
+                invalid_reason = "INVALID_CROSSBLOCK"
+            else:
+                invalid_reason = None
             res = {
                 "round": slot + 1,
                 "order": order,
                 "retries": attempt,
-                "valid": dvfs_ok,
-                "invalid_reason": reason if not dvfs_ok else None,
-                "us": {v: round(per[v], 3) for v in order},
-                "eff_sm_mhz": {v: eff[v] for v in order},
-                "clocks": [condense_clocks(c) for c in clocks],
+                "valid": spikes_ok and cross_ok,
+                "invalid_reason": invalid_reason,
+                "us": {v: round(per[v]["median_us"], 3) for v in order},
+                "samples": {v: {"n_clean": per[v]["n_clean"],
+                                "n_spike": per[v]["n_spike"]} for v in order},
+                "crossblock": crossblock_info,
             }
-            if dvfs_ok:
+            if spikes_ok and cross_ok:
                 break
         rounds_out.append(res)
 
@@ -306,6 +466,11 @@ def bench_matrix(op, ext, variants: list[str], M: int, H: int,
         "n_rounds": len(rounds_out),
         "valid_rounds": len(valid),
         "invalid_dvfs_rounds": len(rounds_out) - len(valid),
+        "invalid_spikes_rounds":
+            sum(1 for r in rounds_out if r["invalid_reason"] == "INVALID_SPIKES"),
+        "invalid_crossblock_rounds":
+            sum(1 for r in rounds_out
+                if r["invalid_reason"] == "INVALID_CROSSBLOCK"),
         "rounds": rounds_out,
         "per_variant": per_variant,
     })

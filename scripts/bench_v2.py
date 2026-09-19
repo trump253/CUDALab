@@ -97,17 +97,23 @@ def _print_pair_summary(rec: dict):
     print(f"[pair] {rec['parent']} vs {rec['candidate']} "
           f"M={rec['shape'][0]} H={rec['shape'][1]} "
           f"{rec['dtype']} mode={rec['cache_mode']}")
-    print(f"  valid rounds: {rec['valid_rounds']}/{rec['n_rounds']} "
-          f"(invalid DVFS: {rec['invalid_dvfs_rounds']})")
+    inv_extra = []
+    if rec.get("invalid_spikes_rounds"):
+        inv_extra.append(f"spikes={rec['invalid_spikes_rounds']}")
+    if rec.get("invalid_crossblock_rounds"):
+        inv_extra.append(f"crossblock={rec['invalid_crossblock_rounds']}")
+    inv_suffix = f" ({', '.join(inv_extra)})" if inv_extra else ""
+    print(f"  valid rounds: {rec['valid_rounds']}/{rec['n_rounds']}{inv_suffix}")
     print(f"  parent    median: {rec['parent_median_us']} us "
           f"  algo BW: {rec['algorithmic_bw_gbps_parent']} GB/s")
     print(f"  candidate median: {rec['candidate_median_us']} us "
           f"  algo BW: {rec['algorithmic_bw_gbps_candidate']} GB/s")
     print(f"  median speedup (parent/cand): {rec['median_speedup']}  "
           f"CI95: {rec['bootstrap_ci_95']}  faster rounds: {rec['faster_rounds']}")
-    c = rec["clocks"] if "clocks" in rec else None
-    sms = [r["clocks"].get("eff_sm_parent_mhz") for r in rec["rounds"]
-           if r["valid"]]
+    # v2.2 起 round 内无 clock 采样; 仅对旧记录（v0.2/v2.1 及更早）打印
+    sms = [r["clocks"]["eff_sm_parent_mhz"] for r in rec["rounds"]
+           if r.get("valid") and r.get("clocks") is not None
+           and r["clocks"].get("eff_sm_parent_mhz") is not None]
     if sms:
         print(f"  parent 有效 SM clock 范围: {min(sms):.0f}-{max(sms):.0f} MHz")
 
