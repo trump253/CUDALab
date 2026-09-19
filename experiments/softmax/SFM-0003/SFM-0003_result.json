@@ -1,0 +1,192 @@
+{
+  "experiment": "SFM-0003",
+  "candidate": "softmax_vec4_ilp2",
+  "parent": "softmax_vec4",
+  "generated": "2026-09-19T21:18:13+0800",
+  "harness": "paired-streaming-v2.2",
+  "correctness": {
+    "ilp2_all_pass": true,
+    "ilp2_max_abs_error": 7.63e-06,
+    "ilp2_max_row_sum_error": 3.695e-05
+  },
+  "bitwise_vs_vec4": {
+    "checks": [
+      {
+        "shape": [
+          1,
+          128
+        ],
+        "dtype": "float16",
+        "bitwise_equal": true
+      },
+      {
+        "shape": [
+          1,
+          128
+        ],
+        "dtype": "float32",
+        "bitwise_equal": true
+      },
+      {
+        "shape": [
+          128,
+          4096
+        ],
+        "dtype": "float16",
+        "bitwise_equal": true
+      },
+      {
+        "shape": [
+          128,
+          4096
+        ],
+        "dtype": "float32",
+        "bitwise_equal": true
+      },
+      {
+        "shape": [
+          1024,
+          1024
+        ],
+        "dtype": "float16",
+        "bitwise_equal": true
+      },
+      {
+        "shape": [
+          1024,
+          1024
+        ],
+        "dtype": "float32",
+        "bitwise_equal": true
+      },
+      {
+        "shape": [
+          128,
+          8192
+        ],
+        "dtype": "float16",
+        "bitwise_equal": true
+      },
+      {
+        "shape": [
+          128,
+          8192
+        ],
+        "dtype": "float32",
+        "bitwise_equal": true
+      }
+    ],
+    "all_equal": true
+  },
+  "fallback_path": {
+    "checks": [
+      {
+        "shape": [
+          4,
+          126
+        ],
+        "dtype": "float16",
+        "max_abs": 0.0,
+        "row_sum_err": 2.5272369384765625e-05,
+        "ok": true
+      },
+      {
+        "shape": [
+          4,
+          126
+        ],
+        "dtype": "float32",
+        "max_abs": 7.450580596923828e-09,
+        "row_sum_err": 5.960464477539063e-08,
+        "ok": true
+      },
+      {
+        "shape": [
+          4,
+          130
+        ],
+        "dtype": "float16",
+        "max_abs": 0.0,
+        "row_sum_err": 2.4318695068359375e-05,
+        "ok": true
+      },
+      {
+        "shape": [
+          4,
+          130
+        ],
+        "dtype": "float32",
+        "max_abs": 7.450580596923828e-09,
+        "row_sum_err": 1.1920928955078125e-07,
+        "ok": true
+      },
+      {
+        "shape": [
+          2,
+          100
+        ],
+        "dtype": "float16",
+        "max_abs": 0.0,
+        "row_sum_err": 1.0967254638671875e-05,
+        "ok": true
+      },
+      {
+        "shape": [
+          2,
+          100
+        ],
+        "dtype": "float32",
+        "max_abs": 7.450580596923828e-09,
+        "row_sum_err": 0.0,
+        "ok": true
+      }
+    ],
+    "all_ok": true
+  },
+  "negative": {
+    "all_pass": true,
+    "n_passed": 14,
+    "n_total": 15,
+    "n_skipped": 1
+  },
+  "paired_bench_primary_M128_H4096_fp16": {
+    "hot": {
+      "median_speedup": 1.010833,
+      "ci95": [
+        1.003538,
+        1.094421
+      ],
+      "faster_rounds": "8/9",
+      "n_rounds": 9,
+      "valid_rounds": 9,
+      "invalid_spikes_rounds": 0,
+      "invalid_crossblock_rounds": 0,
+      "parent_median_us": 4.849,
+      "candidate_median_us": 4.8,
+      "bw_parent": 432.5,
+      "bw_candidate": 436.9,
+      "record_file": "pair_vec4_vs_ilp2_M128_H4096_fp16_hot.json",
+      "decision": "NEUTRAL",
+      "rule": "median 1.0108 within (0.95, 1.05) or mixed rounds (8/9 faster) or CI not excluded 1.00 (CI95=[1.003538, 1.094421]) -> NEUTRAL"
+    },
+    "streaming": {
+      "median_speedup": 0.981497,
+      "ci95": [
+        0.979704,
+        0.983127
+      ],
+      "faster_rounds": "0/9",
+      "n_rounds": 9,
+      "valid_rounds": 9,
+      "invalid_spikes_rounds": 0,
+      "invalid_crossblock_rounds": 0,
+      "parent_median_us": 5.885,
+      "candidate_median_us": 5.999,
+      "bw_parent": 356.4,
+      "bw_candidate": 349.6,
+      "record_file": "pair_vec4_vs_ilp2_M128_H4096_fp16_streaming.json",
+      "decision": "NEUTRAL",
+      "rule": "median 0.9815 within (0.95, 1.05) or mixed rounds (0/9 faster) or CI not excluded 1.00 (CI95=[0.979704, 0.983127]) -> NEUTRAL"
+    }
+  }
+}
