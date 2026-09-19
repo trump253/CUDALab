@@ -6,6 +6,13 @@ JSON 摘要。指标取不到时字段为 null —— 绝不伪造数字。ncu �
 
 指标名已在本 GPU / 本 ncu 版本上用 `ncu --query-metrics` 核实。
 
+v0.2 方法学审计（NCU 2022.3.0）:
+- `--cache-control {all,none}`，默认 **all** = 剖析前不失效缓存（L2 保持
+  热）。v0.1 未传该参数，因此 v0.1 报告中 "cold L2" 的说法没有配置
+  依据，实际是热缓存。v0.2 起两种模式都显式记录在 JSON 里。
+- `--clock-control {base,none,reset}`，默认 base = 尝试锁到 base clock；
+  容器内可能失败，stderr 警告会被提取到 `clock_lock_warning` 字段。
+
 解读说明（sm_75，NCU 2022.3）:
 - `gpu__time_duration.sum` 在 --csv 中报告的单位是 **nsecond**；此处
   换算为微秒。
@@ -34,6 +41,8 @@ PYTHON_REAL = "/root/miniconda3/envs/pytorch/bin/python3.10"
 # 已核实可用的指标（NCU 2022.3，sm_75）。
 METRICS = [
     "gpu__time_duration.sum",
+    "l1tex__t_sector_hit_rate",
+    "lts__t_sector_op_read_hit_rate",
     "dram__throughput.avg.pct_of_peak_sustained_elapsed",
     "sm__throughput.avg.pct_of_peak_sustained_elapsed",
     "sm__warps_active.avg.pct_of_peak_sustained_active",
@@ -127,17 +136,33 @@ def _avg(launches: list[dict], metric: str, unit: str = None):
 
 def profile_variant(variant: str, M: int = 128, H: int = 4096,
                     out_path: Path | None = None, ncu: str = NCU,
-                    launch_skip: int = 2, launch_count: int = 4) -> dict:
-    """剖析单个变体在单个形状上的表现；返回（并保存）摘要。"""
-    PROF_DIR.mkdir(parents=True, exist_ok=True)
-    raw_dir = PROF_DIR / "raw"
-    raw_dir.mkdir(exist_ok=True)
+                    launch_skip: int = 2, launch_count: int = 4,
+                    cache_control: str = "all",
+                    clock_control: str = "base") -> dict:
+    """剖析单个变体在单个形状上的表现；返回（并保存）摘要。
+
+    cache_control:
+      "all"  (ncu 默认) —— 剖析前 **不** 失效 GPU 缓存，L2 保持热；
+      "none"            —— 剖析前失效全部缓存（L1/L2 冷启动）。
+    注意 v0.1 的 "cold L2" 说法并无配置依据：v0.1 未传 --cache-control，
+    实际走的就是默认 "all"（热缓存）。v0.2 显式记录该参数。
+
+    clock_control:
+      "base" (ncu 默认) —— 尝试把 GPU 锁定到 base clock（容器内可能
+      失败，原始输出会保留以便审计）；"none" —— 不锁频。
+    """
     if out_path is None:
         out_path = PROF_DIR / f"{variant}_M{M}_H{H}.json"
+    # raw 输出跟随目标目录（v0.2 → profiles/rmsnorm/v0.2/raw/，
+    # 避免与 v0.1 原始报告混淆或互相覆盖）。
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    raw_dir = out_path.parent / "raw"
+    raw_dir.mkdir(exist_ok=True)
 
-    drv = raw_dir / f"{variant}_M{M}_H{H}_drv.py"
+    tag = f"{variant}_M{M}_H{H}_cc{cache_control}_clk{clock_control}"
+    drv = raw_dir / f"{tag}_drv.py"
     drv.write_text(_driver_source(variant, M, H))
-    raw_txt = raw_dir / f"{variant}_M{M}_H{H}.ncu.txt"
+    raw_txt = raw_dir / f"{tag}.ncu.txt"
 
     cmd = [
         ncu, "--csv",
@@ -145,6 +170,8 @@ def profile_variant(variant: str, M: int = 128, H: int = 4096,
         "--launch-skip", str(launch_skip),
         "--launch-count", str(launch_count),
         "--metrics", ",".join(METRICS),
+        "--cache-control", cache_control,
+        "--clock-control", clock_control,
         PYTHON_REAL, str(drv),
     ]
     env = dict(os.environ, CUDA_VISIBLE_DEVICES=os.environ.get("CUDA_VISIBLE_DEVICES", "0"))
@@ -159,8 +186,13 @@ def profile_variant(variant: str, M: int = 128, H: int = 4096,
         "variant": variant,
         "shape": [M, H],
         "ncu_version": _ncu_version(ncu),
+        "cache_control": cache_control,
+        "clock_control": clock_control,
+        "clock_lock_warning": None,  # 从 stderr 提取的锁频警告（如有）
         "kernel_name": None,
         "kernel_duration_us": None,
+        "l1_hit_rate": None,        # {value, unit} —— 不做百分比假设
+        "l2_read_hit_rate": None,
         "dram_throughput_pct": None,
         "sm_throughput_pct": None,
         "achieved_occupancy_pct": None,
@@ -182,8 +214,32 @@ def profile_variant(variant: str, M: int = 128, H: int = 4096,
         out_path.write_text(json.dumps(summary, indent=2))
         return summary
 
+    # 锁频是否真正生效：容器内 ncu 无法锁频时 stderr 会有警告。
+    for ln in proc.stderr.splitlines():
+        low = ln.lower()
+        if "clock" in low and ("fail" in low or "unable" in low or "cannot" in low
+                               or "not supported" in low or "denied" in low):
+            summary["clock_lock_warning"] = ln.strip()
+            break
+
     summary["n_launches_profiled"] = len(launches)
     summary["kernel_name"] = kernel_name
+
+    def rate(metric: str):
+        """平均命中率；返回 (value, unit) 原样记录，不假设单位。"""
+        vals, units = [], set()
+        for d in launches:
+            for (m, u), v in d.items():
+                if m == metric:
+                    vals.append(v)
+                    units.add(u)
+        if not vals:
+            return None
+        return {"value": round(sum(vals) / len(vals), 4),
+                "unit": sorted(units)[0] if units else None}
+
+    summary["l1_hit_rate"] = rate("l1tex__t_sector_hit_rate")
+    summary["l2_read_hit_rate"] = rate("lts__t_sector_op_read_hit_rate")
 
     def pct(metric: str):
         v = _avg(launches, metric, "%")
