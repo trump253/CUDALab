@@ -1,0 +1,770 @@
+{
+  "harness": "paired-streaming-v2.2",
+  "operator": "softmax",
+  "shape": [
+    128,
+    8192
+  ],
+  "dtype": "float32",
+  "cache_mode": "streaming",
+  "seed": 1234,
+  "warmup": 150,
+  "iters": 100,
+  "batch": 32,
+  "pool": {
+    "pool_size": 16,
+    "working_set_bytes": 134217728,
+    "working_set_gt_l2": true
+  },
+  "clock_policy": {
+    "sm_clock_rel_tolerance": 0.05,
+    "min_valid_rounds": 5,
+    "max_retries": 3,
+    "warmup_ms": 300.0,
+    "spike_factor": 1.5,
+    "min_clean_samples": 50,
+    "crossblock_factor": 1.15,
+    "crossblock_warmup": 3,
+    "note": "v2.2: round 内不做 nvidia-smi 采样（采样本身是 idle-gap 触发源, 且采样值 为缺口/空闲时钟而非负载时钟）; A/B 状态漂移由跨 block 一致性 guard （block 中位数 vs 该 variant 本 run 运行中位数）检出; run 级 gpu_state before/after 快照保留"
+  },
+  "generated": "2026-09-19T22:08:57+08:00",
+  "gpu_state_before": {
+    "gpu_index": 0,
+    "name": " NVIDIA GeForce RTX 2080 Ti",
+    "temp_c": 65,
+    "sm_clock_mhz": 1845,
+    "mem_clock_mhz": 6800,
+    "power_w": 122.36,
+    "gpu_util_pct": 98,
+    "mem_util_pct": 94,
+    "ts": 1789826937.4436264
+  },
+  "variants": [
+    "softmax_baseline",
+    "softmax_vec4",
+    "softmax_online",
+    "softmax_vec4_ilp2",
+    "softmax_hsplit2"
+  ],
+  "n_rounds": 9,
+  "valid_rounds": 9,
+  "invalid_dvfs_rounds": 0,
+  "invalid_spikes_rounds": 0,
+  "invalid_crossblock_rounds": 0,
+  "rounds": [
+    {
+      "round": 1,
+      "order": [
+        "softmax_baseline",
+        "softmax_vec4",
+        "softmax_online",
+        "softmax_vec4_ilp2",
+        "softmax_hsplit2"
+      ],
+      "retries": 0,
+      "valid": true,
+      "invalid_reason": null,
+      "us": {
+        "softmax_baseline": 21.376,
+        "softmax_vec4": 19.52,
+        "softmax_online": 20.264,
+        "softmax_vec4_ilp2": 19.656,
+        "softmax_hsplit2": 23.654
+      },
+      "samples": {
+        "softmax_baseline": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_vec4": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_online": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_vec4_ilp2": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_hsplit2": {
+          "n_clean": 100,
+          "n_spike": 0
+        }
+      },
+      "crossblock": {
+        "softmax_baseline": {
+          "running_med_us": null,
+          "ratio": null,
+          "flagged": false
+        },
+        "softmax_vec4": {
+          "running_med_us": null,
+          "ratio": null,
+          "flagged": false
+        },
+        "softmax_online": {
+          "running_med_us": null,
+          "ratio": null,
+          "flagged": false
+        },
+        "softmax_vec4_ilp2": {
+          "running_med_us": null,
+          "ratio": null,
+          "flagged": false
+        },
+        "softmax_hsplit2": {
+          "running_med_us": null,
+          "ratio": null,
+          "flagged": false
+        }
+      }
+    },
+    {
+      "round": 2,
+      "order": [
+        "softmax_vec4",
+        "softmax_online",
+        "softmax_vec4_ilp2",
+        "softmax_hsplit2",
+        "softmax_baseline"
+      ],
+      "retries": 0,
+      "valid": true,
+      "invalid_reason": null,
+      "us": {
+        "softmax_vec4": 19.52,
+        "softmax_online": 20.284,
+        "softmax_vec4_ilp2": 19.651,
+        "softmax_hsplit2": 23.669,
+        "softmax_baseline": 21.373
+      },
+      "samples": {
+        "softmax_vec4": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_online": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_vec4_ilp2": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_hsplit2": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_baseline": {
+          "n_clean": 100,
+          "n_spike": 0
+        }
+      },
+      "crossblock": {
+        "softmax_vec4": {
+          "running_med_us": null,
+          "ratio": null,
+          "flagged": false
+        },
+        "softmax_online": {
+          "running_med_us": null,
+          "ratio": null,
+          "flagged": false
+        },
+        "softmax_vec4_ilp2": {
+          "running_med_us": null,
+          "ratio": null,
+          "flagged": false
+        },
+        "softmax_hsplit2": {
+          "running_med_us": null,
+          "ratio": null,
+          "flagged": false
+        },
+        "softmax_baseline": {
+          "running_med_us": null,
+          "ratio": null,
+          "flagged": false
+        }
+      }
+    },
+    {
+      "round": 3,
+      "order": [
+        "softmax_online",
+        "softmax_vec4_ilp2",
+        "softmax_hsplit2",
+        "softmax_baseline",
+        "softmax_vec4"
+      ],
+      "retries": 0,
+      "valid": true,
+      "invalid_reason": null,
+      "us": {
+        "softmax_online": 20.297,
+        "softmax_vec4_ilp2": 19.672,
+        "softmax_hsplit2": 23.636,
+        "softmax_baseline": 21.376,
+        "softmax_vec4": 19.521
+      },
+      "samples": {
+        "softmax_online": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_vec4_ilp2": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_hsplit2": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_baseline": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_vec4": {
+          "n_clean": 100,
+          "n_spike": 0
+        }
+      },
+      "crossblock": {
+        "softmax_online": {
+          "running_med_us": null,
+          "ratio": null,
+          "flagged": false
+        },
+        "softmax_vec4_ilp2": {
+          "running_med_us": null,
+          "ratio": null,
+          "flagged": false
+        },
+        "softmax_hsplit2": {
+          "running_med_us": null,
+          "ratio": null,
+          "flagged": false
+        },
+        "softmax_baseline": {
+          "running_med_us": null,
+          "ratio": null,
+          "flagged": false
+        },
+        "softmax_vec4": {
+          "running_med_us": null,
+          "ratio": null,
+          "flagged": false
+        }
+      }
+    },
+    {
+      "round": 4,
+      "order": [
+        "softmax_vec4_ilp2",
+        "softmax_hsplit2",
+        "softmax_baseline",
+        "softmax_vec4",
+        "softmax_online"
+      ],
+      "retries": 0,
+      "valid": true,
+      "invalid_reason": null,
+      "us": {
+        "softmax_vec4_ilp2": 19.665,
+        "softmax_hsplit2": 23.645,
+        "softmax_baseline": 21.368,
+        "softmax_vec4": 19.52,
+        "softmax_online": 20.28
+      },
+      "samples": {
+        "softmax_vec4_ilp2": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_hsplit2": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_baseline": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_vec4": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_online": {
+          "n_clean": 100,
+          "n_spike": 0
+        }
+      },
+      "crossblock": {
+        "softmax_vec4_ilp2": {
+          "running_med_us": 19.656,
+          "ratio": 1.0005,
+          "flagged": false
+        },
+        "softmax_hsplit2": {
+          "running_med_us": 23.654,
+          "ratio": 0.9996,
+          "flagged": false
+        },
+        "softmax_baseline": {
+          "running_med_us": 21.376,
+          "ratio": 0.9996,
+          "flagged": false
+        },
+        "softmax_vec4": {
+          "running_med_us": 19.52,
+          "ratio": 1.0,
+          "flagged": false
+        },
+        "softmax_online": {
+          "running_med_us": 20.284,
+          "ratio": 0.9998,
+          "flagged": false
+        }
+      }
+    },
+    {
+      "round": 5,
+      "order": [
+        "softmax_hsplit2",
+        "softmax_baseline",
+        "softmax_vec4",
+        "softmax_online",
+        "softmax_vec4_ilp2"
+      ],
+      "retries": 0,
+      "valid": true,
+      "invalid_reason": null,
+      "us": {
+        "softmax_hsplit2": 23.625,
+        "softmax_baseline": 21.383,
+        "softmax_vec4": 19.54,
+        "softmax_online": 20.288,
+        "softmax_vec4_ilp2": 19.664
+      },
+      "samples": {
+        "softmax_hsplit2": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_baseline": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_vec4": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_online": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_vec4_ilp2": {
+          "n_clean": 100,
+          "n_spike": 0
+        }
+      },
+      "crossblock": {
+        "softmax_hsplit2": {
+          "running_med_us": 23.65,
+          "ratio": 0.999,
+          "flagged": false
+        },
+        "softmax_baseline": {
+          "running_med_us": 21.375,
+          "ratio": 1.0004,
+          "flagged": false
+        },
+        "softmax_vec4": {
+          "running_med_us": 19.52,
+          "ratio": 1.001,
+          "flagged": false
+        },
+        "softmax_online": {
+          "running_med_us": 20.282,
+          "ratio": 1.0003,
+          "flagged": false
+        },
+        "softmax_vec4_ilp2": {
+          "running_med_us": 19.66,
+          "ratio": 1.0002,
+          "flagged": false
+        }
+      }
+    },
+    {
+      "round": 6,
+      "order": [
+        "softmax_baseline",
+        "softmax_vec4",
+        "softmax_online",
+        "softmax_vec4_ilp2",
+        "softmax_hsplit2"
+      ],
+      "retries": 0,
+      "valid": true,
+      "invalid_reason": null,
+      "us": {
+        "softmax_baseline": 21.376,
+        "softmax_vec4": 19.515,
+        "softmax_online": 20.25,
+        "softmax_vec4_ilp2": 19.681,
+        "softmax_hsplit2": 23.648
+      },
+      "samples": {
+        "softmax_baseline": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_vec4": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_online": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_vec4_ilp2": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_hsplit2": {
+          "n_clean": 100,
+          "n_spike": 0
+        }
+      },
+      "crossblock": {
+        "softmax_baseline": {
+          "running_med_us": 21.376,
+          "ratio": 1.0,
+          "flagged": false
+        },
+        "softmax_vec4": {
+          "running_med_us": 19.52,
+          "ratio": 0.9997,
+          "flagged": false
+        },
+        "softmax_online": {
+          "running_med_us": 20.284,
+          "ratio": 0.9983,
+          "flagged": false
+        },
+        "softmax_vec4_ilp2": {
+          "running_med_us": 19.664,
+          "ratio": 1.0009,
+          "flagged": false
+        },
+        "softmax_hsplit2": {
+          "running_med_us": 23.645,
+          "ratio": 1.0001,
+          "flagged": false
+        }
+      }
+    },
+    {
+      "round": 7,
+      "order": [
+        "softmax_vec4",
+        "softmax_online",
+        "softmax_vec4_ilp2",
+        "softmax_hsplit2",
+        "softmax_baseline"
+      ],
+      "retries": 0,
+      "valid": true,
+      "invalid_reason": null,
+      "us": {
+        "softmax_vec4": 19.52,
+        "softmax_online": 20.285,
+        "softmax_vec4_ilp2": 19.664,
+        "softmax_hsplit2": 23.646,
+        "softmax_baseline": 21.385
+      },
+      "samples": {
+        "softmax_vec4": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_online": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_vec4_ilp2": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_hsplit2": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_baseline": {
+          "n_clean": 100,
+          "n_spike": 0
+        }
+      },
+      "crossblock": {
+        "softmax_vec4": {
+          "running_med_us": 19.52,
+          "ratio": 1.0,
+          "flagged": false
+        },
+        "softmax_online": {
+          "running_med_us": 20.282,
+          "ratio": 1.0001,
+          "flagged": false
+        },
+        "softmax_vec4_ilp2": {
+          "running_med_us": 19.665,
+          "ratio": 0.9999,
+          "flagged": false
+        },
+        "softmax_hsplit2": {
+          "running_med_us": 23.646,
+          "ratio": 1.0,
+          "flagged": false
+        },
+        "softmax_baseline": {
+          "running_med_us": 21.376,
+          "ratio": 1.0004,
+          "flagged": false
+        }
+      }
+    },
+    {
+      "round": 8,
+      "order": [
+        "softmax_online",
+        "softmax_vec4_ilp2",
+        "softmax_hsplit2",
+        "softmax_baseline",
+        "softmax_vec4"
+      ],
+      "retries": 0,
+      "valid": true,
+      "invalid_reason": null,
+      "us": {
+        "softmax_online": 20.275,
+        "softmax_vec4_ilp2": 19.677,
+        "softmax_hsplit2": 23.582,
+        "softmax_baseline": 21.381,
+        "softmax_vec4": 19.542
+      },
+      "samples": {
+        "softmax_online": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_vec4_ilp2": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_hsplit2": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_baseline": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_vec4": {
+          "n_clean": 100,
+          "n_spike": 0
+        }
+      },
+      "crossblock": {
+        "softmax_online": {
+          "running_med_us": 20.284,
+          "ratio": 0.9995,
+          "flagged": false
+        },
+        "softmax_vec4_ilp2": {
+          "running_med_us": 19.664,
+          "ratio": 1.0006,
+          "flagged": false
+        },
+        "softmax_hsplit2": {
+          "running_med_us": 23.646,
+          "ratio": 0.9973,
+          "flagged": false
+        },
+        "softmax_baseline": {
+          "running_med_us": 21.376,
+          "ratio": 1.0002,
+          "flagged": false
+        },
+        "softmax_vec4": {
+          "running_med_us": 19.52,
+          "ratio": 1.0012,
+          "flagged": false
+        }
+      }
+    },
+    {
+      "round": 9,
+      "order": [
+        "softmax_vec4_ilp2",
+        "softmax_hsplit2",
+        "softmax_baseline",
+        "softmax_vec4",
+        "softmax_online"
+      ],
+      "retries": 0,
+      "valid": true,
+      "invalid_reason": null,
+      "us": {
+        "softmax_vec4_ilp2": 19.66,
+        "softmax_hsplit2": 23.576,
+        "softmax_baseline": 21.359,
+        "softmax_vec4": 19.52,
+        "softmax_online": 20.247
+      },
+      "samples": {
+        "softmax_vec4_ilp2": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_hsplit2": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_baseline": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_vec4": {
+          "n_clean": 100,
+          "n_spike": 0
+        },
+        "softmax_online": {
+          "n_clean": 100,
+          "n_spike": 0
+        }
+      },
+      "crossblock": {
+        "softmax_vec4_ilp2": {
+          "running_med_us": 19.665,
+          "ratio": 0.9998,
+          "flagged": false
+        },
+        "softmax_hsplit2": {
+          "running_med_us": 23.646,
+          "ratio": 0.9971,
+          "flagged": false
+        },
+        "softmax_baseline": {
+          "running_med_us": 21.376,
+          "ratio": 0.9992,
+          "flagged": false
+        },
+        "softmax_vec4": {
+          "running_med_us": 19.52,
+          "ratio": 1.0,
+          "flagged": false
+        },
+        "softmax_online": {
+          "running_med_us": 20.282,
+          "ratio": 0.9982,
+          "flagged": false
+        }
+      }
+    }
+  ],
+  "per_variant": {
+    "softmax_baseline": {
+      "round_medians_us": [
+        21.376,
+        21.373,
+        21.376,
+        21.368,
+        21.383,
+        21.376,
+        21.385,
+        21.381,
+        21.359
+      ],
+      "median_us": 21.376,
+      "algorithmic_bw_gbps": 392.4,
+      "n_valid_rounds": 9
+    },
+    "softmax_vec4": {
+      "round_medians_us": [
+        19.52,
+        19.52,
+        19.521,
+        19.52,
+        19.54,
+        19.515,
+        19.52,
+        19.542,
+        19.52
+      ],
+      "median_us": 19.52,
+      "algorithmic_bw_gbps": 429.7,
+      "n_valid_rounds": 9
+    },
+    "softmax_online": {
+      "round_medians_us": [
+        20.264,
+        20.284,
+        20.297,
+        20.28,
+        20.288,
+        20.25,
+        20.285,
+        20.275,
+        20.247
+      ],
+      "median_us": 20.28,
+      "algorithmic_bw_gbps": 413.6,
+      "n_valid_rounds": 9
+    },
+    "softmax_vec4_ilp2": {
+      "round_medians_us": [
+        19.656,
+        19.651,
+        19.672,
+        19.665,
+        19.664,
+        19.681,
+        19.664,
+        19.677,
+        19.66
+      ],
+      "median_us": 19.664,
+      "algorithmic_bw_gbps": 426.6,
+      "n_valid_rounds": 9
+    },
+    "softmax_hsplit2": {
+      "round_medians_us": [
+        23.654,
+        23.669,
+        23.636,
+        23.645,
+        23.625,
+        23.648,
+        23.646,
+        23.582,
+        23.576
+      ],
+      "median_us": 23.645,
+      "algorithmic_bw_gbps": 354.8,
+      "n_valid_rounds": 9
+    }
+  },
+  "gpu_state_after": {
+    "gpu_index": 0,
+    "name": " NVIDIA GeForce RTX 2080 Ti",
+    "temp_c": 68,
+    "sm_clock_mhz": 1845,
+    "mem_clock_mhz": 6800,
+    "power_w": 233.45,
+    "gpu_util_pct": 99,
+    "mem_util_pct": 95,
+    "ts": 1789826954.9799263
+  }
+}

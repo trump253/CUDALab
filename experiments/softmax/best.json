@@ -1,0 +1,852 @@
+{
+  "generated": "2026-09-19T21:59:20+0800",
+  "operator": "softmax",
+  "harness": "paired-streaming-v2.2",
+  "variants": [
+    "softmax_baseline",
+    "softmax_vec4",
+    "softmax_online",
+    "softmax_vec4_ilp2",
+    "softmax_hsplit2"
+  ],
+  "method": "每 (shape, dtype, cache_mode) 单元格: 同一 matrix run 内 round-level paired, evaluator.experiment.classify_cell",
+  "cells": {
+    "M1_H128_float16_hot": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_baseline",
+      "runner_up": "softmax_vec4",
+      "median_ratio": 0.997889,
+      "bootstrap_ci_95": [
+        0.986278,
+        1.126084
+      ],
+      "faster_rounds": "4/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 4.725,
+        "softmax_vec4": 4.726,
+        "softmax_online": 4.745,
+        "softmax_vec4_ilp2": 4.801,
+        "softmax_hsplit2": 6.976
+      },
+      "record_file": "full5_M1_H128_float16_hot.json",
+      "best_label": "INCUMBENT",
+      "best_variant": "softmax_vec4"
+    },
+    "M1_H128_float16_streaming": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_baseline",
+      "runner_up": "softmax_vec4",
+      "median_ratio": 1.002571,
+      "bootstrap_ci_95": [
+        0.996002,
+        1.05894
+      ],
+      "faster_rounds": "5/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 5.045,
+        "softmax_vec4": 5.047,
+        "softmax_online": 5.113,
+        "softmax_vec4_ilp2": 5.118,
+        "softmax_hsplit2": 7.236
+      },
+      "record_file": "full5_M1_H128_float16_streaming.json",
+      "best_label": "INCUMBENT",
+      "best_variant": "softmax_vec4"
+    },
+    "M1_H128_float32_hot": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_baseline",
+      "runner_up": "softmax_vec4",
+      "median_ratio": 1.010533,
+      "bootstrap_ci_95": [
+        0.984809,
+        1.01738
+      ],
+      "faster_rounds": "7/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 4.734,
+        "softmax_vec4": 4.8,
+        "softmax_online": 4.8,
+        "softmax_vec4_ilp2": 4.866,
+        "softmax_hsplit2": 7.565
+      },
+      "record_file": "full5_M1_H128_float32_hot.json",
+      "best_label": "INCUMBENT",
+      "best_variant": "softmax_vec4"
+    },
+    "M1_H128_float32_streaming": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_baseline",
+      "runner_up": "softmax_online",
+      "median_ratio": 1.00457,
+      "bootstrap_ci_95": [
+        0.953858,
+        1.011669
+      ],
+      "faster_rounds": "6/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 5.033,
+        "softmax_vec4": 5.161,
+        "softmax_online": 5.044,
+        "softmax_vec4_ilp2": 5.12,
+        "softmax_hsplit2": 7.377
+      },
+      "record_file": "full5_M1_H128_float32_streaming.json",
+      "best_label": "NO_UNIQUE_WINNER",
+      "best_variant": null
+    },
+    "M1_H1024_float16_hot": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_vec4",
+      "runner_up": "softmax_baseline",
+      "median_ratio": 1.000634,
+      "bootstrap_ci_95": [
+        0.992181,
+        1.007629
+      ],
+      "faster_rounds": "5/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 4.736,
+        "softmax_vec4": 4.73,
+        "softmax_online": 4.8,
+        "softmax_vec4_ilp2": 4.795,
+        "softmax_hsplit2": 7.029
+      },
+      "record_file": "full5_M1_H1024_float16_hot.json",
+      "best_label": "INCUMBENT",
+      "best_variant": "softmax_vec4"
+    },
+    "M1_H1024_float16_streaming": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_baseline",
+      "runner_up": "softmax_vec4",
+      "median_ratio": 1.004058,
+      "bootstrap_ci_95": [
+        0.994574,
+        1.012165
+      ],
+      "faster_rounds": "5/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 4.966,
+        "softmax_vec4": 4.989,
+        "softmax_online": 5.02,
+        "softmax_vec4_ilp2": 5.066,
+        "softmax_hsplit2": 7.168
+      },
+      "record_file": "full5_M1_H1024_float16_streaming.json",
+      "best_label": "INCUMBENT",
+      "best_variant": "softmax_vec4"
+    },
+    "M1_H1024_float32_hot": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_baseline",
+      "runner_up": "softmax_online",
+      "median_ratio": 1.015622,
+      "bootstrap_ci_95": [
+        1.013333,
+        1.146403
+      ],
+      "faster_rounds": "8/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 4.796,
+        "softmax_vec4": 4.884,
+        "softmax_online": 4.876,
+        "softmax_vec4_ilp2": 4.928,
+        "softmax_hsplit2": 7.243
+      },
+      "record_file": "full5_M1_H1024_float32_hot.json",
+      "best_label": "NO_UNIQUE_WINNER",
+      "best_variant": null
+    },
+    "M1_H1024_float32_streaming": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_baseline",
+      "runner_up": "softmax_online",
+      "median_ratio": 1.0109,
+      "bootstrap_ci_95": [
+        1.002179,
+        1.023901
+      ],
+      "faster_rounds": "8/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 4.992,
+        "softmax_vec4": 5.136,
+        "softmax_online": 5.055,
+        "softmax_vec4_ilp2": 5.12,
+        "softmax_hsplit2": 7.31
+      },
+      "record_file": "full5_M1_H1024_float32_streaming.json",
+      "best_label": "NO_UNIQUE_WINNER",
+      "best_variant": null
+    },
+    "M1_H4096_float16_hot": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_vec4",
+      "runner_up": "softmax_online",
+      "median_ratio": 1.008446,
+      "bootstrap_ci_95": [
+        0.935253,
+        1.046497
+      ],
+      "faster_rounds": "7/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 5.952,
+        "softmax_vec4": 4.761,
+        "softmax_online": 4.826,
+        "softmax_vec4_ilp2": 4.83,
+        "softmax_hsplit2": 7.102
+      },
+      "record_file": "full5_M1_H4096_float16_hot.json",
+      "best_label": "INCUMBENT",
+      "best_variant": "softmax_vec4"
+    },
+    "M1_H4096_float16_streaming": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_vec4",
+      "runner_up": "softmax_vec4_ilp2",
+      "median_ratio": 1.020548,
+      "bootstrap_ci_95": [
+        1.01747,
+        1.075521
+      ],
+      "faster_rounds": "9/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 5.941,
+        "softmax_vec4": 4.98,
+        "softmax_online": 5.072,
+        "softmax_vec4_ilp2": 5.068,
+        "softmax_hsplit2": 7.231
+      },
+      "record_file": "full5_M1_H4096_float16_streaming.json",
+      "best_label": "INCUMBENT",
+      "best_variant": "softmax_vec4"
+    },
+    "M1_H4096_float32_hot": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_baseline",
+      "runner_up": "softmax_online",
+      "median_ratio": 1.016043,
+      "bootstrap_ci_95": [
+        1.005701,
+        1.059326
+      ],
+      "faster_rounds": "8/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 4.719,
+        "softmax_vec4": 4.798,
+        "softmax_online": 4.763,
+        "softmax_vec4_ilp2": 4.8,
+        "softmax_hsplit2": 7.168
+      },
+      "record_file": "full5_M1_H4096_float32_hot.json",
+      "best_label": "NO_UNIQUE_WINNER",
+      "best_variant": null
+    },
+    "M1_H4096_float32_streaming": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_baseline",
+      "runner_up": "softmax_online",
+      "median_ratio": 1.012717,
+      "bootstrap_ci_95": [
+        1.008485,
+        1.017799
+      ],
+      "faster_rounds": "9/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 4.946,
+        "softmax_vec4": 5.104,
+        "softmax_online": 5.013,
+        "softmax_vec4_ilp2": 5.063,
+        "softmax_hsplit2": 7.371
+      },
+      "record_file": "full5_M1_H4096_float32_streaming.json",
+      "best_label": "NO_UNIQUE_WINNER",
+      "best_variant": null
+    },
+    "M32_H1024_float16_hot": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_baseline",
+      "runner_up": "softmax_vec4",
+      "median_ratio": 1.002116,
+      "bootstrap_ci_95": [
+        0.992277,
+        1.016463
+      ],
+      "faster_rounds": "7/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 4.738,
+        "softmax_vec4": 4.779,
+        "softmax_online": 4.808,
+        "softmax_vec4_ilp2": 4.832,
+        "softmax_hsplit2": 7.034
+      },
+      "record_file": "full5_M32_H1024_float16_hot.json",
+      "best_label": "INCUMBENT",
+      "best_variant": "softmax_vec4"
+    },
+    "M32_H1024_float16_streaming": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_baseline",
+      "runner_up": "softmax_vec4",
+      "median_ratio": 0.997181,
+      "bootstrap_ci_95": [
+        0.949914,
+        1.006887
+      ],
+      "faster_rounds": "4/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 4.967,
+        "softmax_vec4": 4.985,
+        "softmax_online": 5.008,
+        "softmax_vec4_ilp2": 5.084,
+        "softmax_hsplit2": 7.184
+      },
+      "record_file": "full5_M32_H1024_float16_streaming.json",
+      "best_label": "INCUMBENT",
+      "best_variant": "softmax_vec4"
+    },
+    "M32_H1024_float32_hot": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_baseline",
+      "runner_up": "softmax_online",
+      "median_ratio": 1.009034,
+      "bootstrap_ci_95": [
+        1.007389,
+        1.019422
+      ],
+      "faster_rounds": "8/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 4.738,
+        "softmax_vec4": 5.09,
+        "softmax_online": 4.8,
+        "softmax_vec4_ilp2": 4.853,
+        "softmax_hsplit2": 7.232
+      },
+      "record_file": "full5_M32_H1024_float32_hot.json",
+      "best_label": "NO_UNIQUE_WINNER",
+      "best_variant": null
+    },
+    "M32_H1024_float32_streaming": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_online",
+      "runner_up": "softmax_vec4_ilp2",
+      "median_ratio": 1.014729,
+      "bootstrap_ci_95": [
+        0.870054,
+        1.090942
+      ],
+      "faster_rounds": "7/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 5.392,
+        "softmax_vec4": 5.246,
+        "softmax_online": 5.16,
+        "softmax_vec4_ilp2": 5.23,
+        "softmax_hsplit2": 7.558
+      },
+      "record_file": "full5_M32_H1024_float32_streaming.json",
+      "best_label": "NO_UNIQUE_WINNER",
+      "best_variant": null
+    },
+    "M128_H1024_float16_hot": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_vec4",
+      "runner_up": "softmax_baseline",
+      "median_ratio": 1.005022,
+      "bootstrap_ci_95": [
+        1.001874,
+        1.016939
+      ],
+      "faster_rounds": "8/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 4.811,
+        "softmax_vec4": 4.794,
+        "softmax_online": 4.847,
+        "softmax_vec4_ilp2": 4.901,
+        "softmax_hsplit2": 7.184
+      },
+      "record_file": "full5_M128_H1024_float16_hot.json",
+      "best_label": "INCUMBENT",
+      "best_variant": "softmax_vec4"
+    },
+    "M128_H1024_float16_streaming": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_vec4",
+      "runner_up": "softmax_baseline",
+      "median_ratio": 1.006289,
+      "bootstrap_ci_95": [
+        0.895414,
+        1.013622
+      ],
+      "faster_rounds": "6/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 5.06,
+        "softmax_vec4": 5.044,
+        "softmax_online": 5.124,
+        "softmax_vec4_ilp2": 5.16,
+        "softmax_hsplit2": 7.287
+      },
+      "record_file": "full5_M128_H1024_float16_streaming.json",
+      "best_label": "INCUMBENT",
+      "best_variant": "softmax_vec4"
+    },
+    "M128_H1024_float32_hot": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_baseline",
+      "runner_up": "softmax_online",
+      "median_ratio": 1.013514,
+      "bootstrap_ci_95": [
+        1.000834,
+        1.054966
+      ],
+      "faster_rounds": "8/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 4.768,
+        "softmax_vec4": 4.809,
+        "softmax_online": 4.806,
+        "softmax_vec4_ilp2": 4.847,
+        "softmax_hsplit2": 7.282
+      },
+      "record_file": "full5_M128_H1024_float32_hot.json",
+      "best_label": "NO_UNIQUE_WINNER",
+      "best_variant": null
+    },
+    "M128_H1024_float32_streaming": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_online",
+      "runner_up": "softmax_baseline",
+      "median_ratio": 1.003871,
+      "bootstrap_ci_95": [
+        0.988474,
+        1.010644
+      ],
+      "faster_rounds": "6/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 5.186,
+        "softmax_vec4": 5.252,
+        "softmax_online": 5.164,
+        "softmax_vec4_ilp2": 5.248,
+        "softmax_hsplit2": 7.518
+      },
+      "record_file": "full5_M128_H1024_float32_streaming.json",
+      "best_label": "NO_UNIQUE_WINNER",
+      "best_variant": null
+    },
+    "M128_H4096_float16_hot": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_vec4",
+      "runner_up": "softmax_online",
+      "median_ratio": 1.020079,
+      "bootstrap_ci_95": [
+        0.980746,
+        1.029811
+      ],
+      "faster_rounds": "6/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 6.707,
+        "softmax_vec4": 4.864,
+        "softmax_online": 4.928,
+        "softmax_vec4_ilp2": 4.949,
+        "softmax_hsplit2": 7.232
+      },
+      "record_file": "full5_M128_H4096_float16_hot.json",
+      "best_label": "INCUMBENT",
+      "best_variant": "softmax_vec4"
+    },
+    "M128_H4096_float16_streaming": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_online",
+      "runner_up": "softmax_vec4",
+      "median_ratio": 1.044271,
+      "bootstrap_ci_95": [
+        1.03928,
+        1.045328
+      ],
+      "faster_rounds": "9/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 10.109,
+        "softmax_vec4": 6.015,
+        "softmax_online": 5.76,
+        "softmax_vec4_ilp2": 6.122,
+        "softmax_hsplit2": 7.761
+      },
+      "record_file": "full5_M128_H4096_float16_streaming.json",
+      "best_label": "INCUMBENT",
+      "best_variant": "softmax_vec4"
+    },
+    "M128_H4096_float32_hot": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_online",
+      "runner_up": "softmax_baseline",
+      "median_ratio": 1.005082,
+      "bootstrap_ci_95": [
+        0.989999,
+        1.071517
+      ],
+      "faster_rounds": "6/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 7.453,
+        "softmax_vec4": 7.584,
+        "softmax_online": 7.448,
+        "softmax_vec4_ilp2": 7.553,
+        "softmax_hsplit2": 11.007
+      },
+      "record_file": "full5_M128_H4096_float32_hot.json",
+      "best_label": "NO_UNIQUE_WINNER",
+      "best_variant": null
+    },
+    "M128_H4096_float32_streaming": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_vec4_ilp2",
+      "runner_up": "softmax_online",
+      "median_ratio": 1.012588,
+      "bootstrap_ci_95": [
+        1.010094,
+        1.014759
+      ],
+      "faster_rounds": "9/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 9.456,
+        "softmax_vec4": 9.152,
+        "softmax_online": 8.929,
+        "softmax_vec4_ilp2": 8.818,
+        "softmax_hsplit2": 11.202
+      },
+      "record_file": "full5_M128_H4096_float32_streaming.json",
+      "best_label": "NO_UNIQUE_WINNER",
+      "best_variant": null
+    },
+    "M1024_H1024_float16_hot": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_online",
+      "runner_up": "softmax_vec4",
+      "median_ratio": 1.017738,
+      "bootstrap_ci_95": [
+        1.005608,
+        1.025675
+      ],
+      "faster_rounds": "8/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 10.154,
+        "softmax_vec4": 7.71,
+        "softmax_online": 7.6,
+        "softmax_vec4_ilp2": 7.765,
+        "softmax_hsplit2": 18.662
+      },
+      "record_file": "full5_M1024_H1024_float16_hot.json",
+      "best_label": "INCUMBENT",
+      "best_variant": "softmax_vec4"
+    },
+    "M1024_H1024_float16_streaming": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_online",
+      "runner_up": "softmax_vec4",
+      "median_ratio": 1.003498,
+      "bootstrap_ci_95": [
+        0.99941,
+        1.006007
+      ],
+      "faster_rounds": "7/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 14.429,
+        "softmax_vec4": 10.048,
+        "softmax_online": 10.006,
+        "softmax_vec4_ilp2": 10.11,
+        "softmax_hsplit2": 20.743
+      },
+      "record_file": "full5_M1024_H1024_float16_streaming.json",
+      "best_label": "INCUMBENT",
+      "best_variant": "softmax_vec4"
+    },
+    "M1024_H1024_float32_hot": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_vec4_ilp2",
+      "runner_up": "softmax_online",
+      "median_ratio": 1.022786,
+      "bootstrap_ci_95": [
+        1.022324,
+        1.023099
+      ],
+      "faster_rounds": "9/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 17.641,
+        "softmax_vec4": 17.454,
+        "softmax_online": 17.28,
+        "softmax_vec4_ilp2": 16.893,
+        "softmax_hsplit2": 24.883
+      },
+      "record_file": "full5_M1024_H1024_float32_hot.json",
+      "best_label": "NO_UNIQUE_WINNER",
+      "best_variant": null
+    },
+    "M1024_H1024_float32_streaming": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_vec4_ilp2",
+      "runner_up": "softmax_online",
+      "median_ratio": 1.010053,
+      "bootstrap_ci_95": [
+        1.008939,
+        1.010981
+      ],
+      "faster_rounds": "9/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 17.737,
+        "softmax_vec4": 17.645,
+        "softmax_online": 17.488,
+        "softmax_vec4_ilp2": 17.317,
+        "softmax_hsplit2": 25.073
+      },
+      "record_file": "full5_M1024_H1024_float32_streaming.json",
+      "best_label": "NO_UNIQUE_WINNER",
+      "best_variant": null
+    },
+    "M1024_H4096_float16_hot": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_vec4_ilp2",
+      "runner_up": "softmax_online",
+      "median_ratio": 1.002834,
+      "bootstrap_ci_95": [
+        1.002153,
+        1.003455
+      ],
+      "faster_rounds": "9/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 50.037,
+        "softmax_vec4": 34.657,
+        "softmax_online": 33.984,
+        "softmax_vec4_ilp2": 33.892,
+        "softmax_hsplit2": 38.487
+      },
+      "record_file": "full5_M1024_H4096_float16_hot.json",
+      "best_label": "NO_UNIQUE_WINNER",
+      "best_variant": null
+    },
+    "M1024_H4096_float16_streaming": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_vec4_ilp2",
+      "runner_up": "softmax_online",
+      "median_ratio": 1.002458,
+      "bootstrap_ci_95": [
+        1.002191,
+        1.0032
+      ],
+      "faster_rounds": "9/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 49.506,
+        "softmax_vec4": 34.62,
+        "softmax_online": 33.856,
+        "softmax_vec4_ilp2": 33.769,
+        "softmax_hsplit2": 38.633
+      },
+      "record_file": "full5_M1024_H4096_float16_streaming.json",
+      "best_label": "NO_UNIQUE_WINNER",
+      "best_variant": null
+    },
+    "M1024_H4096_float32_hot": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_online",
+      "runner_up": "softmax_hsplit2",
+      "median_ratio": 1.047872,
+      "bootstrap_ci_95": [
+        1.047475,
+        1.049221
+      ],
+      "faster_rounds": "9/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 95.918,
+        "softmax_vec4": 93.341,
+        "softmax_online": 79.298,
+        "softmax_vec4_ilp2": 96.128,
+        "softmax_hsplit2": 83.072
+      },
+      "record_file": "full5_M1024_H4096_float32_hot.json",
+      "best_label": "NO_UNIQUE_WINNER",
+      "best_variant": null
+    },
+    "M1024_H4096_float32_streaming": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_online",
+      "runner_up": "softmax_hsplit2",
+      "median_ratio": 1.044697,
+      "bootstrap_ci_95": [
+        1.044008,
+        1.045159
+      ],
+      "faster_rounds": "9/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 96.446,
+        "softmax_vec4": 93.298,
+        "softmax_online": 79.327,
+        "softmax_vec4_ilp2": 95.98,
+        "softmax_hsplit2": 82.863
+      },
+      "record_file": "full5_M1024_H4096_float32_streaming.json",
+      "best_label": "NO_UNIQUE_WINNER",
+      "best_variant": null
+    },
+    "M128_H8192_float16_hot": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_online",
+      "runner_up": "softmax_vec4_ilp2",
+      "median_ratio": 1.020872,
+      "bootstrap_ci_95": [
+        1.01399,
+        1.034986
+      ],
+      "faster_rounds": "9/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 11.772,
+        "softmax_vec4": 6.376,
+        "softmax_online": 5.921,
+        "softmax_vec4_ilp2": 6.038,
+        "softmax_hsplit2": 7.807
+      },
+      "record_file": "full5_M128_H8192_float16_hot.json",
+      "best_label": "NO_UNIQUE_WINNER",
+      "best_variant": null
+    },
+    "M128_H8192_float16_streaming": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_online",
+      "runner_up": "softmax_vec4_ilp2",
+      "median_ratio": 1.030588,
+      "bootstrap_ci_95": [
+        1.027832,
+        1.033937
+      ],
+      "faster_rounds": "9/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 19.008,
+        "softmax_vec4": 10.174,
+        "softmax_online": 9.669,
+        "softmax_vec4_ilp2": 9.984,
+        "softmax_hsplit2": 11.704
+      },
+      "record_file": "full5_M128_H8192_float16_streaming.json",
+      "best_label": "NO_UNIQUE_WINNER",
+      "best_variant": null
+    },
+    "M128_H8192_float32_hot": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_vec4_ilp2",
+      "runner_up": "softmax_vec4",
+      "median_ratio": 1.003779,
+      "bootstrap_ci_95": [
+        1.001589,
+        1.004781
+      ],
+      "faster_rounds": "9/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 18.954,
+        "softmax_vec4": 17.024,
+        "softmax_online": 18.536,
+        "softmax_vec4_ilp2": 16.96,
+        "softmax_hsplit2": 22.666
+      },
+      "record_file": "full5_M128_H8192_float32_hot.json",
+      "best_label": "INCUMBENT",
+      "best_variant": "softmax_vec4"
+    },
+    "M128_H8192_float32_streaming": {
+      "status": "NO_UNIQUE_WINNER",
+      "winner": "softmax_vec4",
+      "runner_up": "softmax_vec4_ilp2",
+      "median_ratio": 1.007172,
+      "bootstrap_ci_95": [
+        1.006711,
+        1.007735
+      ],
+      "faster_rounds": "9/9",
+      "decision": "NEUTRAL",
+      "valid_rounds": 9,
+      "medians_us": {
+        "softmax_baseline": 21.376,
+        "softmax_vec4": 19.52,
+        "softmax_online": 20.28,
+        "softmax_vec4_ilp2": 19.664,
+        "softmax_hsplit2": 23.645
+      },
+      "record_file": "full5_M128_H8192_float32_streaming.json",
+      "best_label": "INCUMBENT",
+      "best_variant": "softmax_vec4"
+    }
+  },
+  "summary": {
+    "labels": {
+      "INCUMBENT": 17,
+      "NO_UNIQUE_WINNER": 19
+    },
+    "incumbent": "softmax_vec4",
+    "incumbent_source": "SFM-0001 KEEP (vec4 vs baseline: streaming 1.6772 / hot 1.2916, v2.2); SFM-0002/0003 NEUTRAL, SFM-0004 REJECT -> incumbent 保持 vec4",
+    "note": "全部 36 格 winner-vs-runner-up 均无统计显著差异（NO_UNIQUE_WINNER）；incumbent 标签仅表示实验链 incumbent 位于该格 top-2（与顶部变体统计平局），不是对 baseline 的显著胜出 —— vec4 对 baseline 的显著优势见 SFM-0001 与 final_reval 的 paired 记录（streaming 1.69 KEEP，hot 机器态敏感）。"
+  }
+}
