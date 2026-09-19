@@ -1,0 +1,98 @@
+{
+  "generated": "2026-09-19T21:41:18+0800",
+  "incumbent_correctness": {
+    "all_pass": true,
+    "max_abs_error": 7.63e-06,
+    "max_row_sum_error": 3.695e-05,
+    "saved": "/root/code/cuda/experiments/softmax/final_reval/correctness/softmax_vec4.json"
+  },
+  "incumbent_negative": {
+    "n_total": 15,
+    "n_reject_expected": 13,
+    "n_reject_ok": 13,
+    "n_pass_expected": 1,
+    "n_pass_ok": 1,
+    "n_skipped": 1,
+    "n_passed": 14,
+    "all_pass": true
+  },
+  "primary_pair_vs_baseline": {
+    "hot": {
+      "median_speedup": 0.986465,
+      "ci95": [
+        0.931774,
+        0.995982
+      ],
+      "faster_rounds": "1/9",
+      "valid_rounds": 9,
+      "n_rounds": 9,
+      "parent_median_us": 6.705,
+      "candidate_median_us": 6.797,
+      "record_file": "pair_baseline_vs_vec4_M128_H4096_fp16_hot.json"
+    },
+    "streaming": {
+      "median_speedup": 1.688963,
+      "ci95": [
+        1.68241,
+        1.692385
+      ],
+      "faster_rounds": "9/9",
+      "valid_rounds": 9,
+      "n_rounds": 9,
+      "parent_median_us": 10.102,
+      "candidate_median_us": 5.98,
+      "record_file": "pair_baseline_vs_vec4_M128_H4096_fp16_streaming.json"
+    }
+  },
+  "rmsnorm_negative": {
+    "n_total": 30,
+    "n_reject_expected": 26,
+    "n_reject_ok": 26,
+    "n_pass_expected": 3,
+    "n_pass_ok": 3,
+    "n_skipped": 1,
+    "n_passed": 29,
+    "all_pass": true
+  },
+  "rmsnorm_correctness": {
+    "v4_vec_reg": {
+      "all_pass": true,
+      "n_pass": 76,
+      "n_total": 76,
+      "max_abs": 0.00390625,
+      "max_rel": 0.00097182
+    },
+    "baseline": {
+      "all_pass": true,
+      "n_pass": 76,
+      "n_total": 76,
+      "max_abs": 0.00390625,
+      "max_rel": 0.00097561
+    }
+  },
+  "rmsnorm_pair_v4_vs_v1": {
+    "hot": {
+      "median_speedup": 1.014431,
+      "ci95": [
+        1.004248,
+        1.023742
+      ],
+      "faster_rounds": "9/9",
+      "valid_rounds": 9,
+      "n_rounds": 9,
+      "record_file": "v03reg_final_pair_v4_vs_v1_hot.json"
+    },
+    "streaming": {
+      "median_speedup": 0.94187,
+      "ci95": [
+        0.940304,
+        0.948001
+      ],
+      "faster_rounds": "0/9",
+      "valid_rounds": 9,
+      "n_rounds": 9,
+      "record_file": "v03reg_final_pair_v4_vs_v1_streaming.json"
+    }
+  },
+  "incumbent_matrix": "benchmarks/softmax/incumbent_vec4_matrix_summary.json"
+}

@@ -1,0 +1,618 @@
+{
+  "generated": "2026-09-19T21:43:49+0800",
+  "variant": "softmax_vec4",
+  "cells": [
+    {
+      "shape": [
+        1,
+        128
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "file": "inc_M1_H128_float16_hot.json",
+      "median_us": 4.808,
+      "bw_gbps": 0.1,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        1,
+        128
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "file": "inc_M1_H128_float16_streaming.json",
+      "median_us": 4.927,
+      "bw_gbps": 0.1,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        1,
+        128
+      ],
+      "dtype": "float32",
+      "cache_mode": "hot",
+      "file": "inc_M1_H128_float32_hot.json",
+      "median_us": 4.734,
+      "bw_gbps": 0.2,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        1,
+        128
+      ],
+      "dtype": "float32",
+      "cache_mode": "streaming",
+      "file": "inc_M1_H128_float32_streaming.json",
+      "median_us": 4.869,
+      "bw_gbps": 0.2,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        1,
+        1024
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "file": "inc_M1_H1024_float16_hot.json",
+      "median_us": 4.736,
+      "bw_gbps": 0.9,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        1,
+        1024
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "file": "inc_M1_H1024_float16_streaming.json",
+      "median_us": 4.927,
+      "bw_gbps": 0.8,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        1,
+        1024
+      ],
+      "dtype": "float32",
+      "cache_mode": "hot",
+      "file": "inc_M1_H1024_float32_hot.json",
+      "median_us": 4.689,
+      "bw_gbps": 1.7,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        1,
+        1024
+      ],
+      "dtype": "float32",
+      "cache_mode": "streaming",
+      "file": "inc_M1_H1024_float32_streaming.json",
+      "median_us": 4.888,
+      "bw_gbps": 1.7,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        1,
+        4096
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "file": "inc_M1_H4096_float16_hot.json",
+      "median_us": 4.705,
+      "bw_gbps": 3.5,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        1,
+        4096
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "file": "inc_M1_H4096_float16_streaming.json",
+      "median_us": 4.923,
+      "bw_gbps": 3.3,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        1,
+        4096
+      ],
+      "dtype": "float32",
+      "cache_mode": "hot",
+      "file": "inc_M1_H4096_float32_hot.json",
+      "median_us": 4.736,
+      "bw_gbps": 6.9,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        1,
+        4096
+      ],
+      "dtype": "float32",
+      "cache_mode": "streaming",
+      "file": "inc_M1_H4096_float32_streaming.json",
+      "median_us": 4.888,
+      "bw_gbps": 6.7,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        32,
+        1024
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "file": "inc_M32_H1024_float16_hot.json",
+      "median_us": 4.736,
+      "bw_gbps": 27.7,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        32,
+        1024
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "file": "inc_M32_H1024_float16_streaming.json",
+      "median_us": 4.928,
+      "bw_gbps": 26.6,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        32,
+        1024
+      ],
+      "dtype": "float32",
+      "cache_mode": "hot",
+      "file": "inc_M32_H1024_float32_hot.json",
+      "median_us": 4.696,
+      "bw_gbps": 55.8,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        32,
+        1024
+      ],
+      "dtype": "float32",
+      "cache_mode": "streaming",
+      "file": "inc_M32_H1024_float32_streaming.json",
+      "median_us": 4.961,
+      "bw_gbps": 52.8,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        128,
+        1024
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "file": "inc_M128_H1024_float16_hot.json",
+      "median_us": 4.735,
+      "bw_gbps": 110.7,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        128,
+        1024
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "file": "inc_M128_H1024_float16_streaming.json",
+      "median_us": 4.931,
+      "bw_gbps": 106.3,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        128,
+        1024
+      ],
+      "dtype": "float32",
+      "cache_mode": "hot",
+      "file": "inc_M128_H1024_float32_hot.json",
+      "median_us": 4.736,
+      "bw_gbps": 221.4,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        128,
+        1024
+      ],
+      "dtype": "float32",
+      "cache_mode": "streaming",
+      "file": "inc_M128_H1024_float32_streaming.json",
+      "median_us": 4.932,
+      "bw_gbps": 212.6,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        128,
+        4096
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "file": "inc_M128_H4096_float16_hot.json",
+      "median_us": 4.684,
+      "bw_gbps": 447.7,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        128,
+        4096
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "file": "inc_M128_H4096_float16_streaming.json",
+      "median_us": 6.016,
+      "bw_gbps": 348.6,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        128,
+        4096
+      ],
+      "dtype": "float32",
+      "cache_mode": "hot",
+      "file": "inc_M128_H4096_float32_hot.json",
+      "median_us": 4.845,
+      "bw_gbps": 865.7,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        128,
+        4096
+      ],
+      "dtype": "float32",
+      "cache_mode": "streaming",
+      "file": "inc_M128_H4096_float32_streaming.json",
+      "median_us": 9.154,
+      "bw_gbps": 458.2,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        1024,
+        1024
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "file": "inc_M1024_H1024_float16_hot.json",
+      "median_us": 7.552,
+      "bw_gbps": 555.4,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        1024,
+        1024
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "file": "inc_M1024_H1024_float16_streaming.json",
+      "median_us": 10.013,
+      "bw_gbps": 418.9,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        1024,
+        1024
+      ],
+      "dtype": "float32",
+      "cache_mode": "hot",
+      "file": "inc_M1024_H1024_float32_hot.json",
+      "median_us": 17.6,
+      "bw_gbps": 476.6,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        1024,
+        1024
+      ],
+      "dtype": "float32",
+      "cache_mode": "streaming",
+      "file": "inc_M1024_H1024_float32_streaming.json",
+      "median_us": 17.683,
+      "bw_gbps": 474.4,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        1024,
+        4096
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "file": "inc_M1024_H4096_float16_hot.json",
+      "median_us": 34.625,
+      "bw_gbps": 484.5,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        1024,
+        4096
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "file": "inc_M1024_H4096_float16_streaming.json",
+      "median_us": 34.56,
+      "bw_gbps": 485.5,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        1024,
+        4096
+      ],
+      "dtype": "float32",
+      "cache_mode": "hot",
+      "file": "inc_M1024_H4096_float32_hot.json",
+      "median_us": 93.488,
+      "bw_gbps": 358.9,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        1024,
+        4096
+      ],
+      "dtype": "float32",
+      "cache_mode": "streaming",
+      "file": "inc_M1024_H4096_float32_streaming.json",
+      "median_us": 93.312,
+      "bw_gbps": 359.6,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        128,
+        8192
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "file": "inc_M128_H8192_float16_hot.json",
+      "median_us": 6.422,
+      "bw_gbps": 653.1,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        128,
+        8192
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "file": "inc_M128_H8192_float16_streaming.json",
+      "median_us": 10.24,
+      "bw_gbps": 409.6,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        128,
+        8192
+      ],
+      "dtype": "float32",
+      "cache_mode": "hot",
+      "file": "inc_M128_H8192_float32_hot.json",
+      "median_us": 16.954,
+      "bw_gbps": 494.8,
+      "n_valid": 9
+    },
+    {
+      "shape": [
+        128,
+        8192
+      ],
+      "dtype": "float32",
+      "cache_mode": "streaming",
+      "file": "inc_M128_H8192_float32_streaming.json",
+      "median_us": 19.528,
+      "bw_gbps": 429.6,
+      "n_valid": 9
+    },
+    {
+      "pytorch_ref": true,
+      "shape": [
+        1,
+        128
+      ],
+      "dtype": "float16",
+      "median_us": 10.01,
+      "n_samples": 200
+    },
+    {
+      "pytorch_ref": true,
+      "shape": [
+        1,
+        128
+      ],
+      "dtype": "float32",
+      "median_us": 9.876,
+      "n_samples": 200
+    },
+    {
+      "pytorch_ref": true,
+      "shape": [
+        1,
+        1024
+      ],
+      "dtype": "float16",
+      "median_us": 10.219,
+      "n_samples": 200
+    },
+    {
+      "pytorch_ref": true,
+      "shape": [
+        1,
+        1024
+      ],
+      "dtype": "float32",
+      "median_us": 10.105,
+      "n_samples": 200
+    },
+    {
+      "pytorch_ref": true,
+      "shape": [
+        1,
+        4096
+      ],
+      "dtype": "float16",
+      "median_us": 10.077,
+      "n_samples": 200
+    },
+    {
+      "pytorch_ref": true,
+      "shape": [
+        1,
+        4096
+      ],
+      "dtype": "float32",
+      "median_us": 9.178,
+      "n_samples": 200
+    },
+    {
+      "pytorch_ref": true,
+      "shape": [
+        32,
+        1024
+      ],
+      "dtype": "float16",
+      "median_us": 9.64,
+      "n_samples": 200
+    },
+    {
+      "pytorch_ref": true,
+      "shape": [
+        32,
+        1024
+      ],
+      "dtype": "float32",
+      "median_us": 9.487,
+      "n_samples": 200
+    },
+    {
+      "pytorch_ref": true,
+      "shape": [
+        128,
+        1024
+      ],
+      "dtype": "float16",
+      "median_us": 9.445,
+      "n_samples": 200
+    },
+    {
+      "pytorch_ref": true,
+      "shape": [
+        128,
+        1024
+      ],
+      "dtype": "float32",
+      "median_us": 9.39,
+      "n_samples": 200
+    },
+    {
+      "pytorch_ref": true,
+      "shape": [
+        128,
+        4096
+      ],
+      "dtype": "float16",
+      "median_us": 9.356,
+      "n_samples": 200
+    },
+    {
+      "pytorch_ref": true,
+      "shape": [
+        128,
+        4096
+      ],
+      "dtype": "float32",
+      "median_us": 9.408,
+      "n_samples": 200
+    },
+    {
+      "pytorch_ref": true,
+      "shape": [
+        1024,
+        1024
+      ],
+      "dtype": "float16",
+      "median_us": 9.897,
+      "n_samples": 200
+    },
+    {
+      "pytorch_ref": true,
+      "shape": [
+        1024,
+        1024
+      ],
+      "dtype": "float32",
+      "median_us": 16.171,
+      "n_samples": 200
+    },
+    {
+      "pytorch_ref": true,
+      "shape": [
+        1024,
+        4096
+      ],
+      "dtype": "float16",
+      "median_us": 50.246,
+      "n_samples": 200
+    },
+    {
+      "pytorch_ref": true,
+      "shape": [
+        1024,
+        4096
+      ],
+      "dtype": "float32",
+      "median_us": 67.072,
+      "n_samples": 200
+    },
+    {
+      "pytorch_ref": true,
+      "shape": [
+        128,
+        8192
+      ],
+      "dtype": "float16",
+      "median_us": 10.659,
+      "n_samples": 200
+    },
+    {
+      "pytorch_ref": true,
+      "shape": [
+        128,
+        8192
+      ],
+      "dtype": "float32",
+      "median_us": 20.285,
+      "n_samples": 200
+    }
+  ]
+}
