@@ -1,8 +1,29 @@
 # CUDALab — 状态
 
 **日期：** 2026-09-19
-**阶段：** v0.2 已完成 → v0.2.1 Review Fix（4 项 review findings 全部修复）
-**状态：** v0.2.1 修复与验证完成，已 push 至 `v0.2-evaluator-hardening`，等待 merge review。
+**阶段：** v0.3 — Evaluator Generalization + Softmax Autonomous Optimization（数据与文档全部完成，已 push `v0.3-softmax`）
+**状态：** 分支 `v0.3-softmax`（基线 main = v0.2.1 = dfe9e9b），**不 merge 回 main、不开始 v0.4**；报告后 STOP 等外部 reviewer。
+
+## v0.3 完成摘要（2026-09-19）
+
+核心问题：**v0.2 的闭环（正确性 → 配对 bench → 统计 → 决策 → 剖析 →
+实验史）能否原样迁移到第二个算子？** 算子：row-wise Softmax
+（FP32 内部，输出原 dtype；FP16 主 + FP32，禁 BF16；sm_75 / CUDA 11.8）。
+最终报告：`docs/report_v0.3_result.md`。
+
+| 项目 | v0.3 结果 |
+|---|---|
+| Evaluator 通用化 | `cudalab/evaluator/`（bench v2.2 + stats/decision/profiler/negative/experiment，operator-agnostic）+ 算子 adapter `cudalab/operators/{rmsnorm,softmax}.py`；stats.py/decision.py 与 v0.2.1 逐字节相同（独立审计确认） |
+| harness 升级 | v2.2（`docs/evaluator_hardening_v0.3.md`）：移除 round 内 nvidia-smi 采样 → 时间基准 burn（≥150 launches 且 ≥300ms）+ 逐样本 spike guard（1.5×）+ 跨块一致性 guard（1.15×）；v2.1 DVFS guard 偏离已作为"基于证据的机器态适配"记录并在全部分支文档与最终报告中声明 |
+| RMSNorm 回归硬门 | **PASS**（eae07bb；最终复跑 85faeca）：CPU tests + negative 29/30+1 skip + 正确性 v4_vec_reg/baseline 76/76 + (128,4096) fp16 paired 全兼容 v0.2 结论 |
+| 正确性 / 负例 | 5 个 softmax 变体全部 72/72（容差逐变体相同，fp16 atol 2e-3/rtol 5e-3）；negative 14/14+1 skip（launch 前 TORCH_CHECK） |
+| 基准矩阵 | 36 格 × 5 变体 full5 + base/inc 各 36 格，全部 9/9 valid；主目标 (128,4096) fp16 |
+| 自主优化实验 | **4/4**（profiler→hypothesis 驱动）：SFM-0001 `softmax_vec4` **KEEP**（streaming 1.6772→1.6890 稳健复现；hot 记录值 1.2916 存在机器态漂移，final_reval 0.9865 NEUTRAL，已披露）→ **incumbent = `softmax_vec4`**；SFM-0002 online NEUTRAL（瓶颈是延迟不是带宽）；SFM-0003 vec4_ilp2 NEUTRAL（每线程 ILP 不是杠杆）；SFM-0004 hsplit2 **REJECT**（occupancy 44%→86% 但 barrier stall 5.6%→31-35%，不 occupancy-bound）。**四轴设计空间闭合，失败内核全部保留** |
+| best.json | `experiments/softmax/best.json`（classify_cell，v0.2.1 语义）：36 格全部 **NO_UNIQUE_WINNER**（win/runner-up 比值 0.998–1.048 < 1.05）；17 格 INCUMBENT 标签（vec4 在 top-2）/ 19 NO_UNIQUE_WINNER |
+| NCU | baseline vs 4 候选（双 cache-control，v0.2.1 语义）+ incumbent 复验（<1% 漂移）；per-launch µs 与 NCU dur 的时钟/L2 语义差异已在报告说明 |
+| 独立审计 | `docs/benchmark_audit_v0.3.md`：**PASS WITH CAVEATS**（数据逐项可复现、决策与规则一致、重构忠实；caveat #1 SFM-0001 hot 漂移已在 SFM-0001.md §6 + 报告披露，caveat #3b 日期笔误已修正） |
+| 机器态限定 | (128,4096) fp16 **hot** 模式跨运行配对结果漂移（vec4 hot 1.29→1.37→0.99 三次运行；streaming 1.68 稳定）；RMSNorm 回归 hot 1.0144 NEUTRAL（v0.2 为 0.9327 REJECT）/ streaming 0.9419 REJECT（v0.2 为 0.9592 NEUTRAL）——点估计漂移、机制不变，定位为机器态而非 evaluator 缺陷 |
+| 未做 | dispatcher 默认不做（无 paired 确认的 per-shape 路由证据）；不 merge main；不开始 v0.4 |
 
 ## v0.2 完成摘要（2026-09-19）
 

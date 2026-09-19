@@ -227,6 +227,68 @@ STATUS / PROJECT_PLAN 更新；`docs/benchmark_audit_v0.2.md` 独立审计（sub
 
 **已完成（2026-09-19）**：Phase 1–10 全部完成。完整摘要见 `STATUS.md` 的 v0.2 段落。
 
+# v0.3 — Evaluator Generalization + Softmax Autonomous Optimization（2026-09-19 起）
+
+核心问题：**v0.2 的闭环（正确性 → 配对 bench → 统计 → 决策 → 剖析 → 实验史）
+能否原样迁移到第二个算子？** 算子：row-wise Softmax
+（`y = exp(x − rowmax)/Σexp(x − rowmax)`，FP32 内部，输出原 dtype，
+ref `torch.softmax(x.float(), dim=-1).to(x.dtype)`；FP16 主 + FP32，禁 BF16；
+sm_75 / CUDA 11.8）。分支 `v0.3-softmax`（基线 main = v0.2.1 = dfe9e9b），
+**不 merge 回 main，不开始 v0.4**。
+
+## v0.3 Phases
+
+### Phase 1 — v0.2.1 发布 ✅
+`v0.2-evaluator-hardening` ff-merge 到 main + smoke + push + annotated tag
+v0.2.1（= dfe9e9b）；从 main 拉 `v0.3-softmax`。
+
+### Phase 2 — Evaluator 通用化 + RMSNorm 回归硬门 ✅
+`cudalab/evaluator/{bench,stats,decision,profiler,negative,experiment,gpu,correctness}.py`
++ 算子 adapter `cudalab/operators/{rmsnorm,softmax}.py`（不做大规模重写）。
+harness 升级到 v2.2（`docs/evaluator_hardening_v0.3.md`）：移除 round 内
+nvidia-smi 采样（其 ~40ms 空闲间隙会把 GPU 推入性能退化态）→ 时间基准
+burn（≥150 launches 且 ≥300ms）+ 每样本 spike guard（1.5× 运行中干净中位数）
++ 每变体 cross-block 一致性 guard（block 中位数 vs 运行中 median×1.15）。
+RMSNorm 回归硬门 **PASS**（commit eae07bb）：CPU tests + dispatch + negative +
+correctness + (128,4096) fp16 paired 全部与 v0.2 结论兼容；发现的"冲突"
+（v0.2 hot REJECT → 今天 NEUTRAL）定位为机器态漂移而非 evaluator 缺陷。
+
+### Phase 3 — Softmax baseline + 正确性/负例 ✅
+`kernels/softmax/`（softmax_common.h 注册表 + scalar 共享内核 + baseline +
+bindings 统一验证）；72 项正确性（2 dtype × (9 形状 × 3 seed + 9 edge)）+
+15 项负例（launch 前 TORCH_CHECK + 启动后 C10_CUDA_KERNEL_LAUNCH_CHECK）。
+
+### Phase 4 — Baseline 全矩阵 + NCU + PyTorch context ✅
+36 格矩阵（9 形状 × 2 dtype × hot/streaming）全 9/9 valid；NCU 双
+cache-control（v0.2.1 语义，先 --query-metrics 验证）；PyTorch 参照仅记录。
+
+### Phase 5 — ≥4 个自主优化实验 ✅（4/4，profiler→hypothesis 驱动）
+| 实验 | 假设（来自剖析） | 结果 |
+|---|---|---|
+| SFM-0001 `softmax_vec4` | 标量小事务是瓶颈（long_scoreboard 60.6%）→ 4 宽向量化 | **KEEP**（hot 1.2916 / streaming 1.6772，9/9）→ incumbent |
+| SFM-0002 `softmax_online` | 3 读 1 写 → 2 读 1 写（online (m,l) + merge 恒等；先 docs/softmax_algorithm.md + 5 个 CPU 恒等测试门禁） | NEUTRAL（bottleneck 是延迟不是带宽） |
+| SFM-0003 `softmax_vec4_ilp2` | 每线程在飞 load 加倍隐藏延迟 | NEUTRAL（寄存器/屏障代价抵消） |
+| SFM-0004 `softmax_hsplit2` | occupancy 44%→86%（H 对半分 2 块/行 + (m,l) 跨块合并，单 launch） | **REJECT**（barrier stall 5.6%→31%；不 occupancy-bound） |
+
+失败实验全部保留（NEUTRAL/REJECT 内核留在仓库作参考实现）。
+**四轴设计空间闭合：vec4 为 (128,4096) fp16 单 launch 结构下的结构最优。**
+dispatcher：默认不做（v0.3 无 paired 确认的 per-shape 路由证据）。
+
+### Phase 6 — 最终完整重验 ✅
+incumbent 正确性 72/72 + 负例 14/14+1 skip + 36 格全矩阵（9/9 valid）+
+主目标 paired 复跑（streaming 1.6890 KEEP 稳健；hot 0.9865 NEUTRAL ——
+机器态敏感，已如实记录）+ RMSNorm 回归复跑（v2.2 协议）+ NCU 复验
+（<1% 漂移）+ 全 5 变体 36 格矩阵 → `experiments/softmax/best.json`
+（classify_cell：36 格全部 NO_UNIQUE_WINNER；17 格 INCUMBENT 标签）。
+
+### Phase 7 — 文档、审计、发布
+- 独立 benchmark methodology review（subagent 只读审计）；
+- README / STATUS / PROJECT_PLAN 更新；`docs/softmax_algorithm.md`、
+  `docs/evaluator_hardening_v0.3.md`；
+- 最终中文报告 `docs/report_v0.3_result.md`（Q1–Q6 + Evaluator Generalization
+  Verdict，含 v2.2 偏离与机器态漂移的全部限定）；
+- 分小 commit、working tree clean、push `v0.3-softmax`（**不 merge main**）。
+
 ## 不可妥协的规则
 - 不伪造任何数字；每个报告的指标都来自真实执行。
 - 编译时间绝不计入内核计时；先基准、后剖析。

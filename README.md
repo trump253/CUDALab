@@ -12,7 +12,70 @@ CUDALab 闭环自动化内核优化：
 
 外层 LLM 智能体（开发者的编码代理）提供优化假设与内核代码；**客观、非 LLM 的评估层** —— 正确性校验框架、配对 CUDA 事件基准框架（含 DVFS guard）、Nsight Compute 集成、以及固定的 KEEP/REJECT/NEUTRAL/UNSTABLE 判定规则 —— 提供证据。智能体不能自封胜者；只有框架的数字才算数。见 [docs/design.md](docs/design.md)。
 
-## 当前状态：v0.2（评估器加固与完整复验）
+## 当前状态：v0.3（Evaluator Generalization + Softmax 自主优化）
+
+v0.3 回答一个问题：**v0.2 的闭环（正确性 → 配对 bench → 统计 → 决策 →
+剖析 → 实验史）能否原样迁移到第二个算子？** 分支 `v0.3-softmax`
+（基线 main = v0.2.1 = dfe9e9b），**不 merge 回 main、不开始 v0.4**。
+最终报告：[docs/report_v0.3_result.md](docs/report_v0.3_result.md)。
+
+v0.3 交付：
+- **Evaluator 通用化**（不做大规模重写）：`cudalab/evaluator/`（bench v2.2、
+  stats/decision/profiler/negative/experiment，operator-agnostic）+ 算子
+  adapter `cudalab/operators/{rmsnorm,softmax}.py`；stats.py/decision.py 与
+  v0.2.1 逐字节相同（独立审计确认）；统一 CLI `scripts/cudalab.py
+  test|benchmark|profile|optimize {rmsnorm,softmax}`；
+- **harness v2.2**（[docs/evaluator_hardening_v0.3.md](docs/evaluator_hardening_v0.3.md)）：
+  移除 round 内 nvidia-smi 采样（其 ~40ms 空闲间隙会把 GPU 推入性能退化态，
+  v2.1 DVFS guard 的偏离作为"基于证据的机器态适配"如实记录）→ 时间基准
+  burn（≥150 launches 且 ≥300ms）+ 逐样本 spike guard（1.5× 运行中干净
+  中位数）+ 跨块一致性 guard（block 中位数 > 运行中 median×1.15 →
+  INVALID_CROSSBLOCK）；
+- **新算子：row-wise Softmax**（`kernels/softmax/`，5 变体，FP32 内部，
+  输出原 dtype；FP16 主 + FP32，禁 BF16；sm_75 / CUDA 11.8）；正确性
+  5 变体 × 72/72（容差逐变体相同）+ negative 14/14+1 skip（launch 前
+  `TORCH_CHECK`）；
+- **4 个自主优化实验**（profiler → hypothesis，v0.3 语义；失败内核全部
+  保留作参考实现）：
+
+  | 实验 | 变体 | 假设（来自剖析） | 判定 |
+  |---|---|---|---|
+  | SFM-0001 | `softmax_vec4` | 标量小事务是瓶颈（long_scoreboard 60.6%）→ 4 宽向量化 | **KEEP** → incumbent |
+  | SFM-0002 | `softmax_online` | 3 读 1 写 → 2 读 1 写（online (m,l) 单遍） | NEUTRAL（瓶颈是延迟不是带宽） |
+  | SFM-0003 | `softmax_vec4_ilp2` | 每线程在飞 load 加倍隐藏延迟 | NEUTRAL（ILP 不是杠杆） |
+  | SFM-0004 | `softmax_hsplit2` | occupancy 44% → 86%（H 对半分 2 块/行） | **REJECT**（barrier stall 31–35%，不 occupancy-bound） |
+
+  主目标 (128,4096) fp16（v0.2.1 语义，paired v2.2）：SFM-0001 **streaming
+  1.6772 [1.6568,1.6794] 9/9 → KEEP**（final_reval 1.6890 稳健复现）；
+  hot 记录值 1.2916 存在机器态漂移（final_reval 0.9865 NEUTRAL，
+  [SFM-0001.md §6](experiments/softmax/SFM-0001.md) 披露），KEEP 以
+  primary 判据 streaming 为准。四轴设计空间闭合：vec4 为 (128,4096) fp16
+  单 launch 结构下的结构最优。
+- **best.json**（`experiments/softmax/best.json`，classify_cell，
+  v0.2.1 语义）：36 格（9 形状 × 2 dtype）全部 **NO_UNIQUE_WINNER**
+  （winner/runner-up 比值 0.998–1.048 < 1.05 KEEP 线）；17 格 INCUMBENT
+  标签（vec4 在 top-2）/ 19 NO_UNIQUE_WINNER。
+- **RMSNorm 回归硬门 PASS**（eae07bb + 最终复跑 85faeca）：CPU tests +
+  negative 29/30+1 skip + 正确性 76/76 × 2 + paired 全兼容 v0.2 结论
+  （hot 1.0144 NEUTRAL / streaming 0.9419 REJECT，点估计漂移、机制不变，
+  机器态而非 evaluator 缺陷）。
+- 独立方法学审计 [docs/benchmark_audit_v0.3.md](docs/benchmark_audit_v0.3.md)：
+  **PASS WITH CAVEATS**（数据逐项可复现、决策与规则一致、重构忠实；
+  caveat #1 hot 漂移已在 SFM-0001.md §6 + 报告披露，caveat #3b 日期笔误
+  已修正）。
+
+### v0.3 机器态限定（如实记录）
+
+(128,4096) fp16 **hot** 模式的配对结果对机器态敏感（2 MB 热工作集的
+L2 驻留 + SM 时钟爬坡 1350→1890 MHz 的差异）：vec4 vs baseline hot
+两次 paired 运行 1.2916（21:03，SFM-0001 记录）→ 0.9865（21:41，
+final_reval，NEUTRAL）；vec4 hot 绝对时间在相隔约 90 秒的两组运行间
+漂移 ~45%（4.684 µs @21:42 inc 矩阵 vs 6.797 µs @21:41 final_reval，
+baseline 稳定 ~6.7 µs）；**streaming 稳定**（1.6772 → 1.6890，
+矩阵口径 10.109/6.015 ≈ 1.68 一致）。跨运行绝对时间不可比，仅运行内
+配对有决策意义。详见报告 Q6。
+
+## v0.2（评估器加固与完整复验，历史保留）
 
 v0.2 **没有新增内核**（5 个变体原样保留），而是修复 v0.1 代码审查发现的问题，
 重建评估层，并在同一套可信方法下重新得出性能结论。v0.1 全部历史数据
@@ -145,7 +208,16 @@ v0.2.1 修正语义，此前写反）：
 incumbent-fallback / matrix-only / baseline-fallback）与逐格理由，可审计。
 6 个单元测试通过。**不改变任何内核**，只是选择器。
 
-## 评估方法（v0.2）
+## 评估方法（v0.2 历史版；v0.3 起为 v2.2）
+
+**v0.3 变更**（详见 [docs/evaluator_hardening_v0.3.md](docs/evaluator_hardening_v0.3.md)）：
+round 内 nvidia-smi 采样移除（其 ~40ms 空闲间隙会把 GPU 推入性能退化态——
+v2.1 DVFS guard 的偏离，已作为"基于证据的机器态适配"如实记录并写入
+最终报告 verdict），替换为时间基准 burn（≥150 launches 且 ≥300ms）+
+逐样本 spike guard（1.5× 运行中干净中位数）+ 跨块一致性 guard
+（block 中位数 > 运行中 median×1.15 → INVALID_CROSSBLOCK，重试 ≤3）。
+统计/决策引擎（`stats.py`/`decision.py`）与 v0.2.1 逐字节相同；
+harness 位于 `cudalab/evaluator/bench.py`（`cudalab/bench_v2.py` 为兼容 shim）。
 
 ### 配对基准 harness（`cudalab/bench_v2.py`，`paired-streaming-v2`）
 
@@ -185,20 +257,37 @@ incumbent-fallback / matrix-only / baseline-fallback）与逐格理由，可审�
 局限：nvidia-smi 轮询是 kernel 区间外的代理采样，不能捕捉区间内瞬时降频；
 这是已记录的残余风险（见审计文档）。
 
-## 范围（不变）
+## 范围（v0.3：两个算子）
 
-- **一个内核：RMSNorm**（`y = x * rsqrt(mean(x², dim=-1) + eps) * w`，默认
-  `eps=1e-5`，FP32 累加）。
+- **算子 1：RMSNorm**（`y = x * rsqrt(mean(x², dim=-1) + eps) * w`，默认
+  `eps=1e-5`，FP32 累加）—— v0.1/v0.2 历史算子，v0.3 仅做回归硬门。
+- **算子 2：row-wise Softmax**（v0.3 新增；`y = exp(x − rowmax)/Σexp(x −
+  rowmax)`，FP32 内部计算，输出原 dtype；ref `torch.softmax(x.float(),
+  dim=-1).to(x.dtype)`）。连续输入；baseline 任意 H；vec4/ilp2 要求
+  H%4==0 且 8B（fp16）/16B（fp32）对齐否则回退同一份标量核；online 任意 H；
+  hsplit2 要求 H%8==0 且对齐、M≤8192、奇数 wave 容量回退（否则走 vec4
+  回退核 / 标量核）。
 - 硬件：NVIDIA RTX 2080 Ti（Turing，**sm_75**），CUDA 11.8，PyTorch 2.4.1+cu118。
-- dtype：**fp16 为主**，支持 fp32。连续（contiguous）输入。
-- 各变体支持的 H（v0.2 已加启动前显式校验）：
+- dtype：**fp16 为主**，支持 fp32，**禁 BF16**（v0.3 范围）。
+- RMSNorm 各变体支持的 H（v0.2 已加启动前显式校验）：
   baseline 任意 H；v1 H%8==0（fp16）/ H%4==0（fp32）；
   **v2 H/256 ∈ {2,4,8,16,32}（H ∈ {512…8192}）；v3 H%512==0；
   v4 H/256 ∈ {4,8,16,32}（H ∈ {1024,2048,4096,8192}）**。
-- 主要优化目标形状：**M=128, H=4096, fp16**。
+- 主要优化目标形状：**M=128, H=4096, fp16**（两算子共用）。
 - 完整基准矩阵始终测量并保存 —— 不做形状挑拣。
 
-## 优化实验（v0.1 历史 + v0.2 复验）
+## 优化实验（v0.1 历史 + v0.2 复验 + v0.3 Softmax）
+
+### v0.3 — Softmax（`experiments/softmax/`，SFM-xxxx，全部保留）
+
+| 实验 | 变体 | 判定（(128,4096) fp16，paired v2.2） | 备注 |
+|---|---|---|---|
+| SFM-0001 | `softmax_vec4` | **KEEP**（streaming 1.6772 9/9；hot 记录 1.2916，final_reval 0.9865 NEUTRAL，hot 机器态漂移已披露） | 4 宽向量化（fp16 8B/fp32 16B），回退共享标量核；**新 incumbent** |
+| SFM-0002 | `softmax_online` | NEUTRAL（hot 0.9775 / streaming 1.0413） | online (m,l) 单遍 + block merge 恒等；docs/softmax_algorithm.md + 5 CPU 恒等测试门禁；瓶颈是内存延迟不是 DRAM 带宽 |
+| SFM-0003 | `softmax_vec4_ilp2` | NEUTRAL（hot 1.0108 8/9 / streaming 0.9815 0/9） | 2 路展开，与 vec4 逐位一致；寄存器 19→28、barrier stall 上升抵消收益；每线程 ILP 不是杠杆 |
+| SFM-0004 | `softmax_hsplit2` | **REJECT**（hot 0.6752 0/9 / streaming 0.7752 0/9） | H 对半分 2 块/行 + (m,l) 跨块合并（单 launch）；occupancy 44.5%→85.7% 达成但 barrier stall 5.6%→31–35% → **不 occupancy-bound**；四轴设计空间闭合 |
+
+### v0.1/v0.2 — RMSNorm
 
 | 实验 | 变体 | 判定 | 备注 |
 |---|---|---|---|
@@ -226,41 +315,62 @@ incumbent-fallback / matrix-only / baseline-fallback）与逐格理由，可审�
 完整记录：[`experiments/rmsnorm/`](experiments/rmsnorm/)（EXP-0008 为 v0.2 复验记录；
 `best_v0.1.json` 为 v0.1 最佳存档，`best.json` 为 v0.2 当前最佳）。
 
-## 架构
+## 架构（v0.3：evaluator 核心 + 算子 adapter）
 
 ```
 cudalab/
-  reference.py      显式 FP32 累加的 RMSNorm 参考实现
-  build.py          扩展构建 + 内容哈希缓存管理
-  correctness.py    固定容差正确性框架（76 例套件）
-  negative_suite.py 非法输入负例套件（30 例，v0.2 + v0.2.1 对齐回归）
-  benchmark.py      v0.1 批量 cuda-event 框架（保留，历史对照）
-  bench_v2.py       v0.2 配对基准 harness + 矩阵 + shape winners + PyTorch 参照
-  stats.py          round-level paired 统计 + bootstrap CI + DVFS 校验（纯 CPU）
-  decision.py       KEEP/REJECT/NEUTRAL/UNSTABLE 决策规则（纯 CPU）
-  dispatch.py       形状/dtype 分发表（纯 CPU，v0.2.1：仅 paired 证据路由）
-  profiler.py       ncu --csv 集成（v0.2: cache_control/clock_control 显式化）
-  experiment.py     实验记录 + 判定规则
+  evaluator/            通用评估核心（operator-agnostic，v0.3）
+    bench.py            paired-streaming-v2.2（burn + spike guard + cross-block guard）
+    stats.py            round-level paired 统计 + bootstrap CI（与 v0.2.1 逐字节相同）
+    decision.py         KEEP/REJECT/NEUTRAL/UNSTABLE + classify_cell（v0.2.1 语义）
+    profiler.py         通用 NCU --csv 集成（driver_src/kernel_regex 由 adapter 提供）
+    negative.py         通用负例运行器
+    experiment.py       实验记录 + 判定 + best.json 生成
+    gpu.py / correctness.py
+  operators/            算子 adapter（v0.3）
+    base.py             adapter 接口
+    rmsnorm.py          RMSNorm adapter（matrix/pool/bytes/正确性/负例/NCU）
+    softmax.py          Softmax adapter（同上 + ncu_kernel_regex="softmax"）
+  build.py              扩展构建 + 内容哈希缓存（build(op="rmsnorm"|"softmax")，两扩展独立）
+  reference.py          显式 FP32 累加的 RMSNorm 参考实现
+  softmax_correctness.py / softmax_negative.py   Softmax 正确性(72 例)/负例(15 例)套件
+  dispatch.py           RMSNorm 形状/dtype 分发表（v0.2.1 证据政策，v0.3 未改）
+  benchmark.py          v0.1 批量 cuda-event 框架（保留，历史对照）
+  stats.py / decision.py / profiler.py / bench_v2.py / …   v0.2 导入路径兼容 shim
 kernels/rmsnorm/
-  rmsnorm_common.h  自注册变体注册表 + 对齐辅助
-  bindings.cpp      PyTorch 扩展入口（v0.2: 统一输入验证 + 启动检查）
-  rmsnorm_baseline.cu … rmsnorm_v4.cu   5 个变体（v0.2 未改动计算逻辑）
+  rmsnorm_common.h + bindings.cpp + rmsnorm_baseline.cu … rmsnorm_v4.cu   5 变体（v0.3 未改动）
+kernels/softmax/          v0.3 新算子
+  softmax_common.h  自注册变体注册表 + el_to_float/el_from_float
+  softmax_scalar.h  标量 3 遍内核（回退共享实现）
+  softmax_baseline.cu      1 块/行 3 遍（参照）
+  softmax_vec4.cu          4 宽向量化（**incumbent**，H%4≠0/未对齐回退标量核）
+  softmax_online.cu        online (m,l) 单遍 + block merge
+  softmax_vec4_ilp2.cu     vec4 + 2 路展开（与 vec4 逐位一致）
+  softmax_hsplit2.cu       H 对半分 2 块/行 + (m,l) 跨块合并（REJECT，保留）
+  bindings.cpp      PyTorch 扩展入口（统一 launch 前 TORCH_CHECK + 启动后检查）
 scripts/
-  test_rmsnorm.py / benchmark_rmsnorm.py / profile_rmsnorm.py / optimize_rmsnorm.py
-  bench_v2.py           v0.2 基准入口（pair/matrix/full/winners）
-  profile_v2.py         v0.2 双缓存模式剖析入口
+  cudalab.py            v0.3 统一 CLI：test|benchmark|profile|optimize {rmsnorm,softmax}
+  bench_v2.py / profile_v2.py / test_rmsnorm.py / …   v0.2 入口（保留）
 tests/
-  test_invalid_inputs.py   负例套件 CLI（29/30 + 1 跳过）
-  test_evaluator_cpu.py    stats/decision 纯 CPU 单元测试（18/18）
-  test_dispatch.py         分发表单元测试（6/6）
+  test_evaluator_cpu.py  stats/decision 纯 CPU 单元测试（v0.3 全过）
+  test_softmax_cpu.py    Softmax 数值 + online (m,l) merge 恒等测试（20/20）
+  test_invalid_inputs.py / test_dispatch.py
+docs/
+  softmax_algorithm.md          online (m,l) 推导 + CPU 门禁清单
+  evaluator_hardening_v0.3.md   v2.2 变更、DVFS guard 偏离说明、残余风险
+  benchmark_audit_v0.2.md / benchmark_audit_v0.3.md   独立方法学审计
 tools/env.sh        环境变量的唯一事实来源
-experiments/        EXP-*.json + correctness/{,v0.2/} + best.json / best_v0.1.json
-benchmarks/         v0.1 bench_*.json|csv + v0.2/（43 个 v0.2 数据文件）
-profiles/rmsnorm/   v0.1 剖析 + v0.2/（双 cache-control，raw/ 被 git 忽略）
+experiments/rmsnorm/   EXP-*.json + correctness/ + best.json / best_v0.1.json（v0.2 冻结）
+experiments/softmax/   SFM-0001…0004（MD + result/pair JSON）+ correctness/v0.3/
+                       + final_reval/ + best.json（36 格 classify_cell）
+benchmarks/softmax/    base_*/inc_*/full5_* 36 格 × 多组 + pair_*（v0.2 路径原样保留）
+benchmarks/v0.3_regression/   RMSNorm 回归硬门记录（v2.2 协议）
+profiles/softmax/      baseline vs 4 候选 NCU 对比 + per-variant 双 cache-control + raw/
 ```
 
 新增内核变体 = 新增一个 `.cu` 文件（自注册；无需改动绑定层）。
-**v0.2 约束：不新增内核/变体** —— 评估器优先。
+**v0.3 约束**：不复制成熟 kernel 源码（全部从零编写）；失败实验永久保留；
+dispatcher 默认不做（无 paired 确认的 per-shape 路由证据时不路由）。
 
 ## 环境
 
@@ -286,14 +396,26 @@ profiles/rmsnorm/   v0.1 剖析 + v0.2/（双 cache-control，raw/ 被 git 忽�
   对照组（16B 对齐的 4B 对齐用例）预期 PASS。
 - 正确性 FAIL 的变体无条件 REJECT，永远不可能成为"最佳"。
 
-## 如何复现
+## 如何复现（v0.3 统一 CLI；v0.2 入口保留）
 
 ```bash
 cd /root/code/cuda
 source tools/env.sh          # 设置 CUDA_HOME、PATH、PYTHON、架构列表
 
-# 构建（有缓存；冷启动约 1 分钟，热启动几乎瞬时）
-$PYTHON cudalab/build.py
+# 构建（有缓存；冷启动约 1 分钟，热启动几乎瞬时；两算子独立扩展）
+$PYTHON cudalab/build.py                  # rmsnorm 扩展
+$PYTHON -c "from cudalab.build import build; build('softmax')"   # softmax 扩展
+
+# v0.3 统一 CLI（算子无关；--help 可查全部子命令）
+$PYTHON scripts/cudalab.py test softmax            # 正确性（5 变体 × 72 例）
+$PYTHON scripts/cudalab.py test rmsnorm            # 正确性（5 变体 × 76 例）
+$PYTHON scripts/cudalab.py benchmark pair softmax \
+    --parent softmax_baseline --candidate softmax_vec4 \
+    --M 128 --H 4096 --dtype float16 --mode streaming --rounds 9
+$PYTHON scripts/cudalab.py benchmark full softmax  # 36 格全矩阵
+$PYTHON scripts/cudalab.py profile softmax         # NCU（双 cache-control）
+$PYTHON scripts/cudalab.py pytorch softmax         # PyTorch 参照（仅记录）
+$PYTHON scripts/cudalab.py optimize softmax        # 实验脚手架
 
 # v0.2 正确性（5 变体 → experiments/rmsnorm/correctness/v0.2/）
 $PYTHON - <<'EOF'
@@ -324,17 +446,33 @@ $PYTHON scripts/profile_v2.py
 # CPU 单元测试（无需 GPU）
 $PYTHON tests/test_evaluator_cpu.py
 $PYTHON tests/test_dispatch.py
+$PYTHON tests/test_softmax_cpu.py        # v0.3: 20/20（数值 + online merge 恒等）
 ```
 
-产物：`experiments/rmsnorm/EXP-0008.json`、`benchmarks/v0.2/`（含
-`shape_winners.json`）、`profiles/rmsnorm/v0.2/`、`experiments/rmsnorm/correctness/v0.2/`。
+产物（v0.3）：`experiments/softmax/`（SFM-0001…0004 + correctness/v0.3/ +
+final_reval/ + best.json）、`benchmarks/softmax/`、`profiles/softmax/`、
+`benchmarks/v0.3_regression/`（RMSNorm 回归）。
+产物（v0.2，保留）：`experiments/rmsnorm/EXP-0008.json`、`benchmarks/v0.2/`
+（含 `shape_winners.json`）、`profiles/rmsnorm/v0.2/`、
+`experiments/rmsnorm/correctness/v0.2/`。
 
-## 局限（v0.2 更新）
+## 局限（v0.3 更新）
 
-- 仅 RMSNorm；单 GPU（GPU 0）；仅连续输入。
-- 变体 H 支持约束同上（baseline 完全通用）。
-- 容器内无法锁定 GPU 时钟 → DVFS guard 只能**检测并拒绝**失配轮，不能预防；
-  nvidia-smi 轮询是区间外代理采样，不捕捉瞬时降频（已记录为残余风险）。
+- 两个算子（RMSNorm + row-wise Softmax）；单 GPU（GPU 0）；仅连续输入；
+  fp16/fp32（**禁 BF16**）。
+- 变体 H 支持约束如上（baseline 完全通用；softmax 非对齐/小 H 回退共享
+  标量核）。
+- **机器态敏感性（v0.3 新确认，最重要）**：(128,4096) fp16 的 **hot** 模式
+  配对结果跨运行漂移（vec4 vs baseline hot：1.2916@21:03 → 0.9865@21:41
+  两次 paired 运行；绝对时间 4.684 µs@21:42 vs 6.797 µs@21:41，相隔约
+  90 秒漂移 ~45%，baseline 稳定 ~6.7 µs；streaming 稳定 1.68）；
+  v0.2 时代的跨运行结论在 v0.3 机器态下重跑会出现点估计漂移
+  （RMSNorm hot 0.9327 REJECT → 1.0144 NEUTRAL）。**跨运行绝对时间
+  不可比，仅运行内配对有决策意义**；依赖 hot cell 的结论需以 streaming
+  或复跑确认。
+- 容器内无法锁定 GPU 时钟 → v2.2 的 spike/cross-block guard 只能**检测并
+  拒绝**异常轮，不能预防；v2.1 的 round 内 nvidia-smi 采样已被移除
+  （其 ~40ms 空闲间隙会推入性能退化态，见 evaluator_hardening_v0.3.md）。
 - NCU `--clock-control base` 是否真正锁频在容器内无正面证据（无警告也无确认）。
 - 矩阵模式（round-robin，非配对）的 round-level ratio 对离群干扰轮敏感
   （如 (16,4096) fp32 hot 的 round 2 有 3/5 变体升至 10–13 µs，且该轮时钟恒
@@ -348,12 +486,14 @@ $PYTHON tests/test_dispatch.py
 - v0.1 数据保留在案但**已被 v0.2 取代**：跨版本数字不可直接比较
   （harness、时钟条件、缓存策略均不同）。
 
-## 路线图（v0.3 建议）
+## 路线图（v0.4 建议；v0.3 已完成项以 ~~删除线~~ 标出）
 
-- 支持锁频的环境（裸机/特权容器）下重跑 paired harness，验证 DVFS guard
-  在零失配条件下的噪声下限。
+- ~~新内核（Softmax、RoPE）复用 v0.2 客观层~~ —— **Softmax 已在 v0.3 完成**
+  （evaluator 通用化 + 4 个自主实验 + 报告）；RoPE 待做。
+- 支持锁频的环境（裸机/特权容器）下重跑 paired harness，验证 v2.2 guard
+  在零失配条件下的噪声下限；重点复验 (128,4096) fp16 **hot** 模式
+  （v0.3 已确认其机器态敏感性，streaming 结论稳健）。
 - 引入 compute-sanitizer（越界/竞态）作为正确性的第二道门。
-- 新内核（Softmax、RoPE）复用 v0.2 客观层（该层已刻意做成内核无关）。
 - fp32 路径专项：v4 的 fp32 寄存器路径是已知弱点（v2 快 1.37–1.62×），
   允许新变体时优先做 fp32 向量化重设计。
 - 更大 M（8192/16384）矩阵，覆盖 DRAM 带宽饱和区。
