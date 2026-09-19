@@ -104,7 +104,11 @@
 
 ## v0.2 Phases
 
-### Phase 1 — API correctness hardening
+### Phase 1 — API correctness hardening ✅ 已完成
+（ce5eac1：bindings 统一 validate_common/validate_out + 5 变体 TORCH_CHECK +
+C10_CUDA_KERNEL_LAUNCH_CHECK；v1/v4 显式对齐契约）
+
+原计划:
 - v2/v4: PER switch 之前验证 `H % 256 == 0`（修复非法 H 静默错误，Finding A）
 - bindings: `forward` / `forward_into` 共享同一 validation helper（dim/size/dtype/
   contiguous/CUDA/device 一致/eps 有限且非负，Finding B）
@@ -113,61 +117,103 @@
 - v1/v4: 向量化加载的显式对齐契约 —— 指针 16B/4B 对齐验证 + 清晰报错
   （策略 1：显式 validation，不静默执行未对齐的 float4 加载，Finding D）
 
-### Phase 2 — Negative correctness tests
+### Phase 2 — Negative correctness tests ✅ 已完成
+（d1a4fd8：cudalab/negative_suite.py 28 例，27/28 符合预期 + 1 多 GPU 跳过；
+全部在 kernel 启动前被拒，结果在 experiments/rmsnorm/correctness/v0.2/invalid_inputs.json）
+
+原计划:
 - 非法 H（1023/1025/4095/4097/4100 × v2/v4）、w 长度/dtype/device 错误、
   non-contiguous x/w、错误 out shape/dtype、不支持 dtype、eps 非有限/负、
   未对齐指针（storage offset 破坏 16B 对齐）
 - 要求：kernel launch 之前以明确异常拒绝（而非静默计算或 CUDA 运行时错误）
 - 结构化结果保存至 `experiments/rmsnorm/correctness/v0.2/`
 
-### Phase 3 — Benchmark redesign: paired benchmark
+### Phase 3 — Benchmark redesign: paired benchmark ✅ 已完成
+（f9a98ab：cudalab/bench_v2.py bench_pair/bench_matrix，slot 奇偶交替 + round-robin，
+预分配缓冲池，seed/每轮顺序完整记录）
+
+原计划:
 - `bench_pair(parent, candidate, ...)`: A/B 时间上相邻、执行顺序轮换并记录、
   同一 round 使用完全相同的张量（不重新生成输入）
 - 全矩阵采用 shape 内 round-robin 轮换顺序，平衡 variant 位置与
   热/DVFS 漂移的相关性；记录 seed 与每轮顺序
 
-### Phase 4 — DVFS / clock stability guard
+### Phase 4 — DVFS / clock stability guard ✅ 已完成
+（stats.py check_dvfs_pair/check_dvfs_matrix，>5% 判 INVALID_DVFS，重试 ≤3，
+valid<5 → UNSTABLE；1350 vs 1905 拦截行为有单元测试覆盖；复验 41 run 全部 9/9 valid）
+
+原计划:
 - 每个 paired round 记录 SM clock / mem clock / 温度 / 功耗（A 前、A 后、B 后）
 - A/B 有效 SM clock 相对差 > 5% → 该 round `INVALID_DVFS`，不进入统计
 - 无效 round 最多重试 3 次；仍不足最小有效轮数 → 最终 `UNSTABLE`
 - 不修改 power limit / 不锁时钟（容器不允许）；仅记录 + 判无效
 
-### Phase 5 — hot / streaming cache modes
+### Phase 5 — hot / streaming cache modes ✅ 已完成
+（POOL_SIZE=16 轮换 buffer；(128,4096) fp16 streaming working_set 33.5 MB > L2 5.5 MB；
+pool_size/working_set_bytes/element_size 均记录于 JSON）
+
+原计划:
 - `hot`: 沿用 v0.1 设计（单 x/w/out 缓冲、连续启动 = cache 友好稳态），
   但不再表述为"唯一真实推理场景"
 - `streaming`: 预分配轮换缓冲池（timing 区域内无 malloc/copy/随机数）；
   M=128 H=4096 fp16 下 pool working set >> L2 (5.5 MB)；记录 pool_size 与
   working_set_bytes；不声称"完全 cold cache"（rotating-buffer / cache-cold-ish）
 
-### Phase 6 — Statistical decision redesign
+### Phase 6 — Statistical decision redesign ✅ 已完成
+（stats.py paired_speedups/summarize/bootstrap_ci + decision.py 四态决策；
+tests/test_evaluator_cpu.py 18/18 通过）
+
+原计划:
 - 统计单位 = 独立 benchmark round（不是 500 个连续 event sample）
 - round-level paired speedup: median / mean / min / max / faster-round 计数
 - 95% bootstrap CI 基于 round-level speedup（固定 seed，确定性可复现）
 - 决策规则: KEEP / REJECT / NEUTRAL / **UNSTABLE**（新增）；全部 CPU 单元测试
 
-### Phase 7 — Profiler methodology audit
+### Phase 7 — Profiler methodology audit ✅ 已完成
+（aca86a6/517d548：确认 ncu 2022.3 --cache-control 默认 all=不失效缓存 →
+v0.1 "cold L2" 说法无配置依据；profiler 显式化 cache_control/clock_control +
+L1/L2 命中率；scripts/profile_v2.py 双模式剖析 → profiles/rmsnorm/v0.2/）
+
+原计划:
 - 用本机 ncu 2022.3 真实验证 `--cache-control {all|none}`（已确认存在，默认 all）
 - 双模式剖析（缓存保留 / 缓存失效）；README 只保留已验证的描述，
   删除无配置保证的 "cold L2" 说法
 
-### Phase 8 — Full v0.2 revalidation
+### Phase 8 — Full v0.2 revalidation ✅ 已完成
+（5 变体 76/76 ×5 + 负例复跑 + 28 组全矩阵（369/369 valid）+ 13 组主形状/关键形状
+配对精测 + shape_winners.json + pytorch_ref + EXP-0008 + best_v0.1.json 存档/
+best.json 更新；v0.2 best: fp16 主形状 v4（v2 平局），fp32 与 (128,8192) v2）
+
+原计划:
 - 5 变体重测：合法正确性 + negative suite + hot/streaming 完整矩阵（fp16，
   fp32 若成本可接受）+ 主目标 paired 精测
 - 由 v0.2 evaluator 重新确定 best（不预设 v4 胜出）；shape-specific winner 矩阵
 - 新实验记录 EXP-0008+（v0.2 schema）；旧 EXP-0001…0007 原样保留
 
-### Phase 9 — Optional shape dispatcher
+### Phase 9 — Optional shape dispatcher ✅ 已完成（实现）
+（fb22967：复验显示稳定且显著的 shape/dtype 专属优势（fp32→v2 1.37–1.62×、
+(128,8192)→v2 1.38×），满足实现条件；cudalab/dispatch.py 28 单元格实测分发表 +
+保守 fallback，5 个 CPU 测试 + 端到端验证）
+
+原计划:
 - 仅在 v0.2 revalidation 完成且 shape winner 稳定、收益明显时实现
 - 否则记录不实现的理由（非强制 Stop Condition）
 
-### Phase 10 — Documentation and final audit
+### Phase 10 — Documentation and final audit ✅ 完成
+
+原计划:
 - README（v0.2 结果 + 方法学 + v0.1 历史，保留 EXP-0002 事故）
 - STATUS / PROJECT_PLAN 更新；`docs/benchmark_audit_v0.2.md` 独立审计
 - 按阶段 commit；不 push（除非用户另行要求）
 
+**已完成（2026-09-19）**：README 全面重组（v0.2 结果 + 方法学 + v0.1 双事故史 + 复现命令）；
+STATUS / PROJECT_PLAN 更新；`docs/benchmark_audit_v0.2.md` 独立审计（subagent 只读审计，
+12 项清单零 FAIL，总体 PASS 带限定；Lead 逐项复核引用数值后修正了 2 处表述偏差）。
+按阶段 commit（9 个实现/数据 commit + 1 个文档 commit）；未 push（用户未要求）。
+
 ## v0.2 状态
 
-进行中，实时进展见 `STATUS.md` 的 v0.2 段落。
+**已完成（2026-09-19）**：Phase 1–10 全部完成。完整摘要见 `STATUS.md` 的 v0.2 段落。
 
 ## 不可妥协的规则
 - 不伪造任何数字；每个报告的指标都来自真实执行。
