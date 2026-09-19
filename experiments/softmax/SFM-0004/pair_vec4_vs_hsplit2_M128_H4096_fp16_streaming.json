@@ -1,0 +1,407 @@
+{
+  "harness": "paired-streaming-v2.2",
+  "operator": "softmax",
+  "parent": "softmax_vec4",
+  "candidate": "softmax_hsplit2",
+  "shape": [
+    128,
+    4096
+  ],
+  "dtype": "float16",
+  "cache_mode": "streaming",
+  "seed": 1234,
+  "warmup": 150,
+  "iters": 100,
+  "batch": 32,
+  "pool": {
+    "pool_size": 16,
+    "working_set_bytes": 33554432,
+    "working_set_gt_l2": true
+  },
+  "clock_policy": {
+    "sm_clock_rel_tolerance": 0.05,
+    "min_valid_rounds": 5,
+    "max_retries": 3,
+    "warmup_ms": 300.0,
+    "spike_factor": 1.5,
+    "min_clean_samples": 50,
+    "crossblock_factor": 1.15,
+    "crossblock_warmup": 3,
+    "note": "v2.2: round 内不做 nvidia-smi 采样（采样本身是 idle-gap 触发源, 且采样值 为缺口/空闲时钟而非负载时钟）; A/B 状态漂移由跨 block 一致性 guard （block 中位数 vs 该 variant 本 run 运行中位数）检出; run 级 gpu_state before/after 快照保留"
+  },
+  "generated": "2026-09-19T21:35:27+08:00",
+  "gpu_state_before": {
+    "gpu_index": 0,
+    "name": " NVIDIA GeForce RTX 2080 Ti",
+    "temp_c": 41,
+    "sm_clock_mhz": 1905,
+    "mem_clock_mhz": 6800,
+    "power_w": 83.14,
+    "gpu_util_pct": 74,
+    "mem_util_pct": 0,
+    "ts": 1789824927.1498406
+  },
+  "n_rounds": 9,
+  "valid_rounds": 9,
+  "invalid_dvfs_rounds": 0,
+  "invalid_dvfs_only_rounds": 0,
+  "invalid_spikes_rounds": 0,
+  "invalid_crossblock_rounds": 0,
+  "rounds": [
+    {
+      "round": 1,
+      "order": [
+        "softmax_vec4",
+        "softmax_hsplit2"
+      ],
+      "retries": 0,
+      "parent_us": 6.002,
+      "candidate_us": 7.693,
+      "speedup": 0.780241,
+      "valid": true,
+      "invalid_reason": null,
+      "samples": {
+        "parent": {
+          "n_clean": 95,
+          "n_spike": 5
+        },
+        "candidate": {
+          "n_clean": 94,
+          "n_spike": 6
+        }
+      },
+      "crossblock": {
+        "softmax_vec4": {
+          "running_med_us": null,
+          "ratio": null,
+          "flagged": false
+        },
+        "softmax_hsplit2": {
+          "running_med_us": null,
+          "ratio": null,
+          "flagged": false
+        }
+      }
+    },
+    {
+      "round": 2,
+      "order": [
+        "softmax_hsplit2",
+        "softmax_vec4"
+      ],
+      "retries": 0,
+      "parent_us": 5.961,
+      "candidate_us": 7.695,
+      "speedup": 0.774594,
+      "valid": true,
+      "invalid_reason": null,
+      "samples": {
+        "parent": {
+          "n_clean": 96,
+          "n_spike": 4
+        },
+        "candidate": {
+          "n_clean": 95,
+          "n_spike": 5
+        }
+      },
+      "crossblock": {
+        "softmax_vec4": {
+          "running_med_us": null,
+          "ratio": null,
+          "flagged": false
+        },
+        "softmax_hsplit2": {
+          "running_med_us": null,
+          "ratio": null,
+          "flagged": false
+        }
+      }
+    },
+    {
+      "round": 3,
+      "order": [
+        "softmax_vec4",
+        "softmax_hsplit2"
+      ],
+      "retries": 0,
+      "parent_us": 5.959,
+      "candidate_us": 7.706,
+      "speedup": 0.773229,
+      "valid": true,
+      "invalid_reason": null,
+      "samples": {
+        "parent": {
+          "n_clean": 96,
+          "n_spike": 4
+        },
+        "candidate": {
+          "n_clean": 95,
+          "n_spike": 5
+        }
+      },
+      "crossblock": {
+        "softmax_vec4": {
+          "running_med_us": null,
+          "ratio": null,
+          "flagged": false
+        },
+        "softmax_hsplit2": {
+          "running_med_us": null,
+          "ratio": null,
+          "flagged": false
+        }
+      }
+    },
+    {
+      "round": 4,
+      "order": [
+        "softmax_hsplit2",
+        "softmax_vec4"
+      ],
+      "retries": 0,
+      "parent_us": 5.972,
+      "candidate_us": 7.704,
+      "speedup": 0.775182,
+      "valid": true,
+      "invalid_reason": null,
+      "samples": {
+        "parent": {
+          "n_clean": 93,
+          "n_spike": 7
+        },
+        "candidate": {
+          "n_clean": 94,
+          "n_spike": 6
+        }
+      },
+      "crossblock": {
+        "softmax_vec4": {
+          "running_med_us": 5.961,
+          "ratio": 1.0019,
+          "flagged": false
+        },
+        "softmax_hsplit2": {
+          "running_med_us": 7.695,
+          "ratio": 1.0012,
+          "flagged": false
+        }
+      }
+    },
+    {
+      "round": 5,
+      "order": [
+        "softmax_vec4",
+        "softmax_hsplit2"
+      ],
+      "retries": 0,
+      "parent_us": 6.014,
+      "candidate_us": 7.726,
+      "speedup": 0.778346,
+      "valid": true,
+      "invalid_reason": null,
+      "samples": {
+        "parent": {
+          "n_clean": 94,
+          "n_spike": 6
+        },
+        "candidate": {
+          "n_clean": 96,
+          "n_spike": 4
+        }
+      },
+      "crossblock": {
+        "softmax_vec4": {
+          "running_med_us": 5.966,
+          "ratio": 1.0079,
+          "flagged": false
+        },
+        "softmax_hsplit2": {
+          "running_med_us": 7.7,
+          "ratio": 1.0034,
+          "flagged": false
+        }
+      }
+    },
+    {
+      "round": 6,
+      "order": [
+        "softmax_hsplit2",
+        "softmax_vec4"
+      ],
+      "retries": 0,
+      "parent_us": 5.979,
+      "candidate_us": 7.701,
+      "speedup": 0.776443,
+      "valid": true,
+      "invalid_reason": null,
+      "samples": {
+        "parent": {
+          "n_clean": 97,
+          "n_spike": 3
+        },
+        "candidate": {
+          "n_clean": 96,
+          "n_spike": 4
+        }
+      },
+      "crossblock": {
+        "softmax_vec4": {
+          "running_med_us": 5.972,
+          "ratio": 1.0012,
+          "flagged": false
+        },
+        "softmax_hsplit2": {
+          "running_med_us": 7.704,
+          "ratio": 0.9995,
+          "flagged": false
+        }
+      }
+    },
+    {
+      "round": 7,
+      "order": [
+        "softmax_vec4",
+        "softmax_hsplit2"
+      ],
+      "retries": 0,
+      "parent_us": 5.967,
+      "candidate_us": 8.384,
+      "speedup": 0.711713,
+      "valid": true,
+      "invalid_reason": null,
+      "samples": {
+        "parent": {
+          "n_clean": 95,
+          "n_spike": 5
+        },
+        "candidate": {
+          "n_clean": 94,
+          "n_spike": 6
+        }
+      },
+      "crossblock": {
+        "softmax_vec4": {
+          "running_med_us": 5.975,
+          "ratio": 0.9986,
+          "flagged": false
+        },
+        "softmax_hsplit2": {
+          "running_med_us": 7.702,
+          "ratio": 1.0885,
+          "flagged": false
+        }
+      }
+    },
+    {
+      "round": 8,
+      "order": [
+        "softmax_hsplit2",
+        "softmax_vec4"
+      ],
+      "retries": 0,
+      "parent_us": 6.006,
+      "candidate_us": 8.289,
+      "speedup": 0.724575,
+      "valid": true,
+      "invalid_reason": null,
+      "samples": {
+        "parent": {
+          "n_clean": 93,
+          "n_spike": 7
+        },
+        "candidate": {
+          "n_clean": 95,
+          "n_spike": 5
+        }
+      },
+      "crossblock": {
+        "softmax_vec4": {
+          "running_med_us": 5.972,
+          "ratio": 1.0057,
+          "flagged": false
+        },
+        "softmax_hsplit2": {
+          "running_med_us": 7.704,
+          "ratio": 1.0759,
+          "flagged": false
+        }
+      }
+    },
+    {
+      "round": 9,
+      "order": [
+        "softmax_vec4",
+        "softmax_hsplit2"
+      ],
+      "retries": 0,
+      "parent_us": 6.015,
+      "candidate_us": 7.715,
+      "speedup": 0.779535,
+      "valid": true,
+      "invalid_reason": null,
+      "samples": {
+        "parent": {
+          "n_clean": 96,
+          "n_spike": 4
+        },
+        "candidate": {
+          "n_clean": 94,
+          "n_spike": 6
+        }
+      },
+      "crossblock": {
+        "softmax_vec4": {
+          "running_med_us": 5.975,
+          "ratio": 1.0065,
+          "flagged": false
+        },
+        "softmax_hsplit2": {
+          "running_med_us": 7.705,
+          "ratio": 1.0014,
+          "flagged": false
+        }
+      }
+    }
+  ],
+  "speedups": [
+    0.7801897829195372,
+    0.7746588693957115,
+    0.7732935375032441,
+    0.7751817237798547,
+    0.7784105617395807,
+    0.7763926762758084,
+    0.7117127862595419,
+    0.7245747376040537,
+    0.779650032404407
+  ],
+  "median_speedup": 0.775182,
+  "mean_speedup": 0.763785,
+  "min_speedup": 0.711713,
+  "max_speedup": 0.78019,
+  "faster_rounds": "0/9",
+  "bootstrap_ci_95": [
+    0.724575,
+    0.77965
+  ],
+  "bootstrap": {
+    "n_boot": 10000,
+    "seed": 20260919,
+    "statistic": "median"
+  },
+  "parent_median_us": 5.979,
+  "candidate_median_us": 7.706,
+  "algorithmic_bw_gbps_parent": 350.8,
+  "algorithmic_bw_gbps_candidate": 272.1,
+  "gpu_state_after": {
+    "gpu_index": 0,
+    "name": " NVIDIA GeForce RTX 2080 Ti",
+    "temp_c": 47,
+    "sm_clock_mhz": 1890,
+    "mem_clock_mhz": 6800,
+    "power_w": 83.81,
+    "gpu_util_pct": 89,
+    "mem_util_pct": 62,
+    "ts": 1789824933.172889
+  }
+}
