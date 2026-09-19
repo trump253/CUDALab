@@ -194,6 +194,31 @@ def build_cases(ext) -> list[dict]:
             lambda xa=xa, wa=wa, v=v: ext.forward(v, xa, wa, 1e-5),
             expected="pass")
 
+    # 8b) v0.2.1 Finding 2 回归: v4 FP32 H=1024（PER=4）恒用 float4 加载，
+    #     需 16B 对齐。旧代码按 per%8 判定，FP32 PER=4 被误设为 4B，会放行
+    #     未对齐的 float4 加载（静默错误/崩溃）。修正后：
+    #     - 基址偏移 1 float（4B，连续）→ 未 16B 对齐，必须被对齐契约拒绝；
+    #     - 基址偏移 4 floats（16B 对齐，连续）→ 必须成功。
+    M32, H32 = 4, 1024
+    big_x32_bad = torch.randn(M32 * H32 + 1, dtype=torch.float32, device=dev)
+    xm32 = big_x32_bad[1:1 + M32 * H32].view(M32, H32)   # 基址 +4B: 4B 对齐、未 16B
+    big_w32_bad = torch.randn(H32 + 1, dtype=torch.float32, device=dev)
+    wm32 = big_w32_bad[1:]                               # 基址 +4B: 4B 对齐、未 16B
+    add("align_fp32_h1024_misaligned_v4", "v4_vec_reg",
+        "v4 FP32 H=1024（PER=4, float4）: 连续张量但基址偏移 1 float"
+        "（4B，未 16B 对齐）: 必须被对齐契约拒绝",
+        lambda: ext.forward("v4_vec_reg", xm32, wm32, 1e-5),
+        expect_msg_contains="对齐契约")
+    big_x32_ok = torch.randn(M32 * H32 + 4, dtype=torch.float32, device=dev)
+    xa32 = big_x32_ok[4:4 + M32 * H32].view(M32, H32)    # 基址 +16B: 16B 对齐
+    big_w32_ok = torch.randn(H32 + 4, dtype=torch.float32, device=dev)
+    wa32 = big_w32_ok[4:]                                # 基址 +16B: 16B 对齐
+    add("align_fp32_h1024_aligned_v4", "v4_vec_reg",
+        "v4 FP32 H=1024（PER=4, float4）control: 基址偏移 4 floats"
+        "（16B 对齐）的连续视图: 必须成功",
+        lambda: ext.forward("v4_vec_reg", xa32, wa32, 1e-5),
+        expected="pass")
+
     # 9) 多设备（仅当可见 >1 个 GPU 时执行；CUDA_VISIBLE_DEVICES=0
     #    的 v0.2 环境中安全跳过并记录）
     if torch.cuda.device_count() > 1:

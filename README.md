@@ -20,7 +20,8 @@ v0.2 **没有新增内核**（5 个变体原样保留），而是修复 v0.1 代
 原样保留，未做任何改写。
 
 v0.2 交付：
-- **API 加固**（输入验证 Finding A–D + 启动后错误检查）与 **28 例非法输入负例套件**；
+- **API 加固**（输入验证 Finding A–D + 启动后错误检查）与 **30 例非法输入负例套件**
+  （v0.2.1 增补 2 例 v4 FP32 H=1024 对齐回归）；
 - **配对基准 harness `paired-streaming-v2`**：A/B 交替顺序去偏、每轮 3 次 SM 时钟
   采样的 DVFS guard（>5% 相对差判 invalid round）、hot/streaming 双缓存模式、
   预分配缓冲池（streaming 工作集 33.5 MB > 5.5 MB L2）；
@@ -42,13 +43,14 @@ v0.2 交付：
 | 套件 | 结果 |
 |---|---|
 | 合法输入套件 × 5 变体（76 例/变体） | **380/380 PASS**（`experiments/rmsnorm/correctness/v0.2/`） |
-| 非法输入负例套件（28 例） | **27/28 符合预期，1 跳过**（多 GPU 用例，单 GPU 环境安全跳过） |
+| 非法输入负例套件（30 例） | **29/30 符合预期，1 跳过**（多 GPU 用例，单 GPU 环境安全跳过） |
 
 max_abs_error = 3.91e-3 / max_rel_error ≈ 9.7e-4（fp16 最坏值，全变体一致）。
 负例套件覆盖：非对齐/非法 H（1023/1025/4095/4097/4100）、w 长度与 dtype 错配、
 CPU 输入、非连续输入、out 张量错配、bf16、eps=NaN/负、v1/v4 指针 8B 未对齐
-（+ 16B 对齐对照组 PASS）、多 GPU 混布（跳过）。所有非法输入在 **kernel 启动前**
-被拒（`TORCH_CHECK`），启动后 `C10_CUDA_KERNEL_LAUNCH_CHECK()`。
+（+ 16B 对齐对照组 PASS）、v4 FP32 H=1024 对齐回归（PER=4 亦按 float4 要求 16B：
+4B offset 拒绝、16B offset PASS，v0.2.1 新增）、多 GPU 混布（跳过）。
+所有非法输入在 **kernel 启动前** 被拒（`TORCH_CHECK`），启动后 `C10_CUDA_KERNEL_LAUNCH_CHECK()`。
 
 ### v0.2 主目标性能（M=128, H=4096, fp16，主形状）
 
@@ -217,7 +219,7 @@ cudalab/
   reference.py      显式 FP32 累加的 RMSNorm 参考实现
   build.py          扩展构建 + 内容哈希缓存管理
   correctness.py    固定容差正确性框架（76 例套件）
-  negative_suite.py 非法输入负例套件（28 例，v0.2）
+  negative_suite.py 非法输入负例套件（30 例，v0.2 + v0.2.1 对齐回归）
   benchmark.py      v0.1 批量 cuda-event 框架（保留，历史对照）
   bench_v2.py       v0.2 配对基准 harness + 矩阵 + shape winners + PyTorch 参照
   stats.py          round-level paired 统计 + bootstrap CI + DVFS 校验（纯 CPU）
@@ -234,7 +236,7 @@ scripts/
   bench_v2.py           v0.2 基准入口（pair/matrix/full/winners）
   profile_v2.py         v0.2 双缓存模式剖析入口
 tests/
-  test_invalid_inputs.py   负例套件 CLI（27/28 + 1 跳过）
+  test_invalid_inputs.py   负例套件 CLI（29/30 + 1 跳过）
   test_evaluator_cpu.py    stats/decision 纯 CPU 单元测试（18/18）
   test_dispatch.py         分发表单元测试（5/5）
 tools/env.sh        环境变量的唯一事实来源
@@ -265,8 +267,9 @@ profiles/rmsnorm/   v0.1 剖析 + v0.2/（双 cache-control，raw/ 被 git 忽�
   `* w.float()`，再转回输入 dtype（FP32 累加，与 PyTorch 版本无关）。
 - 固定容差（**所有变体一致**）：fp16 atol=2e-3 / rtol=5e-3；fp32 atol=1e-5 / rtol=1e-4。
 - 每变体 76 例：11 形状 × 3 种子 × 2 dtype + 5 个边界用例 × 2 dtype。
-- **v0.2 负例套件**：28 例非法/未对齐输入，全部预期在 kernel 启动前被拒
-  （`TORCH_CHECK` 中文报错），对照组（16B 对齐未对齐变体）预期 PASS。
+- **负例套件**：30 例非法/未对齐输入（v0.2 28 例 + v0.2.1 新增 2 例 v4 FP32 H=1024
+  对齐回归），全部预期在 kernel 启动前被拒（`TORCH_CHECK` 中文报错），
+  对照组（16B 对齐的 4B 对齐用例）预期 PASS。
 - 正确性 FAIL 的变体无条件 REJECT，永远不可能成为"最佳"。
 
 ## 如何复现

@@ -120,6 +120,8 @@ C10_CUDA_KERNEL_LAUNCH_CHECK；v1/v4 显式对齐契约）
 ### Phase 2 — Negative correctness tests ✅ 已完成
 （d1a4fd8：cudalab/negative_suite.py 28 例，27/28 符合预期 + 1 多 GPU 跳过；
 全部在 kernel 启动前被拒，结果在 experiments/rmsnorm/correctness/v0.2/invalid_inputs.json）
+（v0.2.1：增补 2 例 v4 FP32 H=1024 对齐回归 → 30 例，29/30 符合预期 + 1 跳过；
+fp32 路径 PER=4 亦按 float4 要求 16B 对齐，见 kernels/rmsnorm/rmsnorm_v4.cu v4_precheck）
 
 原计划:
 - 非法 H（1023/1025/4095/4097/4100 × v2/v4）、w 长度/dtype/device 错误、

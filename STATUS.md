@@ -13,7 +13,7 @@ v0.1 的 best，`best.json` 为 v0.2 当前最佳。
 
 | 项目 | v0.2 结果 |
 |---|---|
-| 正确性 | 5/5 变体 76/76 PASS（`correctness/v0.2/`）+ 负例套件 27/28 符合预期（1 多 GPU 用例单卡环境跳过） |
+| 正确性 | 5/5 变体 76/76 PASS（`correctness/v0.2/`）+ 负例套件 29/30 符合预期（1 多 GPU 用例单卡环境跳过） |
 | 基准 harness | `paired-streaming-v2`：配对 A/B 交替、DVFS guard（>5% 拒轮）、hot/streaming 双模式、预分配 16-buffer 池（streaming 工作集 33.5 MB > 5.5 MB L2） |
 | 全矩阵 | 7 形状 × {fp16,fp32} × {hot,streaming} × 5 变体 = 28 run，**369/369 rounds valid**（0 DVFS invalid，全程 1350 MHz） |
 | 主形状 fp16 (128,4096) | v4_vec_reg 1.56×（hot）/ 1.87×（streaming）vs baseline；v4 vs v2 统计平局（NEUTRAL）→ v4 保留 incumbent；v4 vs v1：hot REJECT v1（median v4/v1 0.9327，0/9 轮 v1 更快）、streaming NEUTRAL（v1 反微快 1.1%） |
@@ -23,7 +23,7 @@ v0.1 的 best，`best.json` 为 v0.2 当前最佳。
 | NCU 方法学 | `--cache-control` 语义修正（v0.2.1，此前写反）：`all`（默认）= cache flush/reset（每 replay 前失效缓存，确定性 flushed 状态）、`none` = no-flush（不失效，状态不受控）；v0.1 走默认 all（= 失效），其 "cold L2" 说法与默认配置一致（v0.2 曾误判"推翻"，已更正）；v0.2 双缓存模式剖析（`profiles/rmsnorm/v0.2/`）；小 kernel 下 cc=all/none 差异可忽略 → 缓存杠杆在 bench 层 |
 | 统计 | round-level paired speedup + bootstrap CI95（固定种子 20260919）+ KEEP/REJECT/NEUTRAL/UNSTABLE；18 个 CPU 单元测试全过 |
 | 分派 | `cudalab/dispatch.py`：28 单元格实测分发表 + 保守 fallback（5 个 CPU 测试 + e2e 验证） |
-| API 加固 | Finding A–D 修复（非法 H 显式报错、对齐契约、forward_into 验证、launch 检查）；28 例负例套件 |
+| API 加固 | Finding A–D 修复（非法 H 显式报错、对齐契约、forward_into 验证、launch 检查）；30 例负例套件（v0.2 28 例 + v0.2.1 增补 2 例 v4 FP32 H=1024 对齐回归） |
 | PyTorch 参照 | F.rms_norm 66.2 µs（主形状 fp16，非融合路径，仅记录不决策） |
 | 审计 | `docs/benchmark_audit_v0.2.md`（独立 subagent 审计，Lead 复核） |
 | 未做 | 无新内核/变体（v0.2 约束）；未 push（等待指示） |
@@ -31,7 +31,7 @@ v0.1 的 best，`best.json` 为 v0.2 当前最佳。
 ## v0.2 阶段清单
 
 - [x] Phase 1 — API 正确性加固（bindings 统一验证 + 5 变体 TORCH_CHECK + launch 检查）
-- [x] Phase 2 — 非法输入负例套件（28 例）
+- [x] Phase 2 — 非法输入负例套件（28 例；v0.2.1 增补 2 例对齐回归后为 30 例）
 - [x] Phase 3 — 基准重构：paired A/B + 预分配缓冲池 + 顺序去偏
 - [x] Phase 4 — DVFS guard（pair/matrix 双校验、重试、UNSTABLE）
 - [x] Phase 5 — hot/streaming 双缓存模式（streaming 工作集 > L2）

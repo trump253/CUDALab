@@ -26,7 +26,7 @@
 | 7 | 无效轮透明丢弃 | **PASS** | 代码层面：round 记录（含 `valid`/`invalid_reason`）无条件 append 进 `rounds[]`，统计只用 valid 子集；数据层面：v0.2 全部 41 个 run 均 0 个无效轮，故 JSON 中无 invalid 条目可展示——机制由代码 + 单元测试覆盖，未被真实数据触发 |
 | 8 | 缓存模式标注准确 | **PASS** | hot：pool_size=1，working set 2,105,344 B（fp16）/ 4,210,688 B（fp32）< L2 5.5 MB，`working_set_gt_l2=false`；streaming：pool 16，33,562,624 B = 33.5 MB > L2，`true`；harness 明确"不声称完全 cold"；ncu cc=all 即 ncu 默认 = cache flush/reset（每 replay 前失效缓存，v0.2.1 修正此前写反的"热缓存"标注），v0.1 未传 `--cache-control`（其 profile JSON 无 `cache_control` 字段）走默认 all（= 失效/flush），v0.1 "cold L2" 说法与默认配置一致（v0.2 曾误判"无配置依据/实际热"，v0.2.1 更正）——v0.2 双 cc 模式实测小工作集下差异 <2% |
 | 9 | 统计基于独立 round | **PASS** | bootstrap 作用于 9 个 round 级 speedup 数组（非 100-iter 内样本）；round 内样本仅用于稳健中位数；seed 固定 20260919、n_boot=10000、n<3 返回 None；`test_bootstrap_reproducibility` 验证确定性 |
-| 10 | candidate 是否走捷径（容差/参考） | **PASS** | 实际容差 fp16 atol=2e-3 / rtol=5e-3，fp32 atol=1e-5 / rtol=1e-4（**不是** 2e-2/2e-2），5 变体逐字节一致、与 v0.1 相同；参考为显式 FP32 公式实现，不依赖 PyTorch 版本相关融合算子；REL_EPS_GUARD 只影响报告口径不影响 pass/fail；负例套件 27/28（1 例单 GPU 环境安全跳过），全部 launch 前拒绝 + post-check |
+| 10 | candidate 是否走捷径（容差/参考） | **PASS** | 实际容差 fp16 atol=2e-3 / rtol=5e-3，fp32 atol=1e-5 / rtol=1e-4（**不是** 2e-2/2e-2），5 变体逐字节一致、与 v0.1 相同；参考为显式 FP32 公式实现，不依赖 PyTorch 版本相关融合算子；REL_EPS_GUARD 只影响报告口径不影响 pass/fail；负例套件 27/28（1 例单 GPU 环境安全跳过），全部 launch 前拒绝 + post-check（v0.2.1：扩至 30 例 29/30，新增 2 例 v4 FP32 H=1024 对齐回归） |
 | 11 | 有无 cherry-picking | **PASS** | 28 单元格（7 shape × 2 dtype × 2 模式）全矩阵 + 13 组 targeted pair 全部落盘；`shape_winners.json` 如实包含对"优化变体"不利的单元格：baseline 在 3 格获胜（(1,4096) fp32 hot、(16,4096) fp32 hot、(128,1024) fp16 streaming），v1 在 3 格、v3 在 6 格获胜 |
 | 12 | 矩阵模式离群敏感（额外审查） | **CONCERN（已在文件中声明的局限）** | (16,4096) fp32 hot round 2：5 变体中 3 个升高（v2_reg 10.295 / baseline 11.374 / v4_vec_reg 12.805 µs；v1_vec 6.272、v3_wideblock 7.052 正常——注意"全体变体 10-13µs"的表述与原始数据不符，实为 3/5）；该轮 DVFS 采样恒 1350 MHz 未被 guard 拦截；winner ratio 0.9912、CI 跨 1.0。**结论：矩阵模式 winner-vs-runner CI 仅指示性，最终判定以 paired A/B 为准** |
 
@@ -99,6 +99,7 @@
 - 参考实现 `reference.py::rmsnorm_ref` 为显式公式、FP32 累加、不依赖随 PyTorch 版本变化的融合算子；pass/fail 用 `torch.allclose(atol, rtol)` + NaN/Inf 检查；`REL_EPS_GUARD=1e-3` 只用于报告的 max_rel_error 分母钳位，不影响判定。
 - 通过情况：5 变体 × 76 例（11 shape × 3 seed × 2 dtype + 5 edge × 2 dtype）全部 76/76；`max_abs_error` 最大 0.00390625（= 2^-8，fp16 在 4.0 附近 1 ulp 量级），满足 allclose 判据（|a-b| ≤ atol + rtol·|b|）。
 - **负例套件**（`invalid_inputs.json`，negative-v0.2）：28 例 = 25 reject + 2 pass control + 1 skip（多设备用例，单 GPU 环境安全跳过）；27/28 pass、`all_pass=true`。所有 reject 均 `status=rejected` 且 `post_check_ok=true`（拒绝后上下文健康）；关键回归用例（H=1025/4100 曾致 v0.1 静默误算、8B 偏移破坏 16B 对齐）消息匹配 `msg_match` 验证通过；2 个对齐 control（16B 偏移）确认不误拒。
+- **v0.2.1 增补**：负例套件扩至 30 例 = 26 reject + 3 pass control + 1 skip，29/30 符合预期（新增 2 例 v4 FP32 H=1024 对齐回归：4B offset 基址必须被拒、16B offset 对照组必须 PASS）；上文引用的 v0.2 审计数字保持原样。
 
 ### 11. cherry-picking — PASS
 

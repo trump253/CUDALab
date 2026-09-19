@@ -1,15 +1,15 @@
 {
   "suite": "negative-v0.2",
-  "generated": "2026-09-19T12:44:57+08:00",
+  "generated": "2026-09-19T16:28:29+08:00",
   "note": "非法输入必须在 kernel launch 前被明确异常拒绝；post_check_ok 验证拒绝未污染 CUDA 上下文。",
   "summary": {
-    "n_total": 28,
-    "n_reject_expected": 25,
-    "n_reject_ok": 25,
-    "n_pass_expected": 2,
-    "n_pass_ok": 2,
+    "n_total": 30,
+    "n_reject_expected": 26,
+    "n_reject_ok": 26,
+    "n_pass_expected": 3,
+    "n_pass_ok": 3,
     "n_skipped": 1,
-    "n_passed": 27,
+    "n_passed": 29,
     "all_pass": true
   },
   "cases": [
@@ -331,7 +331,7 @@
       "expected": "reject",
       "status": "rejected",
       "exception_type": "RuntimeError",
-      "message": "v4 对齐契约不满足: 需要 x/w/out 基指针 16B 对齐（H=4096）；普通分配满足，storage offset 视图可能破坏对齐",
+      "message": "v4 对齐契约不满足: 需要 x/w/out 基指针 16B 对齐（dtype=fp16, H=4096, PER=16）；普通分配满足，storage offset 视图可能破坏对齐",
       "expect_msg_contains": "对齐契约",
       "msg_match": true,
       "post_check_ok": true,
@@ -363,6 +363,32 @@
       "post_check_ok": true,
       "pass": true,
       "id": "align_ok_control_v4_vec_reg"
+    },
+    {
+      "variant": "v4_vec_reg",
+      "description": "v4 FP32 H=1024（PER=4, float4）: 连续张量但基址偏移 1 float（4B，未 16B 对齐）: 必须被对齐契约拒绝",
+      "expected": "reject",
+      "status": "rejected",
+      "exception_type": "RuntimeError",
+      "message": "v4 对齐契约不满足: 需要 x/w/out 基指针 16B 对齐（dtype=fp32, H=1024, PER=4）；普通分配满足，storage offset 视图可能破坏对齐",
+      "expect_msg_contains": "对齐契约",
+      "msg_match": true,
+      "post_check_ok": true,
+      "pass": true,
+      "id": "align_fp32_h1024_misaligned_v4"
+    },
+    {
+      "variant": "v4_vec_reg",
+      "description": "v4 FP32 H=1024（PER=4, float4）control: 基址偏移 4 floats（16B 对齐）的连续视图: 必须成功",
+      "expected": "pass",
+      "status": "passed_without_exception",
+      "exception_type": null,
+      "message": null,
+      "expect_msg_contains": null,
+      "msg_match": null,
+      "post_check_ok": true,
+      "pass": true,
+      "id": "align_fp32_h1024_aligned_v4"
     },
     {
       "variant": "baseline",

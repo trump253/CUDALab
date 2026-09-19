@@ -9,8 +9,10 @@
 // 两个效果: 最少指令数 + 只读一次 x。
 //
 // 内存布局: 线程 t 拥有行内连续切片 [t*PER, (t+1)*PER)（切片主序，
-// 非跨步），因此 16B 向量加载天然对齐（fp16 时 PER 是 8 的倍数 /
-// fp32 时是 4 的倍数），一个 warp 读取连续 512B 跨度（完美合并访存）。
+// 非跨步），warp 内线程切片连续 → 向量加载天然合并访存。每线程切片
+// 起点是 PER 的整数倍、行起点是 H 元素偏移；具体对齐由 v4_precheck 的
+// 基指针对齐契约保证（fp16: PER%8==0 用 float4 需 16B / PER==4 用 half2
+// 需 4B；fp32: 恒用 float4 需 16B）。
 //
 // 寄存器预算: fp16 以 __half2 保存 x（PER/2 个寄存器）；fp32 以
 // float 保存（PER 个寄存器）。PER = H/256 ∈ {4,8,16,32}。
@@ -183,33 +185,39 @@ __global__ void rmsnorm_v4_float_kernel(const float* __restrict__ x,
     }
 }
 
-// v0.2 公共 launch 前置检查（Finding A + D）:
+// v0.2 公共 launch 前置检查（Finding A + D；v0.2.1 修正 FP32 对齐契约）:
 // - 整除性: H % 256 == 0（旧代码直接取整除商，H=4100 会误入 PER=16
 //   而只覆盖 4096 个元素，产生静默错误输出）；
-// - 对齐契约: float4 路径（PER % 8 == 0）要求 x/w/out 基指针 16B 对齐；
-//   half2 路径（PER == 4）要求 4B 对齐。行步长 = H * 2 字节，在上述
-//   PER 取值下都是检查值的整数倍，因此基指针对齐即全部行首对齐。
-//   PyTorch 分配器普通分配满足 512B 对齐；storage offset 视图可能
-//   破坏（策略 1: 显式报错，不静默执行未对齐加载）。
+// - 对齐契约（dtype 分路径，FP16/FP32 不混用）:
+//   * fp16: float4 路径（PER % 8 == 0）要求 x/w/out 基指针 16B 对齐；
+//     half2 路径（PER == 4）要求 4B 对齐。
+//   * fp32: kernel 恒用 float4 加载（nvec = PER/4 >= 1；PER=4 也是单个
+//     float4），因此**恒需 16B 对齐**（v0.2.1 修正: 旧代码统一按 per%8
+//     判定，FP32 PER=4（H=1024）被误设为 4B，会放行未对齐的 float4 加载）。
+//   行步长 = H * 元素字节数，在上述 PER 取值下都是检查值的整数倍，因此
+//   基指针对齐即全部行首对齐。PyTorch 分配器普通分配满足 512B 对齐；
+//   storage offset 视图可能破坏（策略 1: 显式报错，不静默执行未对齐加载）。
 void v4_precheck(const at::Tensor& x, const at::Tensor& w, at::Tensor& out,
-                 int H) {
+                 int H, bool is_fp16) {
     const int per = H / V4_BLOCK;
     TORCH_CHECK(H % V4_BLOCK == 0,
                 "v4 要求 H % 256 == 0；实际 H=", H);
-    const size_t align = (per % 8 == 0) ? 16 : 4;
+    // dtype 分路径: fp16 依 PER 选 16B(float4)/4B(half2)；fp32 恒 16B(float4)。
+    const size_t align = is_fp16 ? ((per % 8 == 0) ? 16 : 4) : 16;
     TORCH_CHECK(ptr_aligned(x.data_ptr(), align) &&
                 ptr_aligned(w.data_ptr(), align) &&
                 ptr_aligned(out.data_ptr(), align),
                 "v4 对齐契约不满足: 需要 x/w/out 基指针 ", align,
-                "B 对齐（H=", H, "）；普通分配满足，storage offset "
-                "视图可能破坏对齐");
+                "B 对齐（dtype=", is_fp16 ? "fp16" : "fp32",
+                ", H=", H, ", PER=", per, "）；普通分配满足，"
+                "storage offset 视图可能破坏对齐");
 }
 
 void launch_half(const at::Tensor& x, const at::Tensor& w, at::Tensor& out,
                  double eps) {
     const int M = x.size(0);
     const int H = x.size(1);
-    v4_precheck(x, w, out, H);
+    v4_precheck(x, w, out, H, /*is_fp16=*/true);
     const int per = H / V4_BLOCK;
     cudaStream_t stream = at::cuda::getCurrentCUDAStream();
     const __half* xp = reinterpret_cast<const __half*>(x.data_ptr());
@@ -231,7 +239,7 @@ void launch_float(const at::Tensor& x, const at::Tensor& w, at::Tensor& out,
                   double eps) {
     const int M = x.size(0);
     const int H = x.size(1);
-    v4_precheck(x, w, out, H);
+    v4_precheck(x, w, out, H, /*is_fp16=*/false);
     const int per = H / V4_BLOCK;
     cudaStream_t stream = at::cuda::getCurrentCUDAStream();
     const float* xp = reinterpret_cast<const float*>(x.data_ptr());
