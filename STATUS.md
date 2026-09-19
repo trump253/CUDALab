@@ -1,8 +1,8 @@
 # CUDALab — 状态
 
 **日期：** 2026-09-19
-**阶段：** v0.2 已完成 — Evaluator Hardening & Revalidation
-**状态：** 全部停止条件满足（见 v0.2 清单）。
+**阶段：** v0.2 已完成 → v0.2.1 Review Fix（4 项 review findings 全部修复）
+**状态：** v0.2.1 修复与验证完成，已 push 至 `v0.2-evaluator-hardening`，等待 merge review。
 
 ## v0.2 完成摘要（2026-09-19）
 
@@ -22,11 +22,23 @@ v0.1 的 best，`best.json` 为 v0.2 当前最佳。
 | EXP-0007 1.231× | **REVISED**：同频复验 v4 vs v1 = 1.011×（streaming）/ v4 快约 7%（hot，median 0.9327）；原值系 1350 vs ~1905 MHz 混频膨胀 |
 | NCU 方法学 | `--cache-control` 语义修正（v0.2.1，此前写反）：`all`（默认）= cache flush/reset（每 replay 前失效缓存，确定性 flushed 状态）、`none` = no-flush（不失效，状态不受控）；v0.1 走默认 all（= 失效），其 "cold L2" 说法与默认配置一致（v0.2 曾误判"推翻"，已更正）；v0.2 双缓存模式剖析（`profiles/rmsnorm/v0.2/`）；小 kernel 下 cc=all/none 差异可忽略 → 缓存杠杆在 bench 层 |
 | 统计 | round-level paired speedup + bootstrap CI95（固定种子 20260919）+ KEEP/REJECT/NEUTRAL/UNSTABLE；18 个 CPU 单元测试全过 |
-| 分派 | `cudalab/dispatch.py`：28 单元格实测分发表 + 保守 fallback（5 个 CPU 测试 + e2e 验证） |
+| 分派 | `cudalab/dispatch.py`（v0.2.1 证据政策）：仅 2 个 paired 确认格（(128,4096) fp32、(128,8192) fp16 → v2_reg）+ 1 个显式 incumbent 格（(128,4096) fp16 → v4）路由优化变体；矩阵-only/模式冲突/未实测一律 baseline，`dispatch_info` 四类 evidence_source（6 个 CPU 测试） |
 | API 加固 | Finding A–D 修复（非法 H 显式报错、对齐契约、forward_into 验证、launch 检查）；30 例负例套件（v0.2 28 例 + v0.2.1 增补 2 例 v4 FP32 H=1024 对齐回归） |
 | PyTorch 参照 | F.rms_norm 66.2 µs（主形状 fp16，非融合路径，仅记录不决策） |
 | 审计 | `docs/benchmark_audit_v0.2.md`（独立 subagent 审计，Lead 复核） |
 | 未做 | 无新内核/变体（v0.2 约束）；未 push（等待指示） |
+
+## v0.2.1 Review Fix（2026-09-19）
+
+v0.2 review 提出的 4 项 findings 全部修复（无新内核、无 v0.2 数据改动、
+无 NCU 重跑）：
+
+| # | Finding | 修复 | Commit |
+|---|---|---|---|
+| 1 | NCU `--cache-control` 语义写反 | 本机 ncu 2022.3 `--help` + raw 输出 + NVIDIA 文档核实：`all`（默认）= cache flush/reset、`none` = no-flush；profiler/profile_v2/README/STATUS/PLAN/审计/EXP-0008 标注修正；未重跑、未删数据；v0.1 "cold L2" 与默认配置一致（撤回"推翻"说法） | `e052c2e` |
+| 2 | v4 FP32 PER=4 对齐 bug | `v4_precheck` dtype 分路径（fp32 恒 16B float4，fp16 依 PER 16B/4B）；负例套件 +2 例（4B offset 必须拒 / 16B offset 必须 PASS）→ 30 例；CUDA 重建后负例 29/30+1 跳过、5 变体 76/76 无回归 | `94609b8` |
+| 3 | best.json 结论过强 | 主形状 fp16 → NO_UNIQUE_WINNER（streaming 无唯一胜出者，hot 为 secondary 记录）；v4 保留 v0.1 incumbent、v1/v2 竞争性变体；best.json 重构 v0.2.1 schema（primary_streaming/secondary_hot 分开）；EXP-0008 措辞修正（paired 原始数据未动） | `694a5a6` |
+| 4 | Dispatcher 外推/硬编码 | evidence > coverage：仅 2 个 paired-evidence 格（(128,4096) fp32、(128,8192) fp16 → v2_reg）+ 1 个 incumbent-fallback 格（(128,4096) fp16 → v4）路由优化变体；matrix-only/冲突/未实测一律 baseline；`dispatch_info` 四类 evidence_source；(16,4096) fp16 冲突格不再声称 v4 稳定 | `8ee7030` |
 
 ## v0.2 阶段清单
 
@@ -59,7 +71,8 @@ v0.1 的 best，`best.json` 为 v0.2 当前最佳。
 - 矩阵模式 round-level ratio 对离群干扰轮敏感（winner 仅指示性，判定以 paired 为准）。
 - streaming 33.5 MB 工作集未达 DRAM 带宽饱和；M=1 区域 launch-bound。
 - compute-sanitizer 不可用（未做越界/竞态检查）。
-- 分发表覆盖 14 个实测 (M,H) 组合，其余保守回退。
+- 分发表（v0.2.1）仅在 3 个实测格路由优化变体（2 个 paired-evidence + 1 个
+  incumbent-fallback），其余实测/未实测组合一律 baseline（evidence > coverage）。
 - v0.1/v0.2 数字跨版本不可直接比较（harness/时钟/缓存策略均不同）。
 
 ## 值得注意的事故（已记录，未隐藏）

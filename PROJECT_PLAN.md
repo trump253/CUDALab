@@ -200,6 +200,12 @@ best.json 更新；v0.2 best: fp16 主形状无唯一胜出者（v0.2.1 修正�
 （fb22967：复验显示稳定且显著的 shape/dtype 专属优势（fp32→v2 1.37–1.62×、
 (128,8192)→v2 1.38×），满足实现条件；cudalab/dispatch.py 28 单元格实测分发表 +
 保守 fallback，5 个 CPU 测试 + 端到端验证）
+（v0.2.1 修订，review Finding 4：evidence > coverage —— 移除对未实测 (M,H) 的
+v4/v2 外推与 hot/streaming 冲突格的硬编码（(16,4096) fp16 hot winner=v4 /
+streaming winner=v1 → baseline）；现仅 paired 证据格（(128,4096) fp32、
+(128,8192) fp16 → v2_reg）+ 显式 incumbent 格（(128,4096) fp16 → v4，
+NO_UNIQUE_WINNER）路由优化变体；dispatch_info 四类 evidence_source，
+6 个 CPU 测试）
 
 原计划:
 - 仅在 v0.2 revalidation 完成且 shape winner 稳定、收益明显时实现

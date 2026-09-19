@@ -35,7 +35,8 @@ v0.2 交付：
   v0.2 双缓存模式显式剖析并记录；
 - **完整复验**：7 形状 × {fp16,fp32} × {hot,streaming} × 5 变体（28 组矩阵，
   全部 9/9 valid rounds）+ 13 组主目标配对精度测量 + 双模式 NCU 剖析；
-- **形状/dtype 分发表**（仅基于实测显著证据的保守 dispatch，`cudalab/dispatch.py`）；
+- **形状/dtype 分发表**（v0.2.1 证据政策 evidence > coverage：仅 2 个 paired 确认格
+  + 1 个显式 incumbent 格路由优化变体，其余一律 baseline，`cudalab/dispatch.py`）；
 - 独立方法学审计文档 [docs/benchmark_audit_v0.2.md](docs/benchmark_audit_v0.2.md)。
 
 ### v0.2 正确性
@@ -127,12 +128,22 @@ v0.2.1 修正语义，此前写反）：
   （容器内 `nvidia-smi` default_applications=[N/A]）；所有变体同一设置下相对比较有效。
 - v4 的 L1 命中率最高（57.8%）：寄存器驻留设计让 x 的第二次访问留在 L1。
 
-### v0.2 形状分派（Phase 9）
+### 形状分派（Phase 9，v0.2.1 证据政策修订）
 
-`cudalab/dispatch.py`：28 个实测单元格的分发表（每条目带证据理由）+
-保守 fallback（未实测组合只外推 (128,8192) 的 v2 证据与 fp16 incumbent v4，
-其余回退 baseline；H 不支持时回退 baseline）。`select_variant(M,H,dtype)` 纯
-CPU 可单测；5 个单元测试 + 端到端验证通过。**不改变任何内核**，只是选择器。
+`cudalab/dispatch.py`：`select_variant(M,H,dtype)` 纯 CPU 选择器，
+**evidence > coverage**（v0.2.1 修订，review Finding 4）：
+
+| 路由 | 单元格 | 证据 |
+|---|---|---|
+| `v2_reg`（paired-evidence） | (128,4096) fp32 | paired 1.3666× streaming / 1.6177× hot，均 KEEP |
+| `v2_reg`（paired-evidence） | (128,8192) fp16 | paired 1.3803× streaming KEEP；v4 在 H=8192 退化 |
+| `v4_vec_reg`（incumbent-fallback） | (128,4096) fp16 | NO_UNIQUE_WINNER → 显式保留 v0.1 incumbent（非统计确认唯一最佳） |
+| baseline（matrix-only） | 其余 11 个实测单元格 | 矩阵 winner 未经 paired 验证不构成路由证据；含 hot/streaming 冲突格 (16,4096) fp16（hot winner=v4 / streaming winner=v1，不声称 v4 稳定） |
+| baseline（baseline-fallback） | 所有未实测 (M,H) | 不做无证据外推（旧版对 fp16 M≥16 的 v4、fp32 M≥128 的 v2 外推已移除） |
+
+`dispatch_info()` 返回上述四类 `evidence_source`（paired-evidence /
+incumbent-fallback / matrix-only / baseline-fallback）与逐格理由，可审计。
+6 个单元测试通过。**不改变任何内核**，只是选择器。
 
 ## 评估方法（v0.2）
 
@@ -227,7 +238,7 @@ cudalab/
   bench_v2.py       v0.2 配对基准 harness + 矩阵 + shape winners + PyTorch 参照
   stats.py          round-level paired 统计 + bootstrap CI + DVFS 校验（纯 CPU）
   decision.py       KEEP/REJECT/NEUTRAL/UNSTABLE 决策规则（纯 CPU）
-  dispatch.py       v0.2 形状/dtype 分发表（纯 CPU）
+  dispatch.py       形状/dtype 分发表（纯 CPU，v0.2.1：仅 paired 证据路由）
   profiler.py       ncu --csv 集成（v0.2: cache_control/clock_control 显式化）
   experiment.py     实验记录 + 判定规则
 kernels/rmsnorm/
@@ -241,7 +252,7 @@ scripts/
 tests/
   test_invalid_inputs.py   负例套件 CLI（29/30 + 1 跳过）
   test_evaluator_cpu.py    stats/decision 纯 CPU 单元测试（18/18）
-  test_dispatch.py         分发表单元测试（5/5）
+  test_dispatch.py         分发表单元测试（6/6）
 tools/env.sh        环境变量的唯一事实来源
 experiments/        EXP-*.json + correctness/{,v0.2/} + best.json / best_v0.1.json
 benchmarks/         v0.1 bench_*.json|csv + v0.2/（43 个 v0.2 数据文件）
@@ -331,7 +342,9 @@ $PYTHON tests/test_dispatch.py
 - streaming 工作集 33.5 MB 仍不足以让 DRAM 带宽完全饱和（M=1024 行才接近）；
   M=1 区域是 launch-bound，绝对延迟无意义。
 - `compute-sanitizer` 不可用，未做越界/竞态检查（v0.1/v0.2 均如此）。
-- 分发表只覆盖 14 个实测 (M,H) 组合；其余组合走保守 fallback（多为 baseline）。
+- 分发表（v0.2.1 证据政策）仅在 3 个实测格路由优化变体（2 个 paired-evidence +
+  1 个 incumbent-fallback）；其余实测格（matrix-only，含 hot/streaming 冲突格）
+  与所有未实测组合一律 baseline —— evidence > coverage。
 - v0.1 数据保留在案但**已被 v0.2 取代**：跨版本数字不可直接比较
   （harness、时钟条件、缓存策略均不同）。
 
