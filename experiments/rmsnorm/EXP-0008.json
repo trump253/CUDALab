@@ -473,7 +473,7 @@
     },
     "v01_best_v4_fp16_primary": {
       "status": "CONFIRMED_WITH_CAVEATS",
-      "detail": "\u4e3b\u5f62\u72b6 fp16 \u4e0a v4 \u4e0e v2 \u7edf\u8ba1\u5e73\u5c40\uff08NEUTRAL\uff0cCI \u5747\u542b 1.0\uff09\uff0cv4 \u4fdd\u7559\u4e3a\u4e3b\u76ee\u6807 incumbent\uff1bv4 \u5bf9 v1 \u7684 hot \u4f18\u52bf 7.4% \u6210\u7acb\u3002"
+      "detail": "\u4e3b\u5f62\u72b6 fp16 \u65e0\u7edf\u8ba1\u552f\u4e00\u80dc\u51fa\u8005\uff08NO_UNIQUE_WINNER\uff0cv0.2.1 \u8bed\u4e49\u4fee\u6b63\uff09\uff1av4 vs v2 \u4e24\u6a21\u5f0f NEUTRAL\uff08CI \u5747\u542b 1.0\uff09\uff1bv4 vs v1 streaming \u4ea6 NEUTRAL\uff08v1 \u5fae\u5feb 1.1%\uff0c9/9 \u8f6e\uff09\uff1bhot \u4e0b v4 \u5bf9 v1 \u663e\u8457\u66f4\u5feb\uff08REJECT v1\uff0cmedian v4/v1 0.9327\uff0c0/9 \u8f6e v1 \u66f4\u5feb\uff0cv4 \u5feb\u7ea6 7%\uff09\u3002v4 \u4fdd\u7559\u4e3a\u4e3b\u5f62\u72b6 incumbent \u2014\u2014 \u8bc1\u636e\u4e00\u81f4\u7684\u9009\u62e9\uff0c\u4f46\u5e76\u975e\u7ecf\u7edf\u8ba1\u786e\u8ba4\u7684\u552f\u4e00\u6700\u4f73\u3002"
     },
     "fp32_best": {
       "status": "REVISED",
@@ -489,7 +489,7 @@
     }
   },
   "decision_summary": {
-    "fp16_primary_best": "v4_vec_reg\uff08v2 \u5e73\u5c40\uff0c\u4fdd\u7559 incumbent\uff09",
+    "fp16_primary_best": "NO_UNIQUE_WINNER\uff08streaming\uff1av1/v2/v4 \u4e24\u4e24 NEUTRAL\uff1bhot\uff1av4 vs v1 REJECT v1\u3001v4 vs v2 NEUTRAL\uff1bincumbent = v4_vec_reg\uff0c\u4fdd\u7559 v0.1 incumbent\uff0c\u5e76\u975e\u7ecf\u7edf\u8ba1\u786e\u8ba4\u7684\u552f\u4e00\u6700\u4f73\uff09",
     "fp32_best": "v2_reg",
     "h8192_fp16_best": "v2_reg",
     "rejected_at_primary_fp16": "v1_vec\uff08hot REJECT; streaming NEUTRAL \u4e14 v1 \u5fae\u5feb\uff09"

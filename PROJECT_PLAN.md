@@ -188,7 +188,7 @@ L1/L2 命中率；scripts/profile_v2.py 双模式剖析 → profiles/rmsnorm/v0.
 ### Phase 8 — Full v0.2 revalidation ✅ 已完成
 （5 变体 76/76 ×5 + 负例复跑 + 28 组全矩阵（369/369 valid）+ 13 组主形状/关键形状
 配对精测 + shape_winners.json + pytorch_ref + EXP-0008 + best_v0.1.json 存档/
-best.json 更新；v0.2 best: fp16 主形状 v4（v2 平局），fp32 与 (128,8192) v2）
+best.json 更新；v0.2 best: fp16 主形状无唯一胜出者（v0.2.1 修正，v4 保留 incumbent），fp32 与 (128,8192) v2）
 
 原计划:
 - 5 变体重测：合法正确性 + negative suite + hot/streaming 完整矩阵（fp16，

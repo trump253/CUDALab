@@ -137,12 +137,13 @@
 | v0.1 结论 | v0.2 判定 | paired 证据（median speedup，parent/candidate） |
 |---|---|---|
 | v4 为 fp16 主目标 best（1.231× over v1） | **REVISED**（见上） | streaming 1.0113 NEUTRAL / hot 0.9327 REJECT v1 |
-| v4 保留为主目标 incumbent | **CONFIRMED_WITH_CAVEATS** | v4 vs v2 fp16：hot 1.0215（CI [0.9880, 1.1715]）、streaming 1.0186（CI [0.9647, 1.0759]）→ 统计平局 NEUTRAL，incumbent 保留 |
+| v4 保留为主目标 incumbent | **CONFIRMED_WITH_CAVEATS**（v0.2.1：语义修正为 NO_UNIQUE_WINNER，incumbent 保留结论不变） | v4 vs v2 fp16：hot 1.0215（CI [0.9880, 1.1715]）、streaming 1.0186（CI [0.9647, 1.0759]）→ 统计平局 NEUTRAL，incumbent 保留 |
 | （v0.1 未区分 dtype 的 fp32 最佳） | **REVISED** | v4 vs v2 fp32 主目标：**streaming 1.3666**（CI [1.3466, 1.3682]）/ **hot 1.6177**（CI [1.5922, 1.6292]），9/9 轮，均 KEEP → fp32 最佳 = v2_reg |
 | （v0.1 未单独验证 H=8192） | **REVISED** | (128,8192) fp16：v4 vs v2 streaming **1.3803**（CI [1.3489, 1.3995]）KEEP → v4 在 H=8192 退化（per=32 寄存器压力），最佳 = v2_reg |
 | 全部优化变体 vs baseline 大幅领先 | **CONFIRMED** | fp16 主目标 paired median（vX vs baseline）：0.5274 / 0.5680 / 0.5701 / 0.5781 → 倒数 **1.73–1.90×**，CI 均不跨 1.0，9/9 轮方向一致 |
 
 `best.json`（v0.2 后）已同步：`v4_vec_reg`（主目标 fp16 hot，1350 MHz 语境，median 6.61 µs）+ `variant_fp32=v2_reg` + `variant_h8192_fp16=v2_reg`，reason 明确"1.231× 为 DVFS 混频膨胀，已 REVISED"。
+- **v0.2.1 注**：`best.json` 重构为 v0.2.1 schema —— `primary_fp16.status = NO_UNIQUE_WINNER`（incumbent = `v4_vec_reg`，competitive_variants = v1_vec/v2_reg/v4_vec_reg；primary 结论以 streaming 为准，`primary_streaming` / `secondary_hot` 中位延迟分开记录），`fp32` 与 `h8192_fp16` = SIGNIFICANT_WINNER（v2_reg）。v0.2 快照语义（上文）保持不变，仅"最佳 = v4 唯一"的表述被 NO_UNIQUE_WINNER 取代。
 
 ## 局限与未决问题
 

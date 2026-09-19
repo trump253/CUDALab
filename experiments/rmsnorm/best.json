@@ -1,18 +1,74 @@
 {
-  "variant": "v4_vec_reg",
-  "variant_fp32": "v2_reg",
-  "variant_h8192_fp16": "v2_reg",
-  "reason": "v0.2 revalidation (EXP-0008): v4 确认为主目标 (128,4096) fp16 最佳（与 v2 统计平局 NEUTRAL，保留 incumbent；v4 对 v1 hot 优势 7.4% REJECT v1）；v2_reg 确认为 fp32（1.37–1.62× KEEP）与 (128,8192) fp16（1.38× KEEP）最佳。v0.1 的 1.231× (EXP-0007) 为 DVFS 混频膨胀，已 REVISED。",
-  "median_us_target": 6.61,
-  "median_us_target_context": {
+  "schema": "v0.2.1",
+  "schema_note": "v0.2.1 重构：主形状 fp16 无统计唯一胜出者（NO_UNIQUE_WINNER）——主结论以 streaming 模式为准，hot 作为 secondary 记录；fp32 与 (128,8192) fp16 为 paired 证据确认的显著胜出者。v4 保留为 v0.1 incumbent，但并非经统计确认的唯一最佳。",
+  "primary_fp16": {
     "shape": [
       128,
       4096
     ],
     "dtype": "float16",
-    "cache_mode": "hot",
-    "harness": "paired-streaming-v2",
-    "effective_sm_clock_mhz": 1350
+    "status": "NO_UNIQUE_WINNER",
+    "decision_rule": "v0.2 配对决策：KEEP = median 加速比 ≥1.05 且 faster rounds ≥70% 且 CI95 下界 >1.00；REJECT = 对称条件（≤0.95 且 ≤30% 且 CI95 上界 <1.00）；否则 NEUTRAL；有效轮不足 → UNSTABLE",
+    "evidence": {
+      "v4_vs_v1": {
+        "streaming": "NEUTRAL（median v4/v1 1.0113，CI95 [1.0017, 1.0193]，9/9 轮 v1 微快 ~1.1%）",
+        "hot": "REJECT v1（median v4/v1 0.9327，CI95 [0.8373, 0.9658]，0/9 轮 v1 更快 —— v4 快约 7%）"
+      },
+      "v4_vs_v2": {
+        "streaming": "NEUTRAL（median 1.0186，CI95 [0.9647, 1.0760]，5/9 轮）",
+        "hot": "NEUTRAL（median 1.0215，CI95 [0.9880, 1.1715]，6/9 轮）"
+      },
+      "vs_baseline": "v1/v2/v4 对 baseline 均显著更快（median 0.5274–0.5781，CI95 均不跨 1.0，0/9 轮 baseline 更快）→ REJECT baseline"
+    },
+    "incumbent": "v4_vec_reg",
+    "competitive_variants": [
+      "v1_vec",
+      "v2_reg",
+      "v4_vec_reg"
+    ],
+    "incumbent_rationale": "streaming（primary 模式）：v1/v2/v4 两两 NEUTRAL，无显著差异；hot（secondary 模式）：v4 对 v1 显著占优（REJECT v1）、对 v2 统计平局。v4 保留为 v0.1 incumbent —— 是证据一致的选择，但 v4 并非经统计确认的唯一最佳，v1/v2 仍为竞争性变体。",
+    "median_us": {
+      "primary_streaming": {
+        "baseline": 13.158,
+        "v1_vec": 7.182,
+        "v2_reg": 7.419,
+        "v3_wideblock": 8.768,
+        "v4_vec_reg": 7.039
+      },
+      "secondary_hot": {
+        "baseline": 10.334,
+        "v1_vec": 6.652,
+        "v2_reg": 6.723,
+        "v3_wideblock": 7.040,
+        "v4_vec_reg": 6.61
+      }
+    },
+    "context": {
+      "harness": "paired-streaming-v2",
+      "effective_sm_clock_mhz": 1350,
+      "source": "benchmarks/v0.2/v02_full_M128_H4096_fp16_{streaming,hot}.json（中位延迟）+ EXP-0008 paired_results（配对判定，13 组中主形状 8 组）"
+    }
   },
-  "updated": "2026-09-19T13:00:16+08:00"
+  "fp32": {
+    "shape": [
+      128,
+      4096
+    ],
+    "dtype": "float32",
+    "status": "SIGNIFICANT_WINNER",
+    "best": "v2_reg",
+    "evidence": "v4 vs v2：streaming KEEP（median 1.3666，CI95 [1.3466, 1.3682]，9/9 轮）、hot KEEP（median 1.6177，CI95 [1.5922, 1.6292]，9/9 轮）"
+  },
+  "h8192_fp16": {
+    "shape": [
+      128,
+      8192
+    ],
+    "dtype": "float16",
+    "status": "SIGNIFICANT_WINNER",
+    "best": "v2_reg",
+    "evidence": "v4 vs v2：streaming KEEP（median 1.3803，CI95 [1.3489, 1.3995]，9/9 轮）；v4 在 H=8192 退化（per=32 寄存器压力）"
+  },
+  "reason": "v0.2 revalidation（EXP-0008）+ v0.2.1 语义修正：主形状 (128,4096) fp16 在 v0.2 primary evaluator（paired-streaming-v2，1350 MHz）下无统计唯一胜出者（NO_UNIQUE_WINNER）——streaming（primary 模式）v1/v2/v4 两两 NEUTRAL；hot（secondary 模式）v4 对 v1 显著更快（REJECT v1）、对 v2 平局；v4_vec_reg 保留为 v0.1 incumbent，但并非经统计确认的唯一最佳。fp32 (128,4096) 与 (128,8192) fp16 由 paired 证据确认 v2_reg 为最佳。v0.1 的 1.231×（EXP-0007）为 DVFS 混频膨胀，已 REVISED。",
+  "updated": "2026-09-19T16:38:03+08:00"
 }

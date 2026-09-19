@@ -73,7 +73,10 @@ CPU 输入、非连续输入、out 张量错配、bf16、eps=NaN/负、v1/v4 指
   - v1 vs baseline：streaming 1.730×、hot 1.761× → v1 显著快于 baseline
   - v4 vs v1：hot v4/v1 median 0.9327 [0.8373, 0.9658]、0/9 轮 v1 更快（v4 快约 7%，REJECT v1）；streaming 平局（1.011×，NEUTRAL，9/9 轮 v1 微快）
   - v4 vs v2：两模式均 **NEUTRAL**（CI 均含 1.0，1–2% 差距在噪声内）
-- **v0.2 主形状 fp16 最佳 = `v4_vec_reg`**（与 v2 统计平局，保留 v0.1 incumbent）。
+- **v0.2 主形状 fp16 无统计唯一胜出者（NO_UNIQUE_WINNER，v0.2.1 语义修正）**：
+  streaming（primary 模式）v1/v2/v4 两两 NEUTRAL；hot（secondary 模式）v4 对 v1
+  显著更快（REJECT v1）、对 v2 平局。`v4_vec_reg` 保留为 v0.1 incumbent，
+  但**并非经统计确认的唯一最佳**（v1/v2 仍为竞争性变体）。
 
 ### v0.2 形状/dtype 结论（不是单一 global best）
 
@@ -81,7 +84,7 @@ CPU 输入、非连续输入、out 张量错配、bf16、eps=NaN/负、v1/v4 指
 
 | 单元格 | 最佳 | 证据 |
 |---|---|---|
-| (128,4096) fp16 | v4_vec_reg | incumbent；v2 平局 NEUTRAL；1.56× vs baseline |
+| (128,4096) fp16 | NO_UNIQUE_WINNER（incumbent `v4_vec_reg`） | streaming：v1/v2/v4 两两 NEUTRAL；hot：v4 vs v1 REJECT v1；v4 保留 v0.1 incumbent（非统计确认唯一最佳）；vs baseline 1.56×/1.87× |
 | (128,4096) fp32 | **v2_reg** | paired 1.37×（streaming）/ 1.62×（hot），CI 不跨 1.0 → KEEP |
 | (128,8192) fp16 | **v2_reg** | paired 1.38×（CI 不跨 1.0）→ KEEP；**v4 在 H=8192 退化** |
 | (128,8192) fp32 | v2_reg | 1.15–1.23×，两模式显著 |
@@ -94,7 +97,7 @@ CPU 输入、非连续输入、out 张量错配、bf16、eps=NaN/负、v1/v4 指
 | v0.1 结论 | v0.2 判定 |
 |---|---|
 | EXP-0007：v4 比 v1 快 1.231× | **REVISED** —— 同频 1350 MHz 下 v4 vs v1 仅 1.011×（streaming，v1 反微快）/ v4 快约 7%（hot，median 0.9327）；1.231× 来自 v1@~1350MHz vs v4@~1905MHz 的 DVFS 混频，不可复现 |
-| v4 = 主形状 fp16 最佳 | **CONFIRMED（附保留）** —— 与 v2 统计平局，incumbent 保留 |
+| v4 = 主形状 fp16 最佳 | **CONFIRMED（附保留）→ v0.2.1 语义修正为 NO_UNIQUE_WINNER** —— streaming 无唯一胜出者（v1/v2/v4 两两 NEUTRAL），v4 保留 incumbent（hot：对 v1 显著更快、对 v2 平局），非统计确认唯一最佳 |
 | 优化变体全面快于 baseline | **CONFIRMED** —— 主形状 1.7–1.9×，CI 不跨 1.0 |
 | （v0.1 未区分）fp32 路径 | **REVISED（新发现）** —— fp32 上 v2_reg 是最佳（1.37–1.62× 快于 v4）；v4 的 fp32 寄存器路径明显弱 |
 
