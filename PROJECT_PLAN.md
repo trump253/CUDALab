@@ -93,6 +93,82 @@
 - 每个阶段一个 git 提交；最终工作树干净 + 提交。
 - ✅ 已完成
 
+# v0.2 — Evaluator Hardening & Revalidation（开始于 2026-09-19）
+
+目标：修复 v0.1 code review 发现的 evaluator、benchmark、API correctness 与方法学
+问题，使性能结论更可信、可重复、可审计。v0.1 数据全部保留为历史，不删除、不修改。
+**v0.2 不新增算子、不新增 kernel 变体**（除非修复 correctness bug 所必须）。
+
+优先级：Correctness > Benchmark validity > Reproducibility > Statistical confidence
+> Performance > New features。
+
+## v0.2 Phases
+
+### Phase 1 — API correctness hardening
+- v2/v4: PER switch 之前验证 `H % 256 == 0`（修复非法 H 静默错误，Finding A）
+- bindings: `forward` / `forward_into` 共享同一 validation helper（dim/size/dtype/
+  contiguous/CUDA/device 一致/eps 有限且非负，Finding B）
+- 每个 kernel launch 之后 `C10_CUDA_KERNEL_LAUNCH_CHECK()`
+  （宏已在本机 torch 2.4.1 头文件 `c10/cuda/CUDAException.h` 中核实存在，Finding C）
+- v1/v4: 向量化加载的显式对齐契约 —— 指针 16B/4B 对齐验证 + 清晰报错
+  （策略 1：显式 validation，不静默执行未对齐的 float4 加载，Finding D）
+
+### Phase 2 — Negative correctness tests
+- 非法 H（1023/1025/4095/4097/4100 × v2/v4）、w 长度/dtype/device 错误、
+  non-contiguous x/w、错误 out shape/dtype、不支持 dtype、eps 非有限/负、
+  未对齐指针（storage offset 破坏 16B 对齐）
+- 要求：kernel launch 之前以明确异常拒绝（而非静默计算或 CUDA 运行时错误）
+- 结构化结果保存至 `experiments/rmsnorm/correctness/v0.2/`
+
+### Phase 3 — Benchmark redesign: paired benchmark
+- `bench_pair(parent, candidate, ...)`: A/B 时间上相邻、执行顺序轮换并记录、
+  同一 round 使用完全相同的张量（不重新生成输入）
+- 全矩阵采用 shape 内 round-robin 轮换顺序，平衡 variant 位置与
+  热/DVFS 漂移的相关性；记录 seed 与每轮顺序
+
+### Phase 4 — DVFS / clock stability guard
+- 每个 paired round 记录 SM clock / mem clock / 温度 / 功耗（A 前、A 后、B 后）
+- A/B 有效 SM clock 相对差 > 5% → 该 round `INVALID_DVFS`，不进入统计
+- 无效 round 最多重试 3 次；仍不足最小有效轮数 → 最终 `UNSTABLE`
+- 不修改 power limit / 不锁时钟（容器不允许）；仅记录 + 判无效
+
+### Phase 5 — hot / streaming cache modes
+- `hot`: 沿用 v0.1 设计（单 x/w/out 缓冲、连续启动 = cache 友好稳态），
+  但不再表述为"唯一真实推理场景"
+- `streaming`: 预分配轮换缓冲池（timing 区域内无 malloc/copy/随机数）；
+  M=128 H=4096 fp16 下 pool working set >> L2 (5.5 MB)；记录 pool_size 与
+  working_set_bytes；不声称"完全 cold cache"（rotating-buffer / cache-cold-ish）
+
+### Phase 6 — Statistical decision redesign
+- 统计单位 = 独立 benchmark round（不是 500 个连续 event sample）
+- round-level paired speedup: median / mean / min / max / faster-round 计数
+- 95% bootstrap CI 基于 round-level speedup（固定 seed，确定性可复现）
+- 决策规则: KEEP / REJECT / NEUTRAL / **UNSTABLE**（新增）；全部 CPU 单元测试
+
+### Phase 7 — Profiler methodology audit
+- 用本机 ncu 2022.3 真实验证 `--cache-control {all|none}`（已确认存在，默认 all）
+- 双模式剖析（缓存保留 / 缓存失效）；README 只保留已验证的描述，
+  删除无配置保证的 "cold L2" 说法
+
+### Phase 8 — Full v0.2 revalidation
+- 5 变体重测：合法正确性 + negative suite + hot/streaming 完整矩阵（fp16，
+  fp32 若成本可接受）+ 主目标 paired 精测
+- 由 v0.2 evaluator 重新确定 best（不预设 v4 胜出）；shape-specific winner 矩阵
+- 新实验记录 EXP-0008+（v0.2 schema）；旧 EXP-0001…0007 原样保留
+
+### Phase 9 — Optional shape dispatcher
+- 仅在 v0.2 revalidation 完成且 shape winner 稳定、收益明显时实现
+- 否则记录不实现的理由（非强制 Stop Condition）
+
+### Phase 10 — Documentation and final audit
+- README（v0.2 结果 + 方法学 + v0.1 历史，保留 EXP-0002 事故）
+- STATUS / PROJECT_PLAN 更新；`docs/benchmark_audit_v0.2.md` 独立审计
+- 按阶段 commit；不 push（除非用户另行要求）
+
+## v0.2 状态
+
+进行中，实时进展见 `STATUS.md` 的 v0.2 段落。
+
 ## 不可妥协的规则
 - 不伪造任何数字；每个报告的指标都来自真实执行。
 - 编译时间绝不计入内核计时；先基准、后剖析。

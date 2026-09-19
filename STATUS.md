@@ -4,7 +4,24 @@
 **阶段：** 8 已完成 — v0.1 收尾
 **状态：** 全部停止条件满足（见下方清单）。
 
-## 当前状态
+## v0.2 — Evaluator Hardening & Revalidation（进行中，2026-09-19 开始）
+
+- 分支：`v0.2-evaluator-hardening`（基于 `main` @ 94179b6，即 v0.1 完成状态）
+- 目标：修复 v0.1 code review findings（非法 H 静默错误、`forward_into` 验证不足、
+  缺少 launch 错误检查、向量化对齐契约不明）+ 重构 benchmark（paired、DVFS guard、
+  hot/streaming 双模式、round-level 统计 + bootstrap CI + UNSTABLE 决策）+
+  完整重验证 5 个现有变体。
+- 约束：v0.1 数据（EXP-0001…0007、benchmarks/、profiles/、correctness/）全部保留
+  为历史；不新增算子、不新增 kernel 变体；不 push。
+- 环境审计（2026-09-19）：本机 GPU 报 `clocks.max.sm = 2100 MHz`（idle 300 MHz），
+  DVFS 范围大 → paired guard 必要；`C10_CUDA_KERNEL_LAUNCH_CHECK` 在本机
+  torch 2.4.1 头文件中确认存在；ncu 2022.3 确认支持 `--cache-control {all|none}`
+  （默认 all = 不失效缓存 → v0.1 "cold L2" 说法不成立，需修正）；
+  `torch.nn.functional.rms_norm` 在 torch 2.4.1 可用（作 PyTorch 实现参照）；
+  compute-sanitizer 不可用（记录 not available）。
+- 阶段进度：见 PROJECT_PLAN.md「v0.2 Phases」（Phase 1-10）。
+
+## 当前状态（v0.1，历史保留）
 
 | 项目 | 取值 |
 |---|---|
