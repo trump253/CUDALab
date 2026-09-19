@@ -217,6 +217,137 @@ def test_summarize_and_jsonable():
     assert "pass" in d and "passed" not in d
 
 
+# ---- online (m, l) merge 恒等（docs/softmax_algorithm.md §6 门禁）-----------
+#
+# 这些测试在任何 online/单遍 CUDA 变体进入仓库之前必须全部通过。
+# 推导见 docs/softmax_algorithm.md: (m_S, l_S) = (max, Σexp(x−max))
+# 是段的充分统计量，合并恒等
+#     (m,l) ⊕ (m',l') = (M, l·exp(m−M) + l'·exp(m'−M)),  M = max(m,m')
+
+import math  # noqa: E402
+
+
+def _merge(m, l, m2, l2):
+    M = m if m >= m2 else m2
+    return M, l * math.exp(m - M) + l2 * math.exp(m2 - M)
+
+
+def _online_scan_py(x_vals):
+    """逐元素在线累积（Python float ≈ float64）。"""
+    m, l = float("-inf"), 0.0
+    for v in x_vals:
+        m2 = m if m >= v else v
+        l = l * math.exp(m - m2) + math.exp(v - m2)
+        m = m2
+    return m, l
+
+
+def _direct_m_l(x_vals):
+    M = max(x_vals)
+    L = sum(math.exp(v - M) for v in x_vals)
+    return M, L
+
+
+def _online_scan_f32(x: torch.Tensor):
+    """逐元素在线累积（真实 float32 算术，0 维张量）。"""
+    m = torch.full((), float("-inf"), dtype=torch.float32)
+    l = torch.zeros((), dtype=torch.float32)
+    for i in range(x.numel()):
+        v = x.reshape(-1)[i].float()
+        m2 = torch.maximum(m, v)
+        l = l * torch.exp(m - m2) + torch.exp(v - m2)
+        m = m2
+    return m, l
+
+
+def test_online_scan_matches_direct():
+    g = torch.Generator(device=DEV); g.manual_seed(0)
+    for (n, scale) in ((128, 1.0), (4096, 1.0), (1024, 80.0),
+                       (333, 50.0), (1, 7.0), (16, 0.0)):
+        if scale == 0.0:
+            x = torch.zeros(n, dtype=torch.float64, device=DEV)
+        else:
+            x = torch.randn(n, generator=g, dtype=torch.float64,
+                            device=DEV) * scale
+        m_o, l_o = _online_scan_py(x.tolist())
+        M_d, L_d = _direct_m_l(x.tolist())
+        assert abs(m_o - M_d) == 0.0, f"max 不一致 n={n} scale={scale}"
+        rel = abs(l_o - L_d) / L_d
+        # 恒等本体: 在线累积 vs 直接 (max, Σexp) —— float64 求和顺序
+        # 差异量级（~2e-15），远小于任何内核容差
+        assert rel <= 1e-12, f"l 相对误差 {rel} n={n} scale={scale}"
+        # 归一化结果: 先对自己的 (M_d, L_d) 严格对拍（恒等 ⇒ 逐位一致），
+        # 再对 torch.softmax 松对拍（float64 参考实现内部求和顺序不同，
+        # 实测差异 ≤ ~1e-9；此门只要求远超内核容差 1e-5 的一致性）
+        y = torch.tensor([math.exp(v - m_o) / l_o for v in x.tolist()],
+                         dtype=torch.float64)
+        y_direct = torch.tensor([math.exp(v - M_d) / L_d
+                                 for v in x.tolist()], dtype=torch.float64)
+        # y vs y_direct 的相对差 = l_o vs L_d 的相对差（≤1e-12）
+        assert float((y - y_direct).abs().max()) <= 1e-11
+        ref = torch.softmax(x, dim=0)
+        assert float((y - ref).abs().max()) <= 1e-9
+
+
+def test_online_scan_f32_within_kernel_tolerance():
+    """float32 在线路径的数值必须在 CUDA 内核使用的固定容差内。"""
+    g = torch.Generator(device=DEV); g.manual_seed(1)
+    for scale in (1.0, 80.0):
+        x = torch.randn(4096, generator=g, dtype=torch.float32,
+                        device=DEV) * scale
+        m, l = _online_scan_f32(x)
+        y = torch.exp(x - m) / l
+        ref = torch.softmax(x, dim=0)
+        err = float((y - ref).abs().max())
+        assert err <= TOLERANCES["float32"]["atol"] + 1e-9, \
+            f"fp32 online max_abs={err}"
+        rs = float((y.sum() - 1.0).abs())
+        assert rs <= ROW_SUM_TOL["float32"], f"row_sum={rs}"
+
+
+def test_merge_multisegment_random_splits():
+    g = torch.Generator(device=DEV); g.manual_seed(2)
+    for n, k in ((4096, 1), (4096, 2), (4096, 5), (300, 17), (16, 16)):
+        x = torch.randn(n, generator=g, dtype=torch.float64,
+                        device=DEV) * (1.0 if n > 100 else 80.0)
+        bounds = sorted(torch.randperm(n - 1)[:k - 1].tolist()) if k > 1 else []
+        cuts = [0] + bounds + [n]
+        segs = [_online_scan_py(x[c1:c2].tolist())
+                for c1, c2 in zip(cuts[:-1], cuts[1:])]
+        # 二分树两两 merge（与 CUDA 归约的成对合并同构）
+        while len(segs) > 1:
+            nxt = []
+            for i in range(0, len(segs) - 1, 2):
+                nxt.append(_merge(segs[i][0], segs[i][1],
+                                  segs[i + 1][0], segs[i + 1][1]))
+            if len(segs) % 2 == 1:
+                nxt.append(segs[-1])
+            segs = nxt
+        M, L = segs[0]
+        M_d, L_d = _direct_m_l(x.tolist())
+        assert abs(M - M_d) == 0.0
+        rel = abs(L - L_d) / L_d
+        assert rel <= 1e-12, f"merge L 相对误差 {rel} n={n} k={k}"
+
+
+def test_merge_empty_segment_identity():
+    m, l = _online_scan_py([1.0, -2.0, 0.5, 3.0])
+    M2, L2 = _merge(float("-inf"), 0.0, m, l)
+    assert M2 == m and L2 == l
+    M3, L3 = _merge(m, l, float("-inf"), 0.0)
+    assert M3 == m and L3 == l
+
+
+def test_merge_determinism():
+    g = torch.Generator(device=DEV); g.manual_seed(3)
+    x = torch.randn(2048, generator=g, dtype=torch.float64, device=DEV)
+    r = []
+    for _ in range(3):
+        m, l = _online_scan_py(x.tolist())
+        r.append((m, l))
+    assert r[0] == r[1] == r[2], "同一输入必须逐位可复现"
+
+
 if __name__ == "__main__":
     import traceback
     fns = [v for k, v in sorted(globals().items())

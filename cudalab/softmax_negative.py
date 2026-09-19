@@ -32,84 +32,84 @@ SUITE_VERSION = "negative-v0.3-softmax"
 V = "softmax_baseline"  # 当前唯一变体
 
 
-def _post_check_ok(ext) -> bool:
+def _post_check_ok(ext, variant: str = V) -> bool:
     """拒绝之后上下文必须仍然健康: 同步 + 一次合法控制 forward。"""
     try:
         torch.cuda.synchronize()
         x = torch.randn(2, 4096, dtype=torch.float16, device="cuda")
-        y = ext.forward(V, x)
+        y = ext.forward(variant, x)
         torch.cuda.synchronize()
         return bool(torch.isfinite(y.float()).all().item())
     except Exception:
         return False
 
 
-def build_cases(ext) -> list[dict]:
+def build_cases(ext, variant: str = V) -> list[dict]:
     """构造全部 negative 用例。每个 dict: id/variant/description/call/..."""
     dev = "cuda"
     cases: list[dict] = []
 
     def add(cid, description, call, expected="reject",
             expect_msg_contains=None):
-        cases.append(dict(id=cid, variant=V, description=description,
+        cases.append(dict(id=cid, variant=variant, description=description,
                           call=call, expected=expected,
                           expect_msg_contains=expect_msg_contains))
 
     # 1) 维度错误
     x_1d = torch.randn(4096, dtype=torch.float16, device=dev)
     add("x_1d", "x 为 1 维 (4096,)",
-        lambda: ext.forward(V, x_1d), expect_msg_contains="必须是 2 维")
+        lambda: ext.forward(variant, x_1d), expect_msg_contains="必须是 2 维")
     x_3d = torch.randn(2, 4, 4096, dtype=torch.float16, device=dev)
     add("x_3d", "x 为 3 维 (2, 4, 4096)",
-        lambda: ext.forward(V, x_3d), expect_msg_contains="必须是 2 维")
+        lambda: ext.forward(variant, x_3d), expect_msg_contains="必须是 2 维")
 
     # 2) 空维度
     x_m0 = torch.empty(0, 4096, dtype=torch.float16, device=dev)
     add("x_M_zero", "M = 0（空行维）",
-        lambda: ext.forward(V, x_m0), expect_msg_contains="M 必须 > 0")
+        lambda: ext.forward(variant, x_m0), expect_msg_contains="M 必须 > 0")
     x_h0 = torch.empty(4, 0, dtype=torch.float16, device=dev)
     add("x_H_zero", "H = 0（空行内维）",
-        lambda: ext.forward(V, x_h0), expect_msg_contains="H 必须 > 0")
+        lambda: ext.forward(variant, x_h0), expect_msg_contains="H 必须 > 0")
 
     # 3) 不支持的 dtype（v0.3 范围: FP16 / FP32，**无 BF16**）
     xb = torch.randn(4, 4096, dtype=torch.bfloat16, device=dev)
     add("dtype_bfloat16", "x 为 bfloat16（v0.3 明确不支持 BF16）",
-        lambda: ext.forward(V, xb), expect_msg_contains="float16 / float32")
+        lambda: ext.forward(variant, xb), expect_msg_contains="float16 / float32")
     xi = torch.randint(-3, 3, (4, 4096), dtype=torch.int32, device=dev)
     add("dtype_int32", "x 为 int32（非浮点 dtype）",
-        lambda: ext.forward(V, xi), expect_msg_contains="float16 / float32")
+        lambda: ext.forward(variant, xi), expect_msg_contains="float16 / float32")
 
     # 4) CPU 张量
     x_cpu = torch.randn(4, 4096, dtype=torch.float16)
     add("x_cpu", "x 在 CPU",
-        lambda: ext.forward(V, x_cpu), expect_msg_contains="CUDA 张量")
+        lambda: ext.forward(variant, x_cpu), expect_msg_contains="CUDA 张量")
 
     # 5) 非连续
     x_t = torch.randn(4096, 4, dtype=torch.float16, device=dev).t()
     add("x_transpose_view", "x 为 (H,M).t() 转置视图（非连续）",
-        lambda: ext.forward(V, x_t), expect_msg_contains="连续内存")
+        lambda: ext.forward(variant, x_t), expect_msg_contains="连续内存")
     x_str = torch.randn(4, 8192, dtype=torch.float16, device=dev)[::2]
     add("x_row_stride", "x 为隔行切片 [::2]（非连续）",
-        lambda: ext.forward(V, x_str), expect_msg_contains="连续内存")
+        lambda: ext.forward(variant, x_str), expect_msg_contains="连续内存")
 
     # 6) forward_into 的 out 错误
     x = torch.randn(4, 4096, dtype=torch.float16, device=dev)
     add("out_cpu", "out 在 CPU, x 在 CUDA（设备错误）",
-        lambda: ext.forward_into(V, x,
+        lambda: ext.forward_into(variant, x,
                                  torch.empty(4, 4096, dtype=torch.float16)),
         expect_msg_contains="CUDA 张量")
     add("out_wrong_shape", "out 形状 (4, 4095) ≠ x (4, 4096)",
-        lambda: ext.forward_into(V, x,
+        lambda: ext.forward_into(variant, x,
                                  torch.empty(4, 4095, dtype=torch.float16,
                                              device=dev)),
         expect_msg_contains="形状")
     add("out_wrong_dtype", "out=fp32, x=fp16",
-        lambda: ext.forward_into(V, x,
+        lambda: ext.forward_into(variant, x,
                                  torch.empty(4, 4096, dtype=torch.float32,
                                              device=dev)),
         expect_msg_contains="dtype")
     add("out_transpose_view", "out 为 (H,M).t() 转置视图（非连续）",
-        lambda: ext.forward_into(V, x,
+        lambda: ext.forward_into(variant, x,
                                  torch.empty(4096, 4, dtype=torch.float16,
                                              device=dev).t()),
         expect_msg_contains="连续内存")
@@ -121,10 +121,10 @@ def build_cases(ext) -> list[dict]:
                                              device="cuda:1")
         add("x_out_different_device",
             "x 在 cuda:0, out 在 cuda:1",
-            lambda: ext.forward_into(V, x0, o1),
+            lambda: ext.forward_into(variant, x0, o1),
             expect_msg_contains="同一 CUDA 设备")
     else:
-        cases.append(dict(id="x_out_different_device", variant=V,
+        cases.append(dict(id="x_out_different_device", variant=variant,
                           description="x/out 不同 CUDA 设备（本环境仅 1 个可见 "
                                       "GPU，CUDA_VISIBLE_DEVICES=0，安全跳过）",
                           call=None, expected="skip",
@@ -136,16 +136,17 @@ def build_cases(ext) -> list[dict]:
     big_x = torch.randn(4 * 4096 + 4, dtype=torch.float16, device=dev)
     xo = big_x[4:4 + 4 * 4096].view(4, 4096)
     add("align_offset_view_control",
-        "control: 基址偏移 8B（未 16B 对齐）的连续视图; baseline 为标量"
-        "访存、无对齐契约: 必须成功",
-        lambda: ext.forward(V, xo), expected="pass")
+        "control: 基址偏移 8B（未 16B 对齐）的连续视图; 所有变体均不得"
+        "拒绝此合法输入（向量化变体须走其回退/可用路径）: 必须成功",
+        lambda: ext.forward(variant, xo), expected="pass")
 
     return cases
 
 
-def run_negative_suite(ext, out_path: Path | None = None) -> dict:
+def run_negative_suite(ext, out_path: Path | None = None,
+                       variant: str = V) -> dict:
     """运行全部 negative 用例并保存结构化结果。"""
-    cases = build_cases(ext)
+    cases = build_cases(ext, variant)
     results = []
     for c in cases:
         if c["expected"] == "skip":
@@ -154,7 +155,7 @@ def run_negative_suite(ext, out_path: Path | None = None) -> dict:
         else:
             r = _run_case_core(c["variant"], c["description"], c["call"],
                                c["expected"], c["expect_msg_contains"],
-                               lambda: _post_check_ok(ext))
+                               lambda: _post_check_ok(ext, variant))
         r["id"] = c["id"]
         results.append(r)
 
