@@ -1,0 +1,306 @@
+{
+  "harness": "paired-streaming-v2.2",
+  "operator": "softmax",
+  "shape": [
+    32,
+    1024
+  ],
+  "dtype": "float16",
+  "cache_mode": "streaming",
+  "seed": 1234,
+  "warmup": 150,
+  "iters": 100,
+  "batch": 32,
+  "pool": {
+    "pool_size": 16,
+    "working_set_bytes": 2097152,
+    "working_set_gt_l2": false
+  },
+  "clock_policy": {
+    "sm_clock_rel_tolerance": 0.05,
+    "min_valid_rounds": 5,
+    "max_retries": 3,
+    "warmup_ms": 300.0,
+    "spike_factor": 1.5,
+    "min_clean_samples": 50,
+    "crossblock_factor": 1.15,
+    "crossblock_warmup": 3,
+    "note": "v2.2: round 内不做 nvidia-smi 采样（采样本身是 idle-gap 触发源, 且采样值 为缺口/空闲时钟而非负载时钟）; A/B 状态漂移由跨 block 一致性 guard （block 中位数 vs 该 variant 本 run 运行中位数）检出; run 级 gpu_state before/after 快照保留"
+  },
+  "generated": "2026-09-19T20:53:10+08:00",
+  "gpu_state_before": {
+    "gpu_index": 0,
+    "name": " NVIDIA GeForce RTX 2080 Ti",
+    "temp_c": 45,
+    "sm_clock_mhz": 1905,
+    "mem_clock_mhz": 6800,
+    "power_w": 95.06,
+    "gpu_util_pct": 60,
+    "mem_util_pct": 0,
+    "ts": 1789822390.7899573
+  },
+  "variants": [
+    "softmax_baseline"
+  ],
+  "n_rounds": 9,
+  "valid_rounds": 9,
+  "invalid_dvfs_rounds": 0,
+  "invalid_spikes_rounds": 0,
+  "invalid_crossblock_rounds": 0,
+  "rounds": [
+    {
+      "round": 1,
+      "order": [
+        "softmax_baseline"
+      ],
+      "retries": 0,
+      "valid": true,
+      "invalid_reason": null,
+      "us": {
+        "softmax_baseline": 4.996
+      },
+      "samples": {
+        "softmax_baseline": {
+          "n_clean": 100,
+          "n_spike": 0
+        }
+      },
+      "crossblock": {
+        "softmax_baseline": {
+          "running_med_us": null,
+          "ratio": null,
+          "flagged": false
+        }
+      }
+    },
+    {
+      "round": 2,
+      "order": [
+        "softmax_baseline"
+      ],
+      "retries": 0,
+      "valid": true,
+      "invalid_reason": null,
+      "us": {
+        "softmax_baseline": 5.621
+      },
+      "samples": {
+        "softmax_baseline": {
+          "n_clean": 82,
+          "n_spike": 18
+        }
+      },
+      "crossblock": {
+        "softmax_baseline": {
+          "running_med_us": null,
+          "ratio": null,
+          "flagged": false
+        }
+      }
+    },
+    {
+      "round": 3,
+      "order": [
+        "softmax_baseline"
+      ],
+      "retries": 0,
+      "valid": true,
+      "invalid_reason": null,
+      "us": {
+        "softmax_baseline": 5.586
+      },
+      "samples": {
+        "softmax_baseline": {
+          "n_clean": 100,
+          "n_spike": 0
+        }
+      },
+      "crossblock": {
+        "softmax_baseline": {
+          "running_med_us": null,
+          "ratio": null,
+          "flagged": false
+        }
+      }
+    },
+    {
+      "round": 4,
+      "order": [
+        "softmax_baseline"
+      ],
+      "retries": 0,
+      "valid": true,
+      "invalid_reason": null,
+      "us": {
+        "softmax_baseline": 5.444
+      },
+      "samples": {
+        "softmax_baseline": {
+          "n_clean": 100,
+          "n_spike": 0
+        }
+      },
+      "crossblock": {
+        "softmax_baseline": {
+          "running_med_us": 5.586,
+          "ratio": 0.9747,
+          "flagged": false
+        }
+      }
+    },
+    {
+      "round": 5,
+      "order": [
+        "softmax_baseline"
+      ],
+      "retries": 0,
+      "valid": true,
+      "invalid_reason": null,
+      "us": {
+        "softmax_baseline": 4.966
+      },
+      "samples": {
+        "softmax_baseline": {
+          "n_clean": 100,
+          "n_spike": 0
+        }
+      },
+      "crossblock": {
+        "softmax_baseline": {
+          "running_med_us": 5.515,
+          "ratio": 0.9006,
+          "flagged": false
+        }
+      }
+    },
+    {
+      "round": 6,
+      "order": [
+        "softmax_baseline"
+      ],
+      "retries": 0,
+      "valid": true,
+      "invalid_reason": null,
+      "us": {
+        "softmax_baseline": 5.007
+      },
+      "samples": {
+        "softmax_baseline": {
+          "n_clean": 99,
+          "n_spike": 1
+        }
+      },
+      "crossblock": {
+        "softmax_baseline": {
+          "running_med_us": 5.444,
+          "ratio": 0.9197,
+          "flagged": false
+        }
+      }
+    },
+    {
+      "round": 7,
+      "order": [
+        "softmax_baseline"
+      ],
+      "retries": 0,
+      "valid": true,
+      "invalid_reason": null,
+      "us": {
+        "softmax_baseline": 4.978
+      },
+      "samples": {
+        "softmax_baseline": {
+          "n_clean": 100,
+          "n_spike": 0
+        }
+      },
+      "crossblock": {
+        "softmax_baseline": {
+          "running_med_us": 5.226,
+          "ratio": 0.9526,
+          "flagged": false
+        }
+      }
+    },
+    {
+      "round": 8,
+      "order": [
+        "softmax_baseline"
+      ],
+      "retries": 0,
+      "valid": true,
+      "invalid_reason": null,
+      "us": {
+        "softmax_baseline": 5.248
+      },
+      "samples": {
+        "softmax_baseline": {
+          "n_clean": 99,
+          "n_spike": 1
+        }
+      },
+      "crossblock": {
+        "softmax_baseline": {
+          "running_med_us": 5.007,
+          "ratio": 1.0481,
+          "flagged": false
+        }
+      }
+    },
+    {
+      "round": 9,
+      "order": [
+        "softmax_baseline"
+      ],
+      "retries": 0,
+      "valid": true,
+      "invalid_reason": null,
+      "us": {
+        "softmax_baseline": 5.578
+      },
+      "samples": {
+        "softmax_baseline": {
+          "n_clean": 95,
+          "n_spike": 5
+        }
+      },
+      "crossblock": {
+        "softmax_baseline": {
+          "running_med_us": 5.128,
+          "ratio": 1.0879,
+          "flagged": false
+        }
+      }
+    }
+  ],
+  "per_variant": {
+    "softmax_baseline": {
+      "round_medians_us": [
+        4.996,
+        5.621,
+        5.586,
+        5.444,
+        4.966,
+        5.007,
+        4.978,
+        5.248,
+        5.578
+      ],
+      "median_us": 5.248,
+      "algorithmic_bw_gbps": 25.0,
+      "n_valid_rounds": 9
+    }
+  },
+  "gpu_state_after": {
+    "gpu_index": 0,
+    "name": " NVIDIA GeForce RTX 2080 Ti",
+    "temp_c": 46,
+    "sm_clock_mhz": 1905,
+    "mem_clock_mhz": 6800,
+    "power_w": 112.01,
+    "gpu_util_pct": 53,
+    "mem_util_pct": 0,
+    "ts": 1789822393.7508724
+  }
+}

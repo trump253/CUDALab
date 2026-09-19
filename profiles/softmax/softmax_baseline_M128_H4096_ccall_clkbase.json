@@ -1,0 +1,90 @@
+{
+  "variant": "softmax_baseline",
+  "shape": [
+    128,
+    4096
+  ],
+  "ncu_version": "2022.3.0.0",
+  "cache_control": "all",
+  "clock_control": "base",
+  "clock_lock_warning": null,
+  "kernel_name": "void <unnamed>::softmax_baseline_kernel<__half>(const T1 *, T1 *, int)",
+  "kernel_duration_us": 11.976,
+  "l1_hit_rate": {
+    "value": 62.5,
+    "unit": "%"
+  },
+  "l2_read_hit_rate": {
+    "value": 2.56,
+    "unit": "%"
+  },
+  "dram_throughput_pct": 17.97,
+  "sm_throughput_pct": 18.37,
+  "achieved_occupancy_pct": 46.4,
+  "registers_per_thread": 16,
+  "shared_memory_bytes": 32,
+  "warp_stalls": {
+    "long_scoreboard": {
+      "stalled_cycles_per_issue": 9.992,
+      "pct_of_stalls": 60.6
+    },
+    "wait": {
+      "stalled_cycles_per_issue": 2.752,
+      "pct_of_stalls": 16.7
+    },
+    "short_scoreboard": {
+      "stalled_cycles_per_issue": 1.263,
+      "pct_of_stalls": 7.7
+    },
+    "selected": {
+      "stalled_cycles_per_issue": 1.0,
+      "pct_of_stalls": 6.1
+    },
+    "barrier": {
+      "stalled_cycles_per_issue": 0.42,
+      "pct_of_stalls": 2.5
+    },
+    "not_selected": {
+      "stalled_cycles_per_issue": 0.27,
+      "pct_of_stalls": 1.6
+    },
+    "branch_resolving": {
+      "stalled_cycles_per_issue": 0.258,
+      "pct_of_stalls": 1.6
+    },
+    "dispatch_stall": {
+      "stalled_cycles_per_issue": 0.2,
+      "pct_of_stalls": 1.2
+    },
+    "no_instruction": {
+      "stalled_cycles_per_issue": 0.19,
+      "pct_of_stalls": 1.2
+    },
+    "math_pipe_throttle": {
+      "stalled_cycles_per_issue": 0.11,
+      "pct_of_stalls": 0.7
+    },
+    "drain": {
+      "stalled_cycles_per_issue": 0.02,
+      "pct_of_stalls": 0.1
+    },
+    "mio_throttle": {
+      "stalled_cycles_per_issue": 0.02,
+      "pct_of_stalls": 0.1
+    },
+    "lg_throttle": {
+      "stalled_cycles_per_issue": 0.0,
+      "pct_of_stalls": 0.0
+    },
+    "sleeping": {
+      "stalled_cycles_per_issue": 0.0,
+      "pct_of_stalls": 0.0
+    },
+    "membar": {
+      "stalled_cycles_per_issue": 0.0,
+      "pct_of_stalls": 0.0
+    }
+  },
+  "n_launches_profiled": 4,
+  "raw_report": "/root/code/cuda/profiles/softmax/raw/softmax_baseline_M128_H4096_ccall_clkbase.ncu.txt"
+}
