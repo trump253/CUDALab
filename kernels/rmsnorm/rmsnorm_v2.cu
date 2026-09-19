@@ -18,6 +18,7 @@
 #include "rmsnorm_common.h"
 #include <ATen/cuda/CUDAContext.h>
 #include <c10/cuda/CUDAGuard.h>
+#include <c10/cuda/CUDAException.h>
 #include <cuda.h>
 #include <cuda_fp16.h>
 
@@ -88,6 +89,11 @@ void launch(const at::Tensor& x, const at::Tensor& w, at::Tensor& out,
             double eps) {
     const int M = x.size(0);
     const int H = x.size(1);
+    // v0.2 (Finding A): 必须先验证整除性。旧代码直接 H/256 取整除商再
+    // switch，例如 H=4100 会误入 PER=16 但 256×16 只覆盖 4096 个元素，
+    // 产生静默错误输出。现在在 launch 前明确拒绝非法 H。
+    TORCH_CHECK(H % V2_BLOCK == 0,
+                "v2 要求 H % 256 == 0；实际 H=", H);
     const int per = H / V2_BLOCK;
     cudaStream_t stream = at::cuda::getCurrentCUDAStream();
     const T* xp = reinterpret_cast<const T*>(x.data_ptr());
@@ -95,14 +101,15 @@ void launch(const at::Tensor& x, const at::Tensor& w, at::Tensor& out,
     T* yp = reinterpret_cast<T*>(out.data_ptr());
     dim3 grid(M), block(V2_BLOCK);
     switch (per) {
-        case 2:  rmsnorm_v2_kernel<T, 2><<<grid, block, 0, stream>>>(xp, wp, yp, H, (float)eps); return;
-        case 4:  rmsnorm_v2_kernel<T, 4><<<grid, block, 0, stream>>>(xp, wp, yp, H, (float)eps); return;
-        case 8:  rmsnorm_v2_kernel<T, 8><<<grid, block, 0, stream>>>(xp, wp, yp, H, (float)eps); return;
-        case 16: rmsnorm_v2_kernel<T, 16><<<grid, block, 0, stream>>>(xp, wp, yp, H, (float)eps); return;
-        case 32: rmsnorm_v2_kernel<T, 32><<<grid, block, 0, stream>>>(xp, wp, yp, H, (float)eps); return;
+        case 2:  rmsnorm_v2_kernel<T, 2><<<grid, block, 0, stream>>>(xp, wp, yp, H, (float)eps); C10_CUDA_KERNEL_LAUNCH_CHECK(); return;
+        case 4:  rmsnorm_v2_kernel<T, 4><<<grid, block, 0, stream>>>(xp, wp, yp, H, (float)eps); C10_CUDA_KERNEL_LAUNCH_CHECK(); return;
+        case 8:  rmsnorm_v2_kernel<T, 8><<<grid, block, 0, stream>>>(xp, wp, yp, H, (float)eps); C10_CUDA_KERNEL_LAUNCH_CHECK(); return;
+        case 16: rmsnorm_v2_kernel<T, 16><<<grid, block, 0, stream>>>(xp, wp, yp, H, (float)eps); C10_CUDA_KERNEL_LAUNCH_CHECK(); return;
+        case 32: rmsnorm_v2_kernel<T, 32><<<grid, block, 0, stream>>>(xp, wp, yp, H, (float)eps); C10_CUDA_KERNEL_LAUNCH_CHECK(); return;
         default:
             TORCH_CHECK(false,
-                        "v2 要求 H/256 ∈ {2,4,8,16,32}；实际 H=", H);
+                        "v2 要求 H/256 ∈ {2,4,8,16,32}（即 H ∈ "
+                        "{512,1024,2048,4096,8192}）；实际 H=", H);
     }
 }
 

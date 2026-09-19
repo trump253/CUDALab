@@ -15,6 +15,7 @@
 
 #pragma once
 #include <torch/extension.h>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -22,6 +23,15 @@
 // （预分配，布局与 x 相同）, eps。
 using rmsnorm_fn_t = void (*)(const at::Tensor& x, const at::Tensor& w,
                               at::Tensor& out, double eps);
+
+// ---- 主机端对齐 helper（v0.2, Finding D）---------------------------------
+// 向量化内核（v1/v4）发出 float4 / half2 加载，要求基指针 16B / 4B 对齐。
+// PyTorch 分配器的普通分配满足 512B 对齐，但带 storage offset 的视图
+// （切片、拼接等）可能破坏对齐。向量化内核必须在 launch 前显式检查并
+// 清晰报错（v0.2 策略 1: 显式 validation，绝不静默执行未对齐加载）。
+inline bool ptr_aligned(const void* p, size_t bytes) {
+    return (reinterpret_cast<std::uintptr_t>(p) & (bytes - 1)) == 0;
+}
 
 void register_rmsnorm_variant(const std::string& name, rmsnorm_fn_t fn);
 

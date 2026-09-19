@@ -15,6 +15,7 @@
 #include "rmsnorm_common.h"
 #include <ATen/cuda/CUDAContext.h>
 #include <c10/cuda/CUDAGuard.h>
+#include <c10/cuda/CUDAException.h>
 #include <cuda.h>
 #include <cuda_fp16.h>
 
@@ -124,12 +125,22 @@ void launch(const at::Tensor& x, const at::Tensor& w, at::Tensor& out,
     const int H = x.size(1);
     using VecT = Vec<T>;
     TORCH_CHECK(H % VecT::N == 0, "v1 要求 H % ", VecT::N, " == 0");
+    // v0.2 (Finding D): float4 加载要求 x/w/out 基指针 16B 对齐。
+    // 行步长 = H * sizeof(T)，H % VecT::N == 0 保证步长是 16B 整数倍，
+    // 因此基指针对齐即全部行首对齐。storage offset 视图可能破坏对齐
+    // （策略 1: 显式报错，不静默执行未对齐加载）。
+    TORCH_CHECK(ptr_aligned(x.data_ptr(), 16) &&
+                ptr_aligned(w.data_ptr(), 16) &&
+                ptr_aligned(out.data_ptr(), 16),
+                "v1 对齐契约不满足: 需要 x/w/out 基指针 16B 对齐；"
+                "普通分配满足，storage offset 视图可能破坏对齐");
     const int Hv = H / VecT::N;
     cudaStream_t stream = at::cuda::getCurrentCUDAStream();
     rmsnorm_v1_kernel<T><<<dim3(M), V1_BLOCK, 0, stream>>>(
         reinterpret_cast<const T*>(x.data_ptr()),
         reinterpret_cast<const T*>(w.data_ptr()),
         reinterpret_cast<T*>(out.data_ptr()), Hv, (float)eps);
+    C10_CUDA_KERNEL_LAUNCH_CHECK();
 }
 
 void rmsnorm_v1_fwd(const at::Tensor& x, const at::Tensor& w,

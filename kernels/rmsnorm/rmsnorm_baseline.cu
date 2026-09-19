@@ -10,6 +10,7 @@
 #include "rmsnorm_common.h"
 #include <ATen/cuda/CUDAContext.h>
 #include <c10/cuda/CUDAGuard.h>
+#include <c10/cuda/CUDAException.h>
 #include <cuda.h>
 #include <cuda_fp16.h>
 
@@ -76,6 +77,7 @@ void launch(const at::Tensor& x, const at::Tensor& w, at::Tensor& out,
         reinterpret_cast<const T*>(x.data_ptr()),
         reinterpret_cast<const T*>(w.data_ptr()),
         reinterpret_cast<T*>(out.data_ptr()), H, (float)eps);
+    C10_CUDA_KERNEL_LAUNCH_CHECK();
 }
 
 void rmsnorm_baseline_fwd(const at::Tensor& x, const at::Tensor& w,

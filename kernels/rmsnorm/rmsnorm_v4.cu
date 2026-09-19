@@ -18,6 +18,7 @@
 #include "rmsnorm_common.h"
 #include <ATen/cuda/CUDAContext.h>
 #include <c10/cuda/CUDAGuard.h>
+#include <c10/cuda/CUDAException.h>
 #include <cuda.h>
 #include <cuda_fp16.h>
 
@@ -182,10 +183,33 @@ __global__ void rmsnorm_v4_float_kernel(const float* __restrict__ x,
     }
 }
 
+// v0.2 公共 launch 前置检查（Finding A + D）:
+// - 整除性: H % 256 == 0（旧代码直接取整除商，H=4100 会误入 PER=16
+//   而只覆盖 4096 个元素，产生静默错误输出）；
+// - 对齐契约: float4 路径（PER % 8 == 0）要求 x/w/out 基指针 16B 对齐；
+//   half2 路径（PER == 4）要求 4B 对齐。行步长 = H * 2 字节，在上述
+//   PER 取值下都是检查值的整数倍，因此基指针对齐即全部行首对齐。
+//   PyTorch 分配器普通分配满足 512B 对齐；storage offset 视图可能
+//   破坏（策略 1: 显式报错，不静默执行未对齐加载）。
+void v4_precheck(const at::Tensor& x, const at::Tensor& w, at::Tensor& out,
+                 int H) {
+    const int per = H / V4_BLOCK;
+    TORCH_CHECK(H % V4_BLOCK == 0,
+                "v4 要求 H % 256 == 0；实际 H=", H);
+    const size_t align = (per % 8 == 0) ? 16 : 4;
+    TORCH_CHECK(ptr_aligned(x.data_ptr(), align) &&
+                ptr_aligned(w.data_ptr(), align) &&
+                ptr_aligned(out.data_ptr(), align),
+                "v4 对齐契约不满足: 需要 x/w/out 基指针 ", align,
+                "B 对齐（H=", H, "）；普通分配满足，storage offset "
+                "视图可能破坏对齐");
+}
+
 void launch_half(const at::Tensor& x, const at::Tensor& w, at::Tensor& out,
                  double eps) {
     const int M = x.size(0);
     const int H = x.size(1);
+    v4_precheck(x, w, out, H);
     const int per = H / V4_BLOCK;
     cudaStream_t stream = at::cuda::getCurrentCUDAStream();
     const __half* xp = reinterpret_cast<const __half*>(x.data_ptr());
@@ -193,12 +217,13 @@ void launch_half(const at::Tensor& x, const at::Tensor& w, at::Tensor& out,
     __half* yp = reinterpret_cast<__half*>(out.data_ptr());
     dim3 grid(M), block(V4_BLOCK);
     switch (per) {
-        case 4:  rmsnorm_v4_half_kernel<4><<<grid, block, 0, stream>>>(xp, wp, yp, H, (float)eps); return;
-        case 8:  rmsnorm_v4_half_kernel<8><<<grid, block, 0, stream>>>(xp, wp, yp, H, (float)eps); return;
-        case 16: rmsnorm_v4_half_kernel<16><<<grid, block, 0, stream>>>(xp, wp, yp, H, (float)eps); return;
-        case 32: rmsnorm_v4_half_kernel<32><<<grid, block, 0, stream>>>(xp, wp, yp, H, (float)eps); return;
+        case 4:  rmsnorm_v4_half_kernel<4><<<grid, block, 0, stream>>>(xp, wp, yp, H, (float)eps); C10_CUDA_KERNEL_LAUNCH_CHECK(); return;
+        case 8:  rmsnorm_v4_half_kernel<8><<<grid, block, 0, stream>>>(xp, wp, yp, H, (float)eps); C10_CUDA_KERNEL_LAUNCH_CHECK(); return;
+        case 16: rmsnorm_v4_half_kernel<16><<<grid, block, 0, stream>>>(xp, wp, yp, H, (float)eps); C10_CUDA_KERNEL_LAUNCH_CHECK(); return;
+        case 32: rmsnorm_v4_half_kernel<32><<<grid, block, 0, stream>>>(xp, wp, yp, H, (float)eps); C10_CUDA_KERNEL_LAUNCH_CHECK(); return;
         default:
-            TORCH_CHECK(false, "v4 要求 H/256 ∈ {4,8,16,32}；实际 H=", H);
+            TORCH_CHECK(false, "v4 要求 H/256 ∈ {4,8,16,32}（即 H ∈ "
+                        "{1024,2048,4096,8192}）；实际 H=", H);
     }
 }
 
@@ -206,6 +231,7 @@ void launch_float(const at::Tensor& x, const at::Tensor& w, at::Tensor& out,
                   double eps) {
     const int M = x.size(0);
     const int H = x.size(1);
+    v4_precheck(x, w, out, H);
     const int per = H / V4_BLOCK;
     cudaStream_t stream = at::cuda::getCurrentCUDAStream();
     const float* xp = reinterpret_cast<const float*>(x.data_ptr());
@@ -213,12 +239,13 @@ void launch_float(const at::Tensor& x, const at::Tensor& w, at::Tensor& out,
     float* yp = reinterpret_cast<float*>(out.data_ptr());
     dim3 grid(M), block(V4_BLOCK);
     switch (per) {
-        case 4:  rmsnorm_v4_float_kernel<4><<<grid, block, 0, stream>>>(xp, wp, yp, H, (float)eps); return;
-        case 8:  rmsnorm_v4_float_kernel<8><<<grid, block, 0, stream>>>(xp, wp, yp, H, (float)eps); return;
-        case 16: rmsnorm_v4_float_kernel<16><<<grid, block, 0, stream>>>(xp, wp, yp, H, (float)eps); return;
-        case 32: rmsnorm_v4_float_kernel<32><<<grid, block, 0, stream>>>(xp, wp, yp, H, (float)eps); return;
+        case 4:  rmsnorm_v4_float_kernel<4><<<grid, block, 0, stream>>>(xp, wp, yp, H, (float)eps); C10_CUDA_KERNEL_LAUNCH_CHECK(); return;
+        case 8:  rmsnorm_v4_float_kernel<8><<<grid, block, 0, stream>>>(xp, wp, yp, H, (float)eps); C10_CUDA_KERNEL_LAUNCH_CHECK(); return;
+        case 16: rmsnorm_v4_float_kernel<16><<<grid, block, 0, stream>>>(xp, wp, yp, H, (float)eps); C10_CUDA_KERNEL_LAUNCH_CHECK(); return;
+        case 32: rmsnorm_v4_float_kernel<32><<<grid, block, 0, stream>>>(xp, wp, yp, H, (float)eps); C10_CUDA_KERNEL_LAUNCH_CHECK(); return;
         default:
-            TORCH_CHECK(false, "v4 要求 H/256 ∈ {4,8,16,32}；实际 H=", H);
+            TORCH_CHECK(false, "v4 要求 H/256 ∈ {4,8,16,32}（即 H ∈ "
+                        "{1024,2048,4096,8192}）；实际 H=", H);
     }
 }
 
