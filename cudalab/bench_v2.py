@@ -402,6 +402,8 @@ def pytorch_ref_latency(M: int, H: int, dtype: torch.dtype = torch.float16,
     注意: 这是 "PyTorch implementation context"，不是公平 fused-kernel
     baseline 对比（PyTorch 路径可能含额外 kernel/内存操作）。
     """
+    if isinstance(dtype, str):
+        dtype = {"float16": torch.float16, "float32": torch.float32}[dtype]
     try:
         from torch.nn.functional import rms_norm
     except ImportError:
@@ -413,14 +415,17 @@ def pytorch_ref_latency(M: int, H: int, dtype: torch.dtype = torch.float16,
          .to(dtype).contiguous())
     w = (torch.randn(H, generator=g, dtype=torch.float32, device=dev) * 0.5 + 1.0
          ).to(dtype).contiguous()
+    def _call():
+        # torch 2.4.1: F.rms_norm(input, normalized_shape, weight, eps)
+        return rms_norm(x, (H,), w, 1e-5)
     try:
-        y = rms_norm(x, w)
+        y = _call()
         torch.cuda.synchronize()
     except Exception as e:
         return {"available": True, "error": f"{type(e).__name__}: {e}",
                 "note": "F.rms_norm 在该 dtype/device 上失败；不伪造数字"}
     for _ in range(100):
-        rms_norm(x, w)
+        _call()
     torch.cuda.synchronize()
     times = []
     start = torch.cuda.Event(enable_timing=True)
@@ -428,11 +433,13 @@ def pytorch_ref_latency(M: int, H: int, dtype: torch.dtype = torch.float16,
     for _ in range(iters):
         start.record()
         for _ in range(batch):
-            rms_norm(x, w)
+            _call()
         stop.record()
         torch.cuda.synchronize()
         times.append(start.elapsed_time(stop) * 1e3 / batch)
     return {"available": True,
+            "api": "torch.nn.functional.rms_norm(input, normalized_shape, weight, eps)",
+            "eps": 1e-5,
             "median_us": round(statistics.median(times), 3),
             "min_us": round(min(times), 3),
             "n_samples": len(times),
