@@ -1,4 +1,4 @@
-"""CUDALab 正确性校验框架。
+"""CUDALab 正确性校验（RMSNorm 套件；v0.3 起机制复用 evaluator 核心）。
 
 原则:
 - 容差对所有变体固定，并记录在每一份结果中。绝不为某个候选单独放宽
@@ -14,11 +14,15 @@ FP16 容差的依据（已记录，不谈判）:
     由最终 fp16 舍入 + fp32 归约顺序（极小）主导。
   - atol=2e-3、rtol=5e-3 对 N(0,1) 输入的实测最大误差留有充分余量，
     并已对照实测结果验证。
+
+v0.3: 指标计算 / 汇总 / 保存机制移至 cudalab/evaluator/correctness.py
+（compute_metrics / summarize_results / save_suite）；本模块保留
+RMSNorm 的 CheckResult schema、形状/边界矩阵与套件循环，输出 JSON
+schema 与 v0.2 完全一致。
 """
 from __future__ import annotations
 
 import json
-import math
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Optional
@@ -26,16 +30,15 @@ from typing import Optional
 import torch
 
 from .reference import rmsnorm_ref, make_inputs, DEFAULT_EPS
+from .evaluator.correctness import (
+    TOLERANCES,
+    REL_EPS_GUARD,
+    compute_metrics,
+    summarize_results,
+    save_suite,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
-
-# 固定容差策略 —— 对所有变体完全一致。
-TOLERANCES = {
-    "float16": {"atol": 2e-3, "rtol": 5e-3},
-    "float32": {"atol": 1e-5, "rtol": 1e-4},
-}
-# 相对误差分母保护，避免在零附近放大噪声
-REL_EPS_GUARD = 1e-3
 
 # 标准形状矩阵 (M, H)
 SHAPE_MATRIX = [
@@ -82,38 +85,25 @@ class CheckResult:
 def check_one(variant: str, ext, x: torch.Tensor, w: torch.Tensor,
               eps: float = DEFAULT_EPS, seed: int = 0, mode: str = "normal",
               note: str = "") -> CheckResult:
-    tol = TOLERANCES[str(x.dtype).split(".")[-1]]
     y = ext.forward(variant, x, w, eps)
     y = y.contiguous()
     ref = rmsnorm_ref(x, w, eps)
+    dtype_name = str(x.dtype).split(".")[-1]
 
-    diff = (y.float() - ref.float()).abs()
-    max_abs = float(diff.max().item()) if x.numel() else 0.0
-
-    denom = ref.float().abs()
-    rel = diff / denom.clamp_min(REL_EPS_GUARD)
-    max_rel = float(rel.max().item()) if x.numel() else 0.0
-
-    has_nan = bool(torch.isnan(y).any().item())
-    has_inf = bool(torch.isinf(y).any().item())
-
-    # 用固定且已记录的容差做 allclose
-    ok_close = bool(torch.allclose(y.float(), ref.float(),
-                                   atol=tol["atol"], rtol=tol["rtol"]))
-    ok = ok_close and not has_nan and not has_inf
+    m = compute_metrics(y, ref, dtype_name)
 
     M, H = x.shape
     return CheckResult(
         variant=variant,
         shape=[int(M), int(H)],
-        dtype=str(x.dtype).split(".")[-1],
+        dtype=dtype_name,
         seed=seed, mode=mode,
-        passed=ok,
-        max_abs_error=round(max_abs, 8),
-        max_rel_error=round(max_rel, 8),
-        has_nan=has_nan,
-        has_inf=has_inf,
-        atol=tol["atol"], rtol=tol["rtol"],
+        passed=m["ok_close"] and not m["has_nan"] and not m["has_inf"],
+        max_abs_error=m["max_abs_error"],
+        max_rel_error=m["max_rel_error"],
+        has_nan=m["has_nan"],
+        has_inf=m["has_inf"],
+        atol=m["atol"], rtol=m["rtol"],
         note=note,
     )
 
@@ -145,24 +135,13 @@ def _jsonable(r: CheckResult) -> dict:
 
 
 def summarize(results: list[CheckResult]) -> dict:
-    failed = [r for r in results if not r.passed]
-    return {
-        "n_total": len(results),
-        "n_pass": len(results) - len(failed),
-        "n_fail": len(failed),
-        "all_pass": not failed,
-        "max_abs_error": max((r.max_abs_error for r in results), default=0.0),
-        "max_rel_error": max((r.max_rel_error for r in results), default=0.0),
-        "failed": [_jsonable(r) for r in failed[:20]],
-    }
+    return summarize_results([_jsonable(r) for r in results])
 
 
 def save_results(results: list[CheckResult], out_path: Path) -> Path:
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps({
+    return save_suite(out_path, {
         "tolerances": TOLERANCES,
         "rel_eps_guard": REL_EPS_GUARD,
         "summary": summarize(results),
         "results": [_jsonable(r) for r in results],
-    }, indent=2))
-    return out_path
+    })

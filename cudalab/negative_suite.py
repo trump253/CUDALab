@@ -1,4 +1,4 @@
-"""CUDALab negative correctness suite（v0.2）。
+"""CUDALab negative correctness suite（RMSNorm，v0.2 用例集）。
 
 目标: 非法输入必须在 **kernel launch 之前** 以明确异常被稳定、安全地
 拒绝 —— 而不是静默算出错误结果，也不是产生异步 CUDA 运行时错误。
@@ -11,10 +11,13 @@
   断言消息来自我们自己的预启动 validation 文本，而非运行时错误。
 - 结构化结果保存至 experiments/rmsnorm/correctness/v0.2/。
 - 时间戳由程序生成（ISO 8601，带时区），不手填历史日期。
+
+v0.3: 用例执行 / 汇总机制移至 cudalab/evaluator/negative.py
+（run_case / summarize_cases）；本模块保留 RMSNorm 用例表与结果
+schema（与 v0.2 完全一致）。
 """
 from __future__ import annotations
 
-import datetime as _dt
 import json
 from pathlib import Path
 from typing import Callable, Optional
@@ -22,6 +25,8 @@ from typing import Callable, Optional
 import torch
 
 from .reference import make_inputs
+from .evaluator.gpu import now_iso as _now_iso
+from .evaluator.negative import run_case as _run_case_core, summarize_cases
 
 ROOT = Path(__file__).resolve().parent.parent
 NEG_DIR = ROOT / "experiments" / "rmsnorm" / "correctness" / "v0.2"
@@ -35,10 +40,6 @@ INVALID_HS = [1023, 1025, 4095, 4097, 4100]
 INVALID_H_VARIANTS = ["v2_reg", "v4_vec_reg"]
 
 
-def _now_iso() -> str:
-    return _dt.datetime.now().astimezone().isoformat(timespec="seconds")
-
-
 def _post_check_ok(ext, variant: str) -> bool:
     """拒绝之后上下文必须仍然健康: 同步 + 一次合法控制 forward。"""
     try:
@@ -49,45 +50,6 @@ def _post_check_ok(ext, variant: str) -> bool:
         return bool(torch.isfinite(y.float()).all().item())
     except Exception:
         return False
-
-
-def _run_case(ext, variant: str, description: str,
-              call: Callable[[], None], expected: str,
-              expect_msg_contains: Optional[str] = None) -> dict:
-    torch.cuda.synchronize()
-    status = "rejected"
-    exc_type = None
-    message = None
-    try:
-        call()
-        status = "passed_without_exception"
-    except Exception as e:  # noqa: BLE001 — 任何异常都算"拒绝"
-        exc_type = type(e).__name__
-        message = str(e).splitlines()[0][:300]
-
-    rec = {
-        "variant": variant,
-        "description": description,
-        "expected": expected,          # "reject" | "pass" | "skip"
-        "status": status,              # "rejected" | "passed_without_exception" | "skipped"
-        "exception_type": exc_type,
-        "message": message,
-        "expect_msg_contains": expect_msg_contains,
-        "msg_match": (expect_msg_contains in message)
-                     if (expect_msg_contains and message) else None,
-        "post_check_ok": None,         # skip 用例不执行 post check
-    }
-    if expected == "skip":
-        rec["status"] = "skipped"
-        return rec
-    rec["post_check_ok"] = _post_check_ok(ext, variant)
-    if expected == "reject":
-        rec["pass"] = (status == "rejected") and bool(rec["post_check_ok"]) \
-            and (rec["msg_match"] is not False)
-    else:  # expected == "pass"（对齐 control：合法输入不得被误拒）
-        rec["pass"] = (status == "passed_without_exception") \
-            and bool(rec["post_check_ok"])
-    return rec
 
 
 def build_cases(ext) -> list[dict]:
@@ -244,31 +206,17 @@ def run_negative_suite(ext, out_path: Path | None = None) -> dict:
     results = []
     for c in cases:
         if c["expected"] == "skip":
-            r = _run_case(ext, c["variant"], c["description"],
-                          lambda: None, "skip", None)
+            r = _run_case_core(c["variant"], c["description"],
+                               lambda: None, "skip", None, lambda: True)
             r["id"] = c["id"]
         else:
-            r = _run_case(ext, c["variant"], c["description"], c["call"],
-                          c["expected"], c["expect_msg_contains"])
+            r = _run_case_core(c["variant"], c["description"], c["call"],
+                               c["expected"], c["expect_msg_contains"],
+                               lambda v=c["variant"]: _post_check_ok(ext, v))
             r["id"] = c["id"]
         results.append(r)
 
-    rejected_expected = [r for r in results if r["expected"] == "reject"]
-    passed_expected = [r for r in results if r["expected"] == "pass"]
-    skipped = [r for r in results if r["expected"] == "skip"]
-    n_ok = sum(1 for r in results if r.get("pass"))
-    summary = {
-        "n_total": len(results),
-        "n_reject_expected": len(rejected_expected),
-        "n_reject_ok": sum(1 for r in rejected_expected if r.get("pass")),
-        "n_pass_expected": len(passed_expected),
-        "n_pass_ok": sum(1 for r in passed_expected if r.get("pass")),
-        "n_skipped": len(skipped),
-        "n_passed": n_ok,
-        # 所有非 skip 用例 pass 即为 all_pass
-        "all_pass": all(r.get("pass") for r in results
-                        if r["expected"] != "skip"),
-    }
+    summary = summarize_cases(results)
     doc = {
         "suite": SUITE_VERSION,
         "generated": _now_iso(),

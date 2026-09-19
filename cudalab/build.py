@@ -1,11 +1,16 @@
-"""构建（或复用）CUDALab RMSNorm 的 PyTorch CUDA 扩展。
+"""构建（或复用）CUDALab 的 PyTorch CUDA 扩展（v0.3: 算子参数化）。
+
+`build(op="rmsnorm")` 为 v0.1/v0.2 行为；`build("softmax")` 构建
+kernels/softmax/ 下的 Softmax 扩展（独立的构建目录与内容指纹）。
 
 策略:
-- 构建目录: $TORCH_EXTENSIONS_DIR/cudalab_rmsnorm（默认
-  /root/.cache/torch_extensions/cudalab_rmsnorm），重复运行绝不重编译；
+- 构建目录: $TORCH_EXTENSIONS_DIR/cudalab_<op>（默认
+  /root/.cache/torch_extensions/cudalab_<op>），重复运行绝不重编译；
   源文件变化时 ninja 做增量重建。
 - 将（源文件 + 编译参数）的 SHA-256 记录在构建目录中，并在每次加载时
-  打印，使缓存行为可审计。
+  可审计。rmsnorm 的指纹覆盖范围与 v0.2 完全一致
+  （bindings.cpp + 排序后的 *.cu + *_common.h，同序同字节 → 同哈希），
+  历史构建缓存不受影响。
 - 编译严格位于任何基准计时窗口之外：调用方必须在开始测量之前完成
   扩展的导入。
 
@@ -21,7 +26,6 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-KER = ROOT / "kernels" / "rmsnorm"
 
 EXTRA_CUDA_CFLAGS = [
     "-O3",
@@ -33,15 +37,23 @@ EXTRA_CFLAGS = ["-O3"]
 EXTRA_LDFLAGS = ["-lcuda"]
 
 
-def _sources() -> list[str]:
+def _kernel_dir(op: str) -> Path:
+    return ROOT / "kernels" / op
+
+
+def _sources(op: str) -> list[str]:
+    KER = _kernel_dir(op)
     srcs = [str(KER / "bindings.cpp")]
     srcs += sorted(str(p) for p in KER.glob("*.cu"))
     return srcs
 
 
-def _fingerprint() -> str:
+def _fingerprint(op: str) -> str:
     h = hashlib.sha256()
-    for f in _sources() + [str(KER / "rmsnorm_common.h")]:
+    KER = _kernel_dir(op)
+    # rmsnorm 时恰为 bindings.cpp + sorted(*.cu) + rmsnorm_common.h
+    # （与 v0.2 逐字节同序 → 同哈希）。
+    for f in _sources(op) + sorted(str(p) for p in KER.glob("*_common.h")):
         h.update(Path(f).read_bytes())
     h.update(" | ".join(EXTRA_CUDA_CFLAGS + EXTRA_CFLAGS).encode())
     return h.hexdigest()[:16]
@@ -57,7 +69,7 @@ def _ensure_ninja_on_path():
             os.environ["PATH"] = cand + os.pathsep + os.environ.get("PATH", "")
 
 
-def build(force: bool = False, verbose: bool = False):
+def build(op: str = "rmsnorm", force: bool = False, verbose: bool = False):
     """加载扩展，必要时构建。返回模块。"""
     _ensure_ninja_on_path()
     try:
@@ -66,12 +78,16 @@ def build(force: bool = False, verbose: bool = False):
     except ImportError as e:
         raise RuntimeError(f"当前解释器中没有 PyTorch: {e}")
 
-    srcs = _sources()
+    KER = _kernel_dir(op)
+    if not KER.exists():
+        raise RuntimeError(f"找不到内核目录 {KER}")
+    srcs = _sources(op)
+    ext_name = f"cudalab_{op}"
     build_dir = Path(os.environ.get(
-        "TORCH_EXTENSIONS_DIR", "/root/.cache/torch_extensions")) / "cudalab_rmsnorm"
+        "TORCH_EXTENSIONS_DIR", "/root/.cache/torch_extensions")) / ext_name
     build_dir.mkdir(parents=True, exist_ok=True)
 
-    fp = _fingerprint()
+    fp = _fingerprint(op)
     marker = build_dir / ".source_hash.json"
     if force and marker.exists():
         marker.unlink()
@@ -83,10 +99,11 @@ def build(force: bool = False, verbose: bool = False):
             import shutil
             shutil.rmtree(build_dir, ignore_errors=True)
             build_dir.mkdir(parents=True, exist_ok=True)
-    marker.write_text(json.dumps({"hash": fp, "sources": srcs}, indent=2))
+    marker.write_text(json.dumps({"hash": fp, "operator": op,
+                                  "sources": srcs}, indent=2))
 
     ext = load(
-        name="cudalab_rmsnorm",
+        name=ext_name,
         sources=srcs,
         build_directory=str(build_dir),
         extra_cuda_cflags=EXTRA_CUDA_CFLAGS,
@@ -99,11 +116,18 @@ def build(force: bool = False, verbose: bool = False):
 
 if __name__ == "__main__":
     import torch
-    ext = build(force="--force" in sys.argv, verbose=True)
-    print("可用变体:", ext.variants())
-    x = torch.randn(4, 4096, dtype=torch.float16, device="cuda")
-    w = torch.randn(4096, dtype=torch.float16, device="cuda")
-    for name in ext.variants():
-        y = ext.forward(name, x, w, 1e-5)
-        print(name, "ok", y.shape, y.dtype)
-        torch.cuda.synchronize()
+    op = sys.argv[1] if len(sys.argv) > 1 else "rmsnorm"
+    ext = build(op, force="--force" in sys.argv, verbose=True)
+    print(f"[{op}] 可用变体:", ext.variants())
+    if op == "rmsnorm":
+        x = torch.randn(4, 4096, dtype=torch.float16, device="cuda")
+        w = torch.randn(4096, dtype=torch.float16, device="cuda")
+        for name in ext.variants():
+            y = ext.forward(name, x, w, 1e-5)
+            print(name, "ok", y.shape, y.dtype)
+    else:
+        x = torch.randn(4, 4096, dtype=torch.float16, device="cuda")
+        for name in ext.variants():
+            y = ext.forward(name, x)
+            print(name, "ok", y.shape, y.dtype)
+    torch.cuda.synchronize()
