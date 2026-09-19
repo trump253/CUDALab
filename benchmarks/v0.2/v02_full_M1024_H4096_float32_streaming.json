@@ -1,0 +1,672 @@
+{
+  "harness": "paired-streaming-v2",
+  "shape": [
+    1024,
+    4096
+  ],
+  "dtype": "float32",
+  "cache_mode": "streaming",
+  "seed": 1234,
+  "warmup": 150,
+  "iters": 100,
+  "batch": 32,
+  "pool": {
+    "pool_size": 16,
+    "working_set_bytes": 536887296,
+    "working_set_gt_l2": true
+  },
+  "clock_policy": {
+    "sm_clock_rel_tolerance": 0.05,
+    "min_valid_rounds": 5,
+    "max_retries": 3,
+    "note": "round 有效 = 该 round 内所有 variant 有效 SM clock 的极差/均值 <= 5%"
+  },
+  "generated": "2026-09-19T12:46:53+08:00",
+  "gpu_state_before": {
+    "gpu_index": 0,
+    "name": " NVIDIA GeForce RTX 2080 Ti",
+    "temp_c": 58,
+    "sm_clock_mhz": 1860,
+    "mem_clock_mhz": 6800,
+    "power_w": 94.57,
+    "gpu_util_pct": 78,
+    "mem_util_pct": 85,
+    "ts": 1789793213.9255073
+  },
+  "variants": [
+    "baseline",
+    "v1_vec",
+    "v2_reg",
+    "v3_wideblock",
+    "v4_vec_reg"
+  ],
+  "n_rounds": 9,
+  "valid_rounds": 9,
+  "invalid_dvfs_rounds": 0,
+  "rounds": [
+    {
+      "round": 1,
+      "order": [
+        "baseline",
+        "v1_vec",
+        "v2_reg",
+        "v3_wideblock",
+        "v4_vec_reg"
+      ],
+      "retries": 0,
+      "valid": true,
+      "invalid_reason": null,
+      "us": {
+        "baseline": 86.134,
+        "v1_vec": 78.891,
+        "v2_reg": 68.175,
+        "v3_wideblock": 68.149,
+        "v4_vec_reg": 67.445
+      },
+      "eff_sm_mhz": {
+        "baseline": 1860.0,
+        "v1_vec": 1860.0,
+        "v2_reg": 1860.0,
+        "v3_wideblock": 1860.0,
+        "v4_vec_reg": 1860.0
+      },
+      "clocks": [
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 58,
+          "power_w": 92.9
+        },
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 61,
+          "power_w": 225.5
+        },
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 62,
+          "power_w": 183.47
+        },
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 61,
+          "power_w": 222.07
+        },
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 62,
+          "power_w": 245.13
+        },
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 62,
+          "power_w": 241.73
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "order": [
+        "v1_vec",
+        "v2_reg",
+        "v3_wideblock",
+        "v4_vec_reg",
+        "baseline"
+      ],
+      "retries": 0,
+      "valid": true,
+      "invalid_reason": null,
+      "us": {
+        "v1_vec": 78.875,
+        "v2_reg": 68.214,
+        "v3_wideblock": 68.14,
+        "v4_vec_reg": 67.392,
+        "baseline": 86.08
+      },
+      "eff_sm_mhz": {
+        "v1_vec": 1860.0,
+        "v2_reg": 1860.0,
+        "v3_wideblock": 1860.0,
+        "v4_vec_reg": 1860.0,
+        "baseline": 1860.0
+      },
+      "clocks": [
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 60,
+          "power_w": 127.6
+        },
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 62,
+          "power_w": 228.64
+        },
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 62,
+          "power_w": 218.95
+        },
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 62,
+          "power_w": 227.13
+        },
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 62,
+          "power_w": 202.0
+        },
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 62,
+          "power_w": 227.15
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "order": [
+        "v2_reg",
+        "v3_wideblock",
+        "v4_vec_reg",
+        "baseline",
+        "v1_vec"
+      ],
+      "retries": 0,
+      "valid": true,
+      "invalid_reason": null,
+      "us": {
+        "v2_reg": 68.206,
+        "v3_wideblock": 68.11,
+        "v4_vec_reg": 67.455,
+        "baseline": 86.133,
+        "v1_vec": 78.895
+      },
+      "eff_sm_mhz": {
+        "v2_reg": 1860.0,
+        "v3_wideblock": 1860.0,
+        "v4_vec_reg": 1860.0,
+        "baseline": 1860.0,
+        "v1_vec": 1860.0
+      },
+      "clocks": [
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 60,
+          "power_w": 126.41
+        },
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 62,
+          "power_w": 193.67
+        },
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 62,
+          "power_w": 245.51
+        },
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 63,
+          "power_w": 242.31
+        },
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 62,
+          "power_w": 216.59
+        },
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 62,
+          "power_w": 226.6
+        }
+      ]
+    },
+    {
+      "round": 4,
+      "order": [
+        "v3_wideblock",
+        "v4_vec_reg",
+        "baseline",
+        "v1_vec",
+        "v2_reg"
+      ],
+      "retries": 0,
+      "valid": true,
+      "invalid_reason": null,
+      "us": {
+        "v3_wideblock": 68.096,
+        "v4_vec_reg": 67.409,
+        "baseline": 86.127,
+        "v1_vec": 78.908,
+        "v2_reg": 68.165
+      },
+      "eff_sm_mhz": {
+        "v3_wideblock": 1860.0,
+        "v4_vec_reg": 1860.0,
+        "baseline": 1860.0,
+        "v1_vec": 1860.0,
+        "v2_reg": 1860.0
+      },
+      "clocks": [
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 61,
+          "power_w": 120.95
+        },
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 63,
+          "power_w": 194.97
+        },
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 63,
+          "power_w": 242.47
+        },
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 63,
+          "power_w": 226.59
+        },
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 63,
+          "power_w": 234.62
+        },
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 63,
+          "power_w": 223.8
+        }
+      ]
+    },
+    {
+      "round": 5,
+      "order": [
+        "v4_vec_reg",
+        "baseline",
+        "v1_vec",
+        "v2_reg",
+        "v3_wideblock"
+      ],
+      "retries": 0,
+      "valid": true,
+      "invalid_reason": null,
+      "us": {
+        "v4_vec_reg": 67.451,
+        "baseline": 86.121,
+        "v1_vec": 78.874,
+        "v2_reg": 68.253,
+        "v3_wideblock": 68.08
+      },
+      "eff_sm_mhz": {
+        "v4_vec_reg": 1860.0,
+        "baseline": 1860.0,
+        "v1_vec": 1860.0,
+        "v2_reg": 1860.0,
+        "v3_wideblock": 1860.0
+      },
+      "clocks": [
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 61,
+          "power_w": 118.11
+        },
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 63,
+          "power_w": 242.47
+        },
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 63,
+          "power_w": 228.42
+        },
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 63,
+          "power_w": 235.24
+        },
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 63,
+          "power_w": 216.03
+        },
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 63,
+          "power_w": 247.19
+        }
+      ]
+    },
+    {
+      "round": 6,
+      "order": [
+        "baseline",
+        "v1_vec",
+        "v2_reg",
+        "v3_wideblock",
+        "v4_vec_reg"
+      ],
+      "retries": 0,
+      "valid": true,
+      "invalid_reason": null,
+      "us": {
+        "baseline": 86.085,
+        "v1_vec": 78.848,
+        "v2_reg": 68.243,
+        "v3_wideblock": 68.302,
+        "v4_vec_reg": 67.454
+      },
+      "eff_sm_mhz": {
+        "baseline": 1860.0,
+        "v1_vec": 1860.0,
+        "v2_reg": 1860.0,
+        "v3_wideblock": 1860.0,
+        "v4_vec_reg": 1852.5
+      },
+      "clocks": [
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 61,
+          "power_w": 122.32
+        },
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 63,
+          "power_w": 228.44
+        },
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 63,
+          "power_w": 235.31
+        },
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 63,
+          "power_w": 223.83
+        },
+        {
+          "sm_clock_mhz": 1860,
+          "temp_c": 64,
+          "power_w": 246.02
+        },
+        {
+          "sm_clock_mhz": 1845,
+          "temp_c": 64,
+          "power_w": 243.75
+        }
+      ]
+    },
+    {
+      "round": 7,
+      "order": [
+        "v1_vec",
+        "v2_reg",
+        "v3_wideblock",
+        "v4_vec_reg",
+        "baseline"
+      ],
+      "retries": 0,
+      "valid": true,
+      "invalid_reason": null,
+      "us": {
+        "v1_vec": 78.837,
+        "v2_reg": 68.16,
+        "v3_wideblock": 68.155,
+        "v4_vec_reg": 67.529,
+        "baseline": 86.117
+      },
+      "eff_sm_mhz": {
+        "v1_vec": 1845.0,
+        "v2_reg": 1845.0,
+        "v3_wideblock": 1845.0,
+        "v4_vec_reg": 1845.0,
+        "baseline": 1845.0
+      },
+      "clocks": [
+        {
+          "sm_clock_mhz": 1845,
+          "temp_c": 61,
+          "power_w": 145.83
+        },
+        {
+          "sm_clock_mhz": 1845,
+          "temp_c": 63,
+          "power_w": 232.36
+        },
+        {
+          "sm_clock_mhz": 1845,
+          "temp_c": 63,
+          "power_w": 221.5
+        },
+        {
+          "sm_clock_mhz": 1845,
+          "temp_c": 64,
+          "power_w": 238.13
+        },
+        {
+          "sm_clock_mhz": 1845,
+          "temp_c": 64,
+          "power_w": 243.27
+        },
+        {
+          "sm_clock_mhz": 1845,
+          "temp_c": 64,
+          "power_w": 228.49
+        }
+      ]
+    },
+    {
+      "round": 8,
+      "order": [
+        "v2_reg",
+        "v3_wideblock",
+        "v4_vec_reg",
+        "baseline",
+        "v1_vec"
+      ],
+      "retries": 0,
+      "valid": true,
+      "invalid_reason": null,
+      "us": {
+        "v2_reg": 68.168,
+        "v3_wideblock": 68.101,
+        "v4_vec_reg": 67.548,
+        "baseline": 86.08,
+        "v1_vec": 78.8
+      },
+      "eff_sm_mhz": {
+        "v2_reg": 1845.0,
+        "v3_wideblock": 1845.0,
+        "v4_vec_reg": 1845.0,
+        "baseline": 1845.0,
+        "v1_vec": 1845.0
+      },
+      "clocks": [
+        {
+          "sm_clock_mhz": 1845,
+          "temp_c": 62,
+          "power_w": 174.64
+        },
+        {
+          "sm_clock_mhz": 1845,
+          "temp_c": 63,
+          "power_w": 223.93
+        },
+        {
+          "sm_clock_mhz": 1845,
+          "temp_c": 64,
+          "power_w": 237.03
+        },
+        {
+          "sm_clock_mhz": 1845,
+          "temp_c": 64,
+          "power_w": 220.45
+        },
+        {
+          "sm_clock_mhz": 1845,
+          "temp_c": 64,
+          "power_w": 229.15
+        },
+        {
+          "sm_clock_mhz": 1845,
+          "temp_c": 64,
+          "power_w": 180.6
+        }
+      ]
+    },
+    {
+      "round": 9,
+      "order": [
+        "v3_wideblock",
+        "v4_vec_reg",
+        "baseline",
+        "v1_vec",
+        "v2_reg"
+      ],
+      "retries": 0,
+      "valid": true,
+      "invalid_reason": null,
+      "us": {
+        "v3_wideblock": 68.11,
+        "v4_vec_reg": 67.512,
+        "baseline": 86.096,
+        "v1_vec": 78.839,
+        "v2_reg": 68.217
+      },
+      "eff_sm_mhz": {
+        "v3_wideblock": 1845.0,
+        "v4_vec_reg": 1845.0,
+        "baseline": 1845.0,
+        "v1_vec": 1845.0,
+        "v2_reg": 1845.0
+      },
+      "clocks": [
+        {
+          "sm_clock_mhz": 1845,
+          "temp_c": 62,
+          "power_w": 180.6
+        },
+        {
+          "sm_clock_mhz": 1845,
+          "temp_c": 64,
+          "power_w": 247.55
+        },
+        {
+          "sm_clock_mhz": 1845,
+          "temp_c": 64,
+          "power_w": 235.93
+        },
+        {
+          "sm_clock_mhz": 1845,
+          "temp_c": 64,
+          "power_w": 229.08
+        },
+        {
+          "sm_clock_mhz": 1845,
+          "temp_c": 64,
+          "power_w": 202.51
+        },
+        {
+          "sm_clock_mhz": 1845,
+          "temp_c": 64,
+          "power_w": 224.58
+        }
+      ]
+    }
+  ],
+  "per_variant": {
+    "baseline": {
+      "round_medians_us": [
+        86.134,
+        86.08,
+        86.133,
+        86.127,
+        86.121,
+        86.085,
+        86.117,
+        86.08,
+        86.096
+      ],
+      "median_us": 86.117,
+      "algorithmic_bw_gbps": 389.8,
+      "n_valid_rounds": 9
+    },
+    "v1_vec": {
+      "round_medians_us": [
+        78.891,
+        78.875,
+        78.895,
+        78.908,
+        78.874,
+        78.848,
+        78.837,
+        78.8,
+        78.839
+      ],
+      "median_us": 78.874,
+      "algorithmic_bw_gbps": 425.6,
+      "n_valid_rounds": 9
+    },
+    "v2_reg": {
+      "round_medians_us": [
+        68.175,
+        68.214,
+        68.206,
+        68.165,
+        68.253,
+        68.243,
+        68.16,
+        68.168,
+        68.217
+      ],
+      "median_us": 68.206,
+      "algorithmic_bw_gbps": 492.2,
+      "n_valid_rounds": 9
+    },
+    "v3_wideblock": {
+      "round_medians_us": [
+        68.149,
+        68.14,
+        68.11,
+        68.096,
+        68.08,
+        68.302,
+        68.155,
+        68.101,
+        68.11
+      ],
+      "median_us": 68.11,
+      "algorithmic_bw_gbps": 492.9,
+      "n_valid_rounds": 9
+    },
+    "v4_vec_reg": {
+      "round_medians_us": [
+        67.445,
+        67.392,
+        67.455,
+        67.409,
+        67.451,
+        67.454,
+        67.529,
+        67.548,
+        67.512
+      ],
+      "median_us": 67.454,
+      "algorithmic_bw_gbps": 497.7,
+      "n_valid_rounds": 9
+    }
+  },
+  "gpu_state_after": {
+    "gpu_index": 0,
+    "name": " NVIDIA GeForce RTX 2080 Ti",
+    "temp_c": 62,
+    "sm_clock_mhz": 1845,
+    "mem_clock_mhz": 6800,
+    "power_w": 177.42,
+    "gpu_util_pct": 74,
+    "mem_util_pct": 80,
+    "ts": 1789793228.484374
+  }
+}

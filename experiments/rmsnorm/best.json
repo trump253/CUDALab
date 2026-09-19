@@ -1,6 +1,18 @@
 {
   "variant": "v4_vec_reg",
-  "reason": "EXP-0007 kept: speedup 1.231x >= 1.05 AND 5/5 rounds faster -> KEEP",
-  "median_us_target": 4.736,
-  "updated": 1789745362.0820968
+  "variant_fp32": "v2_reg",
+  "variant_h8192_fp16": "v2_reg",
+  "reason": "v0.2 revalidation (EXP-0008): v4 确认为主目标 (128,4096) fp16 最佳（与 v2 统计平局 NEUTRAL，保留 incumbent；v4 对 v1 hot 优势 7.4% REJECT v1）；v2_reg 确认为 fp32（1.37–1.62× KEEP）与 (128,8192) fp16（1.38× KEEP）最佳。v0.1 的 1.231× (EXP-0007) 为 DVFS 混频膨胀，已 REVISED。",
+  "median_us_target": 6.61,
+  "median_us_target_context": {
+    "shape": [
+      128,
+      4096
+    ],
+    "dtype": "float16",
+    "cache_mode": "hot",
+    "harness": "paired-streaming-v2",
+    "effective_sm_clock_mhz": 1350
+  },
+  "updated": "2026-09-19T13:00:16+08:00"
 }

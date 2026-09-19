@@ -1,0 +1,6 @@
+{
+  "variant": "v4_vec_reg",
+  "reason": "EXP-0007 kept: speedup 1.231x >= 1.05 AND 5/5 rounds faster -> KEEP",
+  "median_us_target": 4.736,
+  "updated": 1789745362.0820968
+}

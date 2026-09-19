@@ -1,0 +1,371 @@
+{
+  "harness": "paired-streaming-v2",
+  "parent": "v2_reg",
+  "candidate": "baseline",
+  "shape": [
+    128,
+    4096
+  ],
+  "dtype": "float16",
+  "cache_mode": "streaming",
+  "seed": 1234,
+  "warmup": 150,
+  "iters": 100,
+  "batch": 32,
+  "pool": {
+    "pool_size": 16,
+    "working_set_bytes": 33562624,
+    "working_set_gt_l2": true
+  },
+  "clock_policy": {
+    "sm_clock_rel_tolerance": 0.05,
+    "min_valid_rounds": 5,
+    "max_retries": 3,
+    "note": "有效时钟 = variant 测量区间前后两次 nvidia-smi 采样的均值（轮询采样近似）"
+  },
+  "generated": "2026-09-19T12:49:13+08:00",
+  "gpu_state_before": {
+    "gpu_index": 0,
+    "name": " NVIDIA GeForce RTX 2080 Ti",
+    "temp_c": 40,
+    "sm_clock_mhz": 1350,
+    "mem_clock_mhz": 6800,
+    "power_w": 60.91,
+    "gpu_util_pct": 0,
+    "mem_util_pct": 0,
+    "ts": 1789793353.6715524
+  },
+  "n_rounds": 9,
+  "valid_rounds": 9,
+  "invalid_dvfs_rounds": 0,
+  "rounds": [
+    {
+      "round": 1,
+      "order": [
+        "v2_reg",
+        "baseline"
+      ],
+      "retries": 0,
+      "parent_us": 6.548,
+      "candidate_us": 13.179,
+      "speedup": 0.496889,
+      "valid": true,
+      "invalid_reason": null,
+      "clocks": {
+        "before_pair": {
+          "sm_clock_mhz": 1350,
+          "temp_c": 40,
+          "power_w": 59.73
+        },
+        "after_first": {
+          "sm_clock_mhz": 1350,
+          "temp_c": 41,
+          "power_w": 71.04
+        },
+        "after_second": {
+          "sm_clock_mhz": 1350,
+          "temp_c": 41,
+          "power_w": 78.04
+        },
+        "eff_sm_parent_mhz": 1350.0,
+        "eff_sm_candidate_mhz": 1350.0
+      }
+    },
+    {
+      "round": 2,
+      "order": [
+        "baseline",
+        "v2_reg"
+      ],
+      "retries": 0,
+      "parent_us": 6.975,
+      "candidate_us": 13.068,
+      "speedup": 0.533726,
+      "valid": true,
+      "invalid_reason": null,
+      "clocks": {
+        "before_pair": {
+          "sm_clock_mhz": 1350,
+          "temp_c": 41,
+          "power_w": 78.04
+        },
+        "after_first": {
+          "sm_clock_mhz": 1350,
+          "temp_c": 41,
+          "power_w": 60.51
+        },
+        "after_second": {
+          "sm_clock_mhz": 1350,
+          "temp_c": 41,
+          "power_w": 78.48
+        },
+        "eff_sm_parent_mhz": 1350.0,
+        "eff_sm_candidate_mhz": 1350.0
+      }
+    },
+    {
+      "round": 3,
+      "order": [
+        "v2_reg",
+        "baseline"
+      ],
+      "retries": 0,
+      "parent_us": 6.475,
+      "candidate_us": 13.166,
+      "speedup": 0.491778,
+      "valid": true,
+      "invalid_reason": null,
+      "clocks": {
+        "before_pair": {
+          "sm_clock_mhz": 1350,
+          "temp_c": 41,
+          "power_w": 72.4
+        },
+        "after_first": {
+          "sm_clock_mhz": 1350,
+          "temp_c": 41,
+          "power_w": 72.14
+        },
+        "after_second": {
+          "sm_clock_mhz": 1350,
+          "temp_c": 41,
+          "power_w": 78.45
+        },
+        "eff_sm_parent_mhz": 1350.0,
+        "eff_sm_candidate_mhz": 1350.0
+      }
+    },
+    {
+      "round": 4,
+      "order": [
+        "baseline",
+        "v2_reg"
+      ],
+      "retries": 0,
+      "parent_us": 6.92,
+      "candidate_us": 13.094,
+      "speedup": 0.528466,
+      "valid": true,
+      "invalid_reason": null,
+      "clocks": {
+        "before_pair": {
+          "sm_clock_mhz": 1350,
+          "temp_c": 41,
+          "power_w": 78.45
+        },
+        "after_first": {
+          "sm_clock_mhz": 1350,
+          "temp_c": 41,
+          "power_w": 60.09
+        },
+        "after_second": {
+          "sm_clock_mhz": 1350,
+          "temp_c": 41,
+          "power_w": 78.34
+        },
+        "eff_sm_parent_mhz": 1350.0,
+        "eff_sm_candidate_mhz": 1350.0
+      }
+    },
+    {
+      "round": 5,
+      "order": [
+        "v2_reg",
+        "baseline"
+      ],
+      "retries": 0,
+      "parent_us": 6.9,
+      "candidate_us": 13.06,
+      "speedup": 0.528311,
+      "valid": true,
+      "invalid_reason": null,
+      "clocks": {
+        "before_pair": {
+          "sm_clock_mhz": 1350,
+          "temp_c": 41,
+          "power_w": 72.57
+        },
+        "after_first": {
+          "sm_clock_mhz": 1350,
+          "temp_c": 41,
+          "power_w": 72.52
+        },
+        "after_second": {
+          "sm_clock_mhz": 1350,
+          "temp_c": 41,
+          "power_w": 75.9
+        },
+        "eff_sm_parent_mhz": 1350.0,
+        "eff_sm_candidate_mhz": 1350.0
+      }
+    },
+    {
+      "round": 6,
+      "order": [
+        "baseline",
+        "v2_reg"
+      ],
+      "retries": 0,
+      "parent_us": 6.528,
+      "candidate_us": 13.145,
+      "speedup": 0.496615,
+      "valid": true,
+      "invalid_reason": null,
+      "clocks": {
+        "before_pair": {
+          "sm_clock_mhz": 1350,
+          "temp_c": 41,
+          "power_w": 75.9
+        },
+        "after_first": {
+          "sm_clock_mhz": 1350,
+          "temp_c": 41,
+          "power_w": 78.47
+        },
+        "after_second": {
+          "sm_clock_mhz": 1350,
+          "temp_c": 41,
+          "power_w": 78.47
+        },
+        "eff_sm_parent_mhz": 1350.0,
+        "eff_sm_candidate_mhz": 1350.0
+      }
+    },
+    {
+      "round": 7,
+      "order": [
+        "v2_reg",
+        "baseline"
+      ],
+      "retries": 0,
+      "parent_us": 7.104,
+      "candidate_us": 13.166,
+      "speedup": 0.539572,
+      "valid": true,
+      "invalid_reason": null,
+      "clocks": {
+        "before_pair": {
+          "sm_clock_mhz": 1350,
+          "temp_c": 41,
+          "power_w": 72.56
+        },
+        "after_first": {
+          "sm_clock_mhz": 1350,
+          "temp_c": 41,
+          "power_w": 63.92
+        },
+        "after_second": {
+          "sm_clock_mhz": 1350,
+          "temp_c": 41,
+          "power_w": 75.6
+        },
+        "eff_sm_parent_mhz": 1350.0,
+        "eff_sm_candidate_mhz": 1350.0
+      }
+    },
+    {
+      "round": 8,
+      "order": [
+        "baseline",
+        "v2_reg"
+      ],
+      "retries": 0,
+      "parent_us": 7.522,
+      "candidate_us": 13.132,
+      "speedup": 0.572739,
+      "valid": true,
+      "invalid_reason": null,
+      "clocks": {
+        "before_pair": {
+          "sm_clock_mhz": 1350,
+          "temp_c": 41,
+          "power_w": 71.73
+        },
+        "after_first": {
+          "sm_clock_mhz": 1350,
+          "temp_c": 41,
+          "power_w": 78.57
+        },
+        "after_second": {
+          "sm_clock_mhz": 1350,
+          "temp_c": 41,
+          "power_w": 72.07
+        },
+        "eff_sm_parent_mhz": 1350.0,
+        "eff_sm_candidate_mhz": 1350.0
+      }
+    },
+    {
+      "round": 9,
+      "order": [
+        "v2_reg",
+        "baseline"
+      ],
+      "retries": 0,
+      "parent_us": 7.05,
+      "candidate_us": 13.178,
+      "speedup": 0.534962,
+      "valid": true,
+      "invalid_reason": null,
+      "clocks": {
+        "before_pair": {
+          "sm_clock_mhz": 1350,
+          "temp_c": 41,
+          "power_w": 72.07
+        },
+        "after_first": {
+          "sm_clock_mhz": 1350,
+          "temp_c": 41,
+          "power_w": 60.48
+        },
+        "after_second": {
+          "sm_clock_mhz": 1350,
+          "temp_c": 41,
+          "power_w": 74.14
+        },
+        "eff_sm_parent_mhz": 1350.0,
+        "eff_sm_candidate_mhz": 1350.0
+      }
+    }
+  ],
+  "speedups": [
+    0.4968510509143334,
+    0.5337465564738292,
+    0.4917970530153425,
+    0.5284863296166183,
+    0.5283307810107197,
+    0.49661468238874096,
+    0.5395716238796902,
+    0.5727992689613159,
+    0.5349825466686902
+  ],
+  "median_speedup": 0.528486,
+  "mean_speedup": 0.524798,
+  "min_speedup": 0.491797,
+  "max_speedup": 0.572799,
+  "faster_rounds": "0/9",
+  "bootstrap_ci_95": [
+    0.496615,
+    0.539572
+  ],
+  "bootstrap": {
+    "n_boot": 10000,
+    "seed": 20260919,
+    "statistic": "median"
+  },
+  "parent_median_us": 6.92,
+  "candidate_median_us": 13.145,
+  "algorithmic_bw_gbps_parent": 304.2,
+  "algorithmic_bw_gbps_candidate": 160.2,
+  "gpu_state_after": {
+    "gpu_index": 0,
+    "name": " NVIDIA GeForce RTX 2080 Ti",
+    "temp_c": 41,
+    "sm_clock_mhz": 1350,
+    "mem_clock_mhz": 6800,
+    "power_w": 59.69,
+    "gpu_util_pct": 25,
+    "mem_util_pct": 11,
+    "ts": 1789793356.1636207
+  }
+}

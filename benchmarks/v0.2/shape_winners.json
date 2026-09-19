@@ -1,0 +1,705 @@
+{
+  "harness": "paired-streaming-v2",
+  "shape_winners": [
+    {
+      "shape": [
+        1,
+        4096
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "winner": "v3_wideblock",
+      "runner_up": "v4_vec_reg",
+      "winner_median_us": 6.016,
+      "runner_up_median_us": 6.656,
+      "median_ratio_runner_over_winner": 1.110489,
+      "bootstrap_ci_95": [
+        1.045545,
+        1.123933
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "baseline": 9.108,
+        "v1_vec": 6.685,
+        "v2_reg": 6.848,
+        "v3_wideblock": 6.016,
+        "v4_vec_reg": 6.656
+      }
+    },
+    {
+      "shape": [
+        1,
+        4096
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "winner": "v3_wideblock",
+      "runner_up": "v4_vec_reg",
+      "winner_median_us": 6.86,
+      "runner_up_median_us": 6.976,
+      "median_ratio_runner_over_winner": 1.016027,
+      "bootstrap_ci_95": [
+        0.948418,
+        1.079157
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "baseline": 9.129,
+        "v1_vec": 7.104,
+        "v2_reg": 7.411,
+        "v3_wideblock": 6.86,
+        "v4_vec_reg": 6.976
+      }
+    },
+    {
+      "shape": [
+        1,
+        4096
+      ],
+      "dtype": "float32",
+      "cache_mode": "hot",
+      "winner": "baseline",
+      "runner_up": "v4_vec_reg",
+      "winner_median_us": 6.097,
+      "runner_up_median_us": 6.275,
+      "median_ratio_runner_over_winner": 0.981132,
+      "bootstrap_ci_95": [
+        0.942758,
+        1.217812
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "baseline": 6.097,
+        "v1_vec": 6.72,
+        "v2_reg": 6.846,
+        "v3_wideblock": 6.603,
+        "v4_vec_reg": 6.275
+      }
+    },
+    {
+      "shape": [
+        1,
+        4096
+      ],
+      "dtype": "float32",
+      "cache_mode": "streaming",
+      "winner": "v4_vec_reg",
+      "runner_up": "v2_reg",
+      "winner_median_us": 6.866,
+      "runner_up_median_us": 6.976,
+      "median_ratio_runner_over_winner": 0.986018,
+      "bootstrap_ci_95": [
+        0.965186,
+        1.10101
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "baseline": 7.275,
+        "v1_vec": 7.616,
+        "v2_reg": 6.976,
+        "v3_wideblock": 7.34,
+        "v4_vec_reg": 6.866
+      }
+    },
+    {
+      "shape": [
+        16,
+        4096
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "winner": "v4_vec_reg",
+      "runner_up": "v2_reg",
+      "winner_median_us": 6.272,
+      "runner_up_median_us": 6.399,
+      "median_ratio_runner_over_winner": 1.028944,
+      "bootstrap_ci_95": [
+        0.939894,
+        1.101596
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "baseline": 9.542,
+        "v1_vec": 6.703,
+        "v2_reg": 6.399,
+        "v3_wideblock": 6.606,
+        "v4_vec_reg": 6.272
+      }
+    },
+    {
+      "shape": [
+        16,
+        4096
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "winner": "v1_vec",
+      "runner_up": "v3_wideblock",
+      "winner_median_us": 6.848,
+      "runner_up_median_us": 6.979,
+      "median_ratio_runner_over_winner": 1.003244,
+      "bootstrap_ci_95": [
+        0.895443,
+        1.064353
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "baseline": 9.545,
+        "v1_vec": 6.848,
+        "v2_reg": 7.36,
+        "v3_wideblock": 6.979,
+        "v4_vec_reg": 7.358
+      }
+    },
+    {
+      "shape": [
+        16,
+        4096
+      ],
+      "dtype": "float32",
+      "cache_mode": "hot",
+      "winner": "baseline",
+      "runner_up": "v3_wideblock",
+      "winner_median_us": 6.336,
+      "runner_up_median_us": 6.528,
+      "median_ratio_runner_over_winner": 0.991162,
+      "bootstrap_ci_95": [
+        0.965467,
+        1.013282
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "baseline": 6.336,
+        "v1_vec": 6.854,
+        "v2_reg": 6.625,
+        "v3_wideblock": 6.528,
+        "v4_vec_reg": 6.592
+      }
+    },
+    {
+      "shape": [
+        16,
+        4096
+      ],
+      "dtype": "float32",
+      "cache_mode": "streaming",
+      "winner": "v2_reg",
+      "runner_up": "baseline",
+      "winner_median_us": 6.788,
+      "runner_up_median_us": 7.218,
+      "median_ratio_runner_over_winner": 0.980174,
+      "bootstrap_ci_95": [
+        0.903209,
+        1.313349
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "baseline": 7.218,
+        "v1_vec": 7.414,
+        "v2_reg": 6.788,
+        "v3_wideblock": 7.232,
+        "v4_vec_reg": 7.266
+      }
+    },
+    {
+      "shape": [
+        128,
+        4096
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "winner": "v4_vec_reg",
+      "runner_up": "v1_vec",
+      "winner_median_us": 6.61,
+      "runner_up_median_us": 6.652,
+      "median_ratio_runner_over_winner": 1.012708,
+      "bootstrap_ci_95": [
+        0.881818,
+        1.032422
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "baseline": 10.334,
+        "v1_vec": 6.652,
+        "v2_reg": 6.723,
+        "v3_wideblock": 7.04,
+        "v4_vec_reg": 6.61
+      }
+    },
+    {
+      "shape": [
+        128,
+        4096
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "winner": "v4_vec_reg",
+      "runner_up": "v1_vec",
+      "winner_median_us": 7.039,
+      "runner_up_median_us": 7.182,
+      "median_ratio_runner_over_winner": 0.992567,
+      "bootstrap_ci_95": [
+        0.945516,
+        1.103288
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "baseline": 13.158,
+        "v1_vec": 7.182,
+        "v2_reg": 7.419,
+        "v3_wideblock": 8.768,
+        "v4_vec_reg": 7.039
+      }
+    },
+    {
+      "shape": [
+        128,
+        4096
+      ],
+      "dtype": "float32",
+      "cache_mode": "hot",
+      "winner": "v2_reg",
+      "runner_up": "v3_wideblock",
+      "winner_median_us": 6.744,
+      "runner_up_median_us": 6.912,
+      "median_ratio_runner_over_winner": 1.028302,
+      "bootstrap_ci_95": [
+        1.010701,
+        1.168114
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "baseline": 7.164,
+        "v1_vec": 7.024,
+        "v2_reg": 6.744,
+        "v3_wideblock": 6.912,
+        "v4_vec_reg": 9.876
+      }
+    },
+    {
+      "shape": [
+        128,
+        4096
+      ],
+      "dtype": "float32",
+      "cache_mode": "streaming",
+      "winner": "v2_reg",
+      "runner_up": "v3_wideblock",
+      "winner_median_us": 9.92,
+      "runner_up_median_us": 10.507,
+      "median_ratio_runner_over_winner": 1.058367,
+      "bootstrap_ci_95": [
+        1.054547,
+        1.064516
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "baseline": 10.761,
+        "v1_vec": 11.247,
+        "v2_reg": 9.92,
+        "v3_wideblock": 10.507,
+        "v4_vec_reg": 13.452
+      }
+    },
+    {
+      "shape": [
+        1024,
+        4096
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "winner": "v4_vec_reg",
+      "runner_up": "v2_reg",
+      "winner_median_us": 32.832,
+      "runner_up_median_us": 33.122,
+      "median_ratio_runner_over_winner": 1.008773,
+      "bootstrap_ci_95": [
+        1.007598,
+        1.009224
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "baseline": 42.508,
+        "v1_vec": 34.813,
+        "v2_reg": 33.122,
+        "v3_wideblock": 41.289,
+        "v4_vec_reg": 32.832
+      }
+    },
+    {
+      "shape": [
+        1024,
+        4096
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "winner": "v4_vec_reg",
+      "runner_up": "v2_reg",
+      "winner_median_us": 32.865,
+      "runner_up_median_us": 33.162,
+      "median_ratio_runner_over_winner": 1.00947,
+      "bootstrap_ci_95": [
+        1.008843,
+        1.009897
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "baseline": 42.496,
+        "v1_vec": 34.757,
+        "v2_reg": 33.162,
+        "v3_wideblock": 41.237,
+        "v4_vec_reg": 32.865
+      }
+    },
+    {
+      "shape": [
+        1024,
+        4096
+      ],
+      "dtype": "float32",
+      "cache_mode": "hot",
+      "winner": "v4_vec_reg",
+      "runner_up": "v2_reg",
+      "winner_median_us": 67.305,
+      "runner_up_median_us": 68.159,
+      "median_ratio_runner_over_winner": 1.013111,
+      "bootstrap_ci_95": [
+        1.012286,
+        1.013519
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "baseline": 86.4,
+        "v1_vec": 79.157,
+        "v2_reg": 68.159,
+        "v3_wideblock": 68.224,
+        "v4_vec_reg": 67.305
+      }
+    },
+    {
+      "shape": [
+        1024,
+        4096
+      ],
+      "dtype": "float32",
+      "cache_mode": "streaming",
+      "winner": "v4_vec_reg",
+      "runner_up": "v3_wideblock",
+      "winner_median_us": 67.454,
+      "runner_up_median_us": 68.11,
+      "median_ratio_runner_over_winner": 1.00971,
+      "bootstrap_ci_95": [
+        1.008858,
+        1.011099
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "baseline": 86.117,
+        "v1_vec": 78.874,
+        "v2_reg": 68.206,
+        "v3_wideblock": 68.11,
+        "v4_vec_reg": 67.454
+      }
+    },
+    {
+      "shape": [
+        128,
+        8192
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "winner": "v2_reg",
+      "runner_up": "v1_vec",
+      "winner_median_us": 6.784,
+      "runner_up_median_us": 7.174,
+      "median_ratio_runner_over_winner": 1.098119,
+      "bootstrap_ci_95": [
+        1.039162,
+        1.214861
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "baseline": 16.896,
+        "v1_vec": 7.174,
+        "v2_reg": 6.784,
+        "v3_wideblock": 10.603,
+        "v4_vec_reg": 10.24
+      }
+    },
+    {
+      "shape": [
+        128,
+        8192
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "winner": "v2_reg",
+      "runner_up": "v1_vec",
+      "winner_median_us": 8.9,
+      "runner_up_median_us": 9.58,
+      "median_ratio_runner_over_winner": 1.077603,
+      "bootstrap_ci_95": [
+        1.069674,
+        1.088938
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "baseline": 19.461,
+        "v1_vec": 9.58,
+        "v2_reg": 8.9,
+        "v3_wideblock": 12.204,
+        "v4_vec_reg": 11.474
+      }
+    },
+    {
+      "shape": [
+        128,
+        8192
+      ],
+      "dtype": "float32",
+      "cache_mode": "hot",
+      "winner": "v2_reg",
+      "runner_up": "v1_vec",
+      "winner_median_us": 15.36,
+      "runner_up_median_us": 18.96,
+      "median_ratio_runner_over_winner": 1.233299,
+      "bootstrap_ci_95": [
+        1.230051,
+        1.235482
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "baseline": 22.787,
+        "v1_vec": 18.96,
+        "v2_reg": 15.36,
+        "v3_wideblock": 21.627,
+        "v4_vec_reg": 25.472
+      }
+    },
+    {
+      "shape": [
+        128,
+        8192
+      ],
+      "dtype": "float32",
+      "cache_mode": "streaming",
+      "winner": "v2_reg",
+      "runner_up": "v1_vec",
+      "winner_median_us": 17.578,
+      "runner_up_median_us": 20.204,
+      "median_ratio_runner_over_winner": 1.150176,
+      "bootstrap_ci_95": [
+        1.147534,
+        1.152038
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "baseline": 23.695,
+        "v1_vec": 20.204,
+        "v2_reg": 17.578,
+        "v3_wideblock": 22.525,
+        "v4_vec_reg": 25.76
+      }
+    },
+    {
+      "shape": [
+        1,
+        1024
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "winner": "v3_wideblock",
+      "runner_up": "baseline",
+      "winner_median_us": 6.314,
+      "runner_up_median_us": 6.387,
+      "median_ratio_runner_over_winner": 0.999521,
+      "bootstrap_ci_95": [
+        0.919787,
+        1.083267
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "baseline": 6.387,
+        "v1_vec": 6.849,
+        "v2_reg": 6.874,
+        "v3_wideblock": 6.314,
+        "v4_vec_reg": 6.624
+      }
+    },
+    {
+      "shape": [
+        1,
+        1024
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "winner": "v1_vec",
+      "runner_up": "v2_reg",
+      "winner_median_us": 7.022,
+      "runner_up_median_us": 7.04,
+      "median_ratio_runner_over_winner": 1.006929,
+      "bootstrap_ci_95": [
+        0.917055,
+        1.052976
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "baseline": 7.529,
+        "v1_vec": 7.022,
+        "v2_reg": 7.04,
+        "v3_wideblock": 7.308,
+        "v4_vec_reg": 7.337
+      }
+    },
+    {
+      "shape": [
+        1,
+        1024
+      ],
+      "dtype": "float32",
+      "cache_mode": "hot",
+      "winner": "v1_vec",
+      "runner_up": "v2_reg",
+      "winner_median_us": 6.563,
+      "runner_up_median_us": 6.596,
+      "median_ratio_runner_over_winner": 1.055335,
+      "bootstrap_ci_95": [
+        0.882682,
+        1.085772
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "baseline": 6.627,
+        "v1_vec": 6.563,
+        "v2_reg": 6.596,
+        "v3_wideblock": 6.613,
+        "v4_vec_reg": 6.733
+      }
+    },
+    {
+      "shape": [
+        1,
+        1024
+      ],
+      "dtype": "float32",
+      "cache_mode": "streaming",
+      "winner": "v3_wideblock",
+      "runner_up": "baseline",
+      "winner_median_us": 6.912,
+      "runner_up_median_us": 7.286,
+      "median_ratio_runner_over_winner": 0.996197,
+      "bootstrap_ci_95": [
+        0.92002,
+        1.055845
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "baseline": 7.286,
+        "v1_vec": 7.356,
+        "v2_reg": 7.299,
+        "v3_wideblock": 6.912,
+        "v4_vec_reg": 7.375
+      }
+    },
+    {
+      "shape": [
+        128,
+        1024
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "winner": "v3_wideblock",
+      "runner_up": "v4_vec_reg",
+      "winner_median_us": 6.233,
+      "runner_up_median_us": 6.456,
+      "median_ratio_runner_over_winner": 1.019362,
+      "bootstrap_ci_95": [
+        0.993653,
+        1.074763
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "baseline": 6.596,
+        "v1_vec": 6.575,
+        "v2_reg": 6.72,
+        "v3_wideblock": 6.233,
+        "v4_vec_reg": 6.456
+      }
+    },
+    {
+      "shape": [
+        128,
+        1024
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "winner": "baseline",
+      "runner_up": "v1_vec",
+      "winner_median_us": 6.94,
+      "runner_up_median_us": 6.976,
+      "median_ratio_runner_over_winner": 1.005187,
+      "bootstrap_ci_95": [
+        0.926051,
+        1.073919
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "baseline": 6.94,
+        "v1_vec": 6.976,
+        "v2_reg": 7.436,
+        "v3_wideblock": 6.998,
+        "v4_vec_reg": 7.352
+      }
+    },
+    {
+      "shape": [
+        128,
+        1024
+      ],
+      "dtype": "float32",
+      "cache_mode": "hot",
+      "winner": "v2_reg",
+      "runner_up": "v3_wideblock",
+      "winner_median_us": 6.528,
+      "runner_up_median_us": 6.554,
+      "median_ratio_runner_over_winner": 0.968155,
+      "bootstrap_ci_95": [
+        0.920109,
+        1.093062
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "baseline": 6.592,
+        "v1_vec": 6.627,
+        "v2_reg": 6.528,
+        "v3_wideblock": 6.554,
+        "v4_vec_reg": 6.753
+      }
+    },
+    {
+      "shape": [
+        128,
+        1024
+      ],
+      "dtype": "float32",
+      "cache_mode": "streaming",
+      "winner": "v3_wideblock",
+      "runner_up": "v4_vec_reg",
+      "winner_median_us": 7.007,
+      "runner_up_median_us": 7.073,
+      "median_ratio_runner_over_winner": 1.036056,
+      "bootstrap_ci_95": [
+        0.978878,
+        1.351146
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "baseline": 7.103,
+        "v1_vec": 7.55,
+        "v2_reg": 7.301,
+        "v3_wideblock": 7.007,
+        "v4_vec_reg": 7.073
+      }
+    }
+  ]
+}

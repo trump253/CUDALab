@@ -1,0 +1,923 @@
+{
+  "timestamp": "2026-09-19T12:57:58+08:00",
+  "shape": [
+    128,
+    4096
+  ],
+  "dtype": "float16",
+  "clock_control": "base",
+  "clock_lock_warnings": {},
+  "note": "cc=all \u4e3a ncu \u9ed8\u8ba4\uff08\u70ed\u7f13\u5b58\uff0cv0.1 \u6240\u6709\u6570\u636e\u5373\u6b64\u6a21\u5f0f\uff09\uff1bcc=none \u5256\u6790\u524d\u5931\u6548\u5168\u90e8\u7f13\u5b58\uff08\u51b7\uff09\u3002kernel_duration \u5728\u4e24\u79cd\u7f13\u5b58\u72b6\u6001\u4e0b\u4e0d\u53ef\u76f4\u63a5\u8de8\u6a21\u5f0f\u6bd4\u8f83\u7edd\u5bf9\u503c\uff0c\u53ea\u4f5c\u5404\u81ea\u6a21\u5f0f\u5185\u7684\u53d8\u4f53\u76f8\u5bf9\u6bd4\u8f83\u3002",
+  "variants": {
+    "baseline": {
+      "all": {
+        "variant": "baseline",
+        "shape": [
+          128,
+          4096
+        ],
+        "ncu_version": "2022.3.0.0",
+        "cache_control": "all",
+        "clock_control": "base",
+        "clock_lock_warning": null,
+        "kernel_name": "void <unnamed>::rmsnorm_baseline_kernel<__half>(const T1 *, const T1 *, T1 *, int, float)",
+        "kernel_duration_us": 14.336,
+        "l1_hit_rate": {
+          "value": 45.49,
+          "unit": "%"
+        },
+        "l2_read_hit_rate": {
+          "value": 41.34,
+          "unit": "%"
+        },
+        "dram_throughput_pct": 14.64,
+        "sm_throughput_pct": 11.78,
+        "achieved_occupancy_pct": 46.87,
+        "registers_per_thread": 16,
+        "shared_memory_bytes": 132,
+        "warp_stalls": {
+          "long_scoreboard": {
+            "stalled_cycles_per_issue": 24.365,
+            "pct_of_stalls": 80.4
+          },
+          "wait": {
+            "stalled_cycles_per_issue": 2.622,
+            "pct_of_stalls": 8.7
+          },
+          "selected": {
+            "stalled_cycles_per_issue": 1.0,
+            "pct_of_stalls": 3.3
+          },
+          "barrier": {
+            "stalled_cycles_per_issue": 0.67,
+            "pct_of_stalls": 2.2
+          },
+          "short_scoreboard": {
+            "stalled_cycles_per_issue": 0.663,
+            "pct_of_stalls": 2.2
+          },
+          "dispatch_stall": {
+            "stalled_cycles_per_issue": 0.232,
+            "pct_of_stalls": 0.8
+          },
+          "branch_resolving": {
+            "stalled_cycles_per_issue": 0.22,
+            "pct_of_stalls": 0.7
+          },
+          "not_selected": {
+            "stalled_cycles_per_issue": 0.203,
+            "pct_of_stalls": 0.7
+          },
+          "no_instruction": {
+            "stalled_cycles_per_issue": 0.185,
+            "pct_of_stalls": 0.6
+          },
+          "math_pipe_throttle": {
+            "stalled_cycles_per_issue": 0.105,
+            "pct_of_stalls": 0.3
+          },
+          "drain": {
+            "stalled_cycles_per_issue": 0.03,
+            "pct_of_stalls": 0.1
+          },
+          "lg_throttle": {
+            "stalled_cycles_per_issue": 0.01,
+            "pct_of_stalls": 0.0
+          },
+          "mio_throttle": {
+            "stalled_cycles_per_issue": 0.0,
+            "pct_of_stalls": 0.0
+          },
+          "sleeping": {
+            "stalled_cycles_per_issue": 0.0,
+            "pct_of_stalls": 0.0
+          },
+          "membar": {
+            "stalled_cycles_per_issue": 0.0,
+            "pct_of_stalls": 0.0
+          }
+        },
+        "n_launches_profiled": 4,
+        "raw_report": "/root/code/cuda/profiles/rmsnorm/v0.2/raw/baseline_M128_H4096_ccall_clkbase.ncu.txt"
+      },
+      "none": {
+        "variant": "baseline",
+        "shape": [
+          128,
+          4096
+        ],
+        "ncu_version": "2022.3.0.0",
+        "cache_control": "none",
+        "clock_control": "base",
+        "clock_lock_warning": null,
+        "kernel_name": "void <unnamed>::rmsnorm_baseline_kernel<__half>(const T1 *, const T1 *, T1 *, int, float)",
+        "kernel_duration_us": 14.56,
+        "l1_hit_rate": {
+          "value": 45.52,
+          "unit": "%"
+        },
+        "l2_read_hit_rate": {
+          "value": 41.34,
+          "unit": "%"
+        },
+        "dram_throughput_pct": 19.35,
+        "sm_throughput_pct": 16.21,
+        "achieved_occupancy_pct": 46.38,
+        "registers_per_thread": 16,
+        "shared_memory_bytes": 132,
+        "warp_stalls": {
+          "long_scoreboard": {
+            "stalled_cycles_per_issue": 14.155,
+            "pct_of_stalls": 70.8
+          },
+          "wait": {
+            "stalled_cycles_per_issue": 2.61,
+            "pct_of_stalls": 13.1
+          },
+          "selected": {
+            "stalled_cycles_per_issue": 1.0,
+            "pct_of_stalls": 5.0
+          },
+          "short_scoreboard": {
+            "stalled_cycles_per_issue": 0.67,
+            "pct_of_stalls": 3.4
+          },
+          "barrier": {
+            "stalled_cycles_per_issue": 0.56,
+            "pct_of_stalls": 2.8
+          },
+          "dispatch_stall": {
+            "stalled_cycles_per_issue": 0.242,
+            "pct_of_stalls": 1.2
+          },
+          "branch_resolving": {
+            "stalled_cycles_per_issue": 0.22,
+            "pct_of_stalls": 1.1
+          },
+          "not_selected": {
+            "stalled_cycles_per_issue": 0.215,
+            "pct_of_stalls": 1.1
+          },
+          "no_instruction": {
+            "stalled_cycles_per_issue": 0.19,
+            "pct_of_stalls": 1.0
+          },
+          "math_pipe_throttle": {
+            "stalled_cycles_per_issue": 0.09,
+            "pct_of_stalls": 0.5
+          },
+          "drain": {
+            "stalled_cycles_per_issue": 0.03,
+            "pct_of_stalls": 0.2
+          },
+          "lg_throttle": {
+            "stalled_cycles_per_issue": 0.003,
+            "pct_of_stalls": 0.0
+          },
+          "mio_throttle": {
+            "stalled_cycles_per_issue": 0.0,
+            "pct_of_stalls": 0.0
+          },
+          "sleeping": {
+            "stalled_cycles_per_issue": 0.0,
+            "pct_of_stalls": 0.0
+          },
+          "membar": {
+            "stalled_cycles_per_issue": 0.0,
+            "pct_of_stalls": 0.0
+          }
+        },
+        "n_launches_profiled": 4,
+        "raw_report": "/root/code/cuda/profiles/rmsnorm/v0.2/raw/baseline_M128_H4096_ccnone_clkbase.ncu.txt"
+      }
+    },
+    "v1_vec": {
+      "all": {
+        "variant": "v1_vec",
+        "shape": [
+          128,
+          4096
+        ],
+        "ncu_version": "2022.3.0.0",
+        "cache_control": "all",
+        "clock_control": "base",
+        "clock_lock_warning": null,
+        "kernel_name": "void <unnamed>::rmsnorm_v1_kernel<__half>(const T1 *, const T1 *, T1 *, int, float)",
+        "kernel_duration_us": 6.264,
+        "l1_hit_rate": {
+          "value": 34.96,
+          "unit": "%"
+        },
+        "l2_read_hit_rate": {
+          "value": 38.68,
+          "unit": "%"
+        },
+        "dram_throughput_pct": 31.25,
+        "sm_throughput_pct": 10.26,
+        "achieved_occupancy_pct": 45.08,
+        "registers_per_thread": 22,
+        "shared_memory_bytes": 132,
+        "warp_stalls": {
+          "long_scoreboard": {
+            "stalled_cycles_per_issue": 14.63,
+            "pct_of_stalls": 66.0
+          },
+          "barrier": {
+            "stalled_cycles_per_issue": 2.548,
+            "pct_of_stalls": 11.5
+          },
+          "wait": {
+            "stalled_cycles_per_issue": 2.012,
+            "pct_of_stalls": 9.1
+          },
+          "selected": {
+            "stalled_cycles_per_issue": 1.0,
+            "pct_of_stalls": 4.5
+          },
+          "short_scoreboard": {
+            "stalled_cycles_per_issue": 0.715,
+            "pct_of_stalls": 3.2
+          },
+          "not_selected": {
+            "stalled_cycles_per_issue": 0.402,
+            "pct_of_stalls": 1.8
+          },
+          "math_pipe_throttle": {
+            "stalled_cycles_per_issue": 0.188,
+            "pct_of_stalls": 0.8
+          },
+          "no_instruction": {
+            "stalled_cycles_per_issue": 0.18,
+            "pct_of_stalls": 0.8
+          },
+          "mio_throttle": {
+            "stalled_cycles_per_issue": 0.155,
+            "pct_of_stalls": 0.7
+          },
+          "branch_resolving": {
+            "stalled_cycles_per_issue": 0.13,
+            "pct_of_stalls": 0.6
+          },
+          "drain": {
+            "stalled_cycles_per_issue": 0.09,
+            "pct_of_stalls": 0.4
+          },
+          "dispatch_stall": {
+            "stalled_cycles_per_issue": 0.082,
+            "pct_of_stalls": 0.4
+          },
+          "lg_throttle": {
+            "stalled_cycles_per_issue": 0.037,
+            "pct_of_stalls": 0.2
+          },
+          "sleeping": {
+            "stalled_cycles_per_issue": 0.0,
+            "pct_of_stalls": 0.0
+          },
+          "membar": {
+            "stalled_cycles_per_issue": 0.0,
+            "pct_of_stalls": 0.0
+          }
+        },
+        "n_launches_profiled": 4,
+        "raw_report": "/root/code/cuda/profiles/rmsnorm/v0.2/raw/v1_vec_M128_H4096_ccall_clkbase.ncu.txt"
+      },
+      "none": {
+        "variant": "v1_vec",
+        "shape": [
+          128,
+          4096
+        ],
+        "ncu_version": "2022.3.0.0",
+        "cache_control": "none",
+        "clock_control": "base",
+        "clock_lock_warning": null,
+        "kernel_name": "void <unnamed>::rmsnorm_v1_kernel<__half>(const T1 *, const T1 *, T1 *, int, float)",
+        "kernel_duration_us": 6.136,
+        "l1_hit_rate": {
+          "value": 34.97,
+          "unit": "%"
+        },
+        "l2_read_hit_rate": {
+          "value": 38.56,
+          "unit": "%"
+        },
+        "dram_throughput_pct": 36.0,
+        "sm_throughput_pct": 12.32,
+        "achieved_occupancy_pct": 44.01,
+        "registers_per_thread": 22,
+        "shared_memory_bytes": 132,
+        "warp_stalls": {
+          "long_scoreboard": {
+            "stalled_cycles_per_issue": 9.692,
+            "pct_of_stalls": 58.8
+          },
+          "wait": {
+            "stalled_cycles_per_issue": 2.012,
+            "pct_of_stalls": 12.2
+          },
+          "barrier": {
+            "stalled_cycles_per_issue": 1.777,
+            "pct_of_stalls": 10.8
+          },
+          "selected": {
+            "stalled_cycles_per_issue": 1.0,
+            "pct_of_stalls": 6.1
+          },
+          "short_scoreboard": {
+            "stalled_cycles_per_issue": 0.738,
+            "pct_of_stalls": 4.5
+          },
+          "not_selected": {
+            "stalled_cycles_per_issue": 0.412,
+            "pct_of_stalls": 2.5
+          },
+          "math_pipe_throttle": {
+            "stalled_cycles_per_issue": 0.185,
+            "pct_of_stalls": 1.1
+          },
+          "no_instruction": {
+            "stalled_cycles_per_issue": 0.18,
+            "pct_of_stalls": 1.1
+          },
+          "mio_throttle": {
+            "stalled_cycles_per_issue": 0.148,
+            "pct_of_stalls": 0.9
+          },
+          "branch_resolving": {
+            "stalled_cycles_per_issue": 0.13,
+            "pct_of_stalls": 0.8
+          },
+          "drain": {
+            "stalled_cycles_per_issue": 0.09,
+            "pct_of_stalls": 0.5
+          },
+          "dispatch_stall": {
+            "stalled_cycles_per_issue": 0.085,
+            "pct_of_stalls": 0.5
+          },
+          "lg_throttle": {
+            "stalled_cycles_per_issue": 0.048,
+            "pct_of_stalls": 0.3
+          },
+          "sleeping": {
+            "stalled_cycles_per_issue": 0.0,
+            "pct_of_stalls": 0.0
+          },
+          "membar": {
+            "stalled_cycles_per_issue": 0.0,
+            "pct_of_stalls": 0.0
+          }
+        },
+        "n_launches_profiled": 4,
+        "raw_report": "/root/code/cuda/profiles/rmsnorm/v0.2/raw/v1_vec_M128_H4096_ccnone_clkbase.ncu.txt"
+      }
+    },
+    "v2_reg": {
+      "all": {
+        "variant": "v2_reg",
+        "shape": [
+          128,
+          4096
+        ],
+        "ncu_version": "2022.3.0.0",
+        "cache_control": "all",
+        "clock_control": "base",
+        "clock_lock_warning": null,
+        "kernel_name": "void <unnamed>::rmsnorm_v2_kernel<__half, (int)16>(const T1 *, const T1 *, T1 *, int, float)",
+        "kernel_duration_us": 6.04,
+        "l1_hit_rate": {
+          "value": 32.29,
+          "unit": "%"
+        },
+        "l2_read_hit_rate": {
+          "value": 36.62,
+          "unit": "%"
+        },
+        "dram_throughput_pct": 34.59,
+        "sm_throughput_pct": 22.99,
+        "achieved_occupancy_pct": 45.49,
+        "registers_per_thread": 50,
+        "shared_memory_bytes": 132,
+        "warp_stalls": {
+          "long_scoreboard": {
+            "stalled_cycles_per_issue": 8.71,
+            "pct_of_stalls": 51.9
+          },
+          "lg_throttle": {
+            "stalled_cycles_per_issue": 2.26,
+            "pct_of_stalls": 13.5
+          },
+          "wait": {
+            "stalled_cycles_per_issue": 1.42,
+            "pct_of_stalls": 8.5
+          },
+          "barrier": {
+            "stalled_cycles_per_issue": 1.298,
+            "pct_of_stalls": 7.7
+          },
+          "selected": {
+            "stalled_cycles_per_issue": 1.0,
+            "pct_of_stalls": 6.0
+          },
+          "short_scoreboard": {
+            "stalled_cycles_per_issue": 0.84,
+            "pct_of_stalls": 5.0
+          },
+          "not_selected": {
+            "stalled_cycles_per_issue": 0.448,
+            "pct_of_stalls": 2.7
+          },
+          "math_pipe_throttle": {
+            "stalled_cycles_per_issue": 0.17,
+            "pct_of_stalls": 1.0
+          },
+          "dispatch_stall": {
+            "stalled_cycles_per_issue": 0.165,
+            "pct_of_stalls": 1.0
+          },
+          "drain": {
+            "stalled_cycles_per_issue": 0.163,
+            "pct_of_stalls": 1.0
+          },
+          "no_instruction": {
+            "stalled_cycles_per_issue": 0.13,
+            "pct_of_stalls": 0.8
+          },
+          "mio_throttle": {
+            "stalled_cycles_per_issue": 0.098,
+            "pct_of_stalls": 0.6
+          },
+          "branch_resolving": {
+            "stalled_cycles_per_issue": 0.088,
+            "pct_of_stalls": 0.5
+          },
+          "sleeping": {
+            "stalled_cycles_per_issue": 0.0,
+            "pct_of_stalls": 0.0
+          },
+          "membar": {
+            "stalled_cycles_per_issue": 0.0,
+            "pct_of_stalls": 0.0
+          }
+        },
+        "n_launches_profiled": 4,
+        "raw_report": "/root/code/cuda/profiles/rmsnorm/v0.2/raw/v2_reg_M128_H4096_ccall_clkbase.ncu.txt"
+      },
+      "none": {
+        "variant": "v2_reg",
+        "shape": [
+          128,
+          4096
+        ],
+        "ncu_version": "2022.3.0.0",
+        "cache_control": "none",
+        "clock_control": "base",
+        "clock_lock_warning": null,
+        "kernel_name": "void <unnamed>::rmsnorm_v2_kernel<__half, (int)16>(const T1 *, const T1 *, T1 *, int, float)",
+        "kernel_duration_us": 5.952,
+        "l1_hit_rate": {
+          "value": 32.29,
+          "unit": "%"
+        },
+        "l2_read_hit_rate": {
+          "value": 36.56,
+          "unit": "%"
+        },
+        "dram_throughput_pct": 42.52,
+        "sm_throughput_pct": 28.99,
+        "achieved_occupancy_pct": 43.34,
+        "registers_per_thread": 50,
+        "shared_memory_bytes": 132,
+        "warp_stalls": {
+          "long_scoreboard": {
+            "stalled_cycles_per_issue": 3.308,
+            "pct_of_stalls": 28.6
+          },
+          "lg_throttle": {
+            "stalled_cycles_per_issue": 2.282,
+            "pct_of_stalls": 19.7
+          },
+          "wait": {
+            "stalled_cycles_per_issue": 1.43,
+            "pct_of_stalls": 12.4
+          },
+          "barrier": {
+            "stalled_cycles_per_issue": 1.177,
+            "pct_of_stalls": 10.2
+          },
+          "selected": {
+            "stalled_cycles_per_issue": 1.0,
+            "pct_of_stalls": 8.7
+          },
+          "short_scoreboard": {
+            "stalled_cycles_per_issue": 0.96,
+            "pct_of_stalls": 8.3
+          },
+          "not_selected": {
+            "stalled_cycles_per_issue": 0.455,
+            "pct_of_stalls": 3.9
+          },
+          "mio_throttle": {
+            "stalled_cycles_per_issue": 0.235,
+            "pct_of_stalls": 2.0
+          },
+          "drain": {
+            "stalled_cycles_per_issue": 0.17,
+            "pct_of_stalls": 1.5
+          },
+          "math_pipe_throttle": {
+            "stalled_cycles_per_issue": 0.17,
+            "pct_of_stalls": 1.5
+          },
+          "dispatch_stall": {
+            "stalled_cycles_per_issue": 0.16,
+            "pct_of_stalls": 1.4
+          },
+          "no_instruction": {
+            "stalled_cycles_per_issue": 0.12,
+            "pct_of_stalls": 1.0
+          },
+          "branch_resolving": {
+            "stalled_cycles_per_issue": 0.09,
+            "pct_of_stalls": 0.8
+          },
+          "sleeping": {
+            "stalled_cycles_per_issue": 0.0,
+            "pct_of_stalls": 0.0
+          },
+          "membar": {
+            "stalled_cycles_per_issue": 0.0,
+            "pct_of_stalls": 0.0
+          }
+        },
+        "n_launches_profiled": 4,
+        "raw_report": "/root/code/cuda/profiles/rmsnorm/v0.2/raw/v2_reg_M128_H4096_ccnone_clkbase.ncu.txt"
+      }
+    },
+    "v3_wideblock": {
+      "all": {
+        "variant": "v3_wideblock",
+        "shape": [
+          128,
+          4096
+        ],
+        "ncu_version": "2022.3.0.0",
+        "cache_control": "all",
+        "clock_control": "base",
+        "clock_lock_warning": null,
+        "kernel_name": "void <unnamed>::rmsnorm_v3_kernel<__half>(const T1 *, const T1 *, T1 *, int, float)",
+        "kernel_duration_us": 9.392,
+        "l1_hit_rate": {
+          "value": 45.4,
+          "unit": "%"
+        },
+        "l2_read_hit_rate": {
+          "value": 41.49,
+          "unit": "%"
+        },
+        "dram_throughput_pct": 22.27,
+        "sm_throughput_pct": 20.52,
+        "achieved_occupancy_pct": 92.1,
+        "registers_per_thread": 16,
+        "shared_memory_bytes": 132,
+        "warp_stalls": {
+          "long_scoreboard": {
+            "stalled_cycles_per_issue": 24.112,
+            "pct_of_stalls": 75.4
+          },
+          "wait": {
+            "stalled_cycles_per_issue": 2.745,
+            "pct_of_stalls": 8.6
+          },
+          "barrier": {
+            "stalled_cycles_per_issue": 1.347,
+            "pct_of_stalls": 4.2
+          },
+          "selected": {
+            "stalled_cycles_per_issue": 1.0,
+            "pct_of_stalls": 3.1
+          },
+          "short_scoreboard": {
+            "stalled_cycles_per_issue": 0.948,
+            "pct_of_stalls": 3.0
+          },
+          "not_selected": {
+            "stalled_cycles_per_issue": 0.525,
+            "pct_of_stalls": 1.6
+          },
+          "dispatch_stall": {
+            "stalled_cycles_per_issue": 0.323,
+            "pct_of_stalls": 1.0
+          },
+          "no_instruction": {
+            "stalled_cycles_per_issue": 0.27,
+            "pct_of_stalls": 0.8
+          },
+          "math_pipe_throttle": {
+            "stalled_cycles_per_issue": 0.265,
+            "pct_of_stalls": 0.8
+          },
+          "branch_resolving": {
+            "stalled_cycles_per_issue": 0.232,
+            "pct_of_stalls": 0.7
+          },
+          "lg_throttle": {
+            "stalled_cycles_per_issue": 0.107,
+            "pct_of_stalls": 0.3
+          },
+          "drain": {
+            "stalled_cycles_per_issue": 0.06,
+            "pct_of_stalls": 0.2
+          },
+          "mio_throttle": {
+            "stalled_cycles_per_issue": 0.03,
+            "pct_of_stalls": 0.1
+          },
+          "sleeping": {
+            "stalled_cycles_per_issue": 0.0,
+            "pct_of_stalls": 0.0
+          },
+          "membar": {
+            "stalled_cycles_per_issue": 0.0,
+            "pct_of_stalls": 0.0
+          }
+        },
+        "n_launches_profiled": 4,
+        "raw_report": "/root/code/cuda/profiles/rmsnorm/v0.2/raw/v3_wideblock_M128_H4096_ccall_clkbase.ncu.txt"
+      },
+      "none": {
+        "variant": "v3_wideblock",
+        "shape": [
+          128,
+          4096
+        ],
+        "ncu_version": "2022.3.0.0",
+        "cache_control": "none",
+        "clock_control": "base",
+        "clock_lock_warning": null,
+        "kernel_name": "void <unnamed>::rmsnorm_v3_kernel<__half>(const T1 *, const T1 *, T1 *, int, float)",
+        "kernel_duration_us": 9.312,
+        "l1_hit_rate": {
+          "value": 45.48,
+          "unit": "%"
+        },
+        "l2_read_hit_rate": {
+          "value": 41.45,
+          "unit": "%"
+        },
+        "dram_throughput_pct": 28.86,
+        "sm_throughput_pct": 26.96,
+        "achieved_occupancy_pct": 91.85,
+        "registers_per_thread": 16,
+        "shared_memory_bytes": 132,
+        "warp_stalls": {
+          "long_scoreboard": {
+            "stalled_cycles_per_issue": 13.978,
+            "pct_of_stalls": 63.9
+          },
+          "wait": {
+            "stalled_cycles_per_issue": 2.752,
+            "pct_of_stalls": 12.6
+          },
+          "barrier": {
+            "stalled_cycles_per_issue": 1.323,
+            "pct_of_stalls": 6.0
+          },
+          "short_scoreboard": {
+            "stalled_cycles_per_issue": 1.065,
+            "pct_of_stalls": 4.9
+          },
+          "selected": {
+            "stalled_cycles_per_issue": 1.0,
+            "pct_of_stalls": 4.6
+          },
+          "not_selected": {
+            "stalled_cycles_per_issue": 0.502,
+            "pct_of_stalls": 2.3
+          },
+          "dispatch_stall": {
+            "stalled_cycles_per_issue": 0.31,
+            "pct_of_stalls": 1.4
+          },
+          "no_instruction": {
+            "stalled_cycles_per_issue": 0.278,
+            "pct_of_stalls": 1.3
+          },
+          "branch_resolving": {
+            "stalled_cycles_per_issue": 0.24,
+            "pct_of_stalls": 1.1
+          },
+          "math_pipe_throttle": {
+            "stalled_cycles_per_issue": 0.24,
+            "pct_of_stalls": 1.1
+          },
+          "lg_throttle": {
+            "stalled_cycles_per_issue": 0.075,
+            "pct_of_stalls": 0.3
+          },
+          "drain": {
+            "stalled_cycles_per_issue": 0.06,
+            "pct_of_stalls": 0.3
+          },
+          "mio_throttle": {
+            "stalled_cycles_per_issue": 0.05,
+            "pct_of_stalls": 0.2
+          },
+          "sleeping": {
+            "stalled_cycles_per_issue": 0.0,
+            "pct_of_stalls": 0.0
+          },
+          "membar": {
+            "stalled_cycles_per_issue": 0.0,
+            "pct_of_stalls": 0.0
+          }
+        },
+        "n_launches_profiled": 4,
+        "raw_report": "/root/code/cuda/profiles/rmsnorm/v0.2/raw/v3_wideblock_M128_H4096_ccnone_clkbase.ncu.txt"
+      }
+    },
+    "v4_vec_reg": {
+      "all": {
+        "variant": "v4_vec_reg",
+        "shape": [
+          128,
+          4096
+        ],
+        "ncu_version": "2022.3.0.0",
+        "cache_control": "all",
+        "clock_control": "base",
+        "clock_lock_warning": null,
+        "kernel_name": "void <unnamed>::rmsnorm_v4_half_kernel<(int)16>(const __half *, const __half *, __half *, int, float)",
+        "kernel_duration_us": 7.04,
+        "l1_hit_rate": {
+          "value": 57.81,
+          "unit": "%"
+        },
+        "l2_read_hit_rate": {
+          "value": 36.14,
+          "unit": "%"
+        },
+        "dram_throughput_pct": 30.47,
+        "sm_throughput_pct": 7.51,
+        "achieved_occupancy_pct": 40.92,
+        "registers_per_thread": 30,
+        "shared_memory_bytes": 132,
+        "warp_stalls": {
+          "long_scoreboard": {
+            "stalled_cycles_per_issue": 15.067,
+            "pct_of_stalls": 56.7
+          },
+          "barrier": {
+            "stalled_cycles_per_issue": 3.75,
+            "pct_of_stalls": 14.1
+          },
+          "drain": {
+            "stalled_cycles_per_issue": 2.65,
+            "pct_of_stalls": 10.0
+          },
+          "wait": {
+            "stalled_cycles_per_issue": 1.325,
+            "pct_of_stalls": 5.0
+          },
+          "short_scoreboard": {
+            "stalled_cycles_per_issue": 1.15,
+            "pct_of_stalls": 4.3
+          },
+          "selected": {
+            "stalled_cycles_per_issue": 1.0,
+            "pct_of_stalls": 3.8
+          },
+          "lg_throttle": {
+            "stalled_cycles_per_issue": 0.632,
+            "pct_of_stalls": 2.4
+          },
+          "not_selected": {
+            "stalled_cycles_per_issue": 0.255,
+            "pct_of_stalls": 1.0
+          },
+          "mio_throttle": {
+            "stalled_cycles_per_issue": 0.225,
+            "pct_of_stalls": 0.8
+          },
+          "no_instruction": {
+            "stalled_cycles_per_issue": 0.18,
+            "pct_of_stalls": 0.7
+          },
+          "branch_resolving": {
+            "stalled_cycles_per_issue": 0.13,
+            "pct_of_stalls": 0.5
+          },
+          "math_pipe_throttle": {
+            "stalled_cycles_per_issue": 0.115,
+            "pct_of_stalls": 0.4
+          },
+          "dispatch_stall": {
+            "stalled_cycles_per_issue": 0.08,
+            "pct_of_stalls": 0.3
+          },
+          "sleeping": {
+            "stalled_cycles_per_issue": 0.0,
+            "pct_of_stalls": 0.0
+          },
+          "membar": {
+            "stalled_cycles_per_issue": 0.0,
+            "pct_of_stalls": 0.0
+          }
+        },
+        "n_launches_profiled": 4,
+        "raw_report": "/root/code/cuda/profiles/rmsnorm/v0.2/raw/v4_vec_reg_M128_H4096_ccall_clkbase.ncu.txt"
+      },
+      "none": {
+        "variant": "v4_vec_reg",
+        "shape": [
+          128,
+          4096
+        ],
+        "ncu_version": "2022.3.0.0",
+        "cache_control": "none",
+        "clock_control": "base",
+        "clock_lock_warning": null,
+        "kernel_name": "void <unnamed>::rmsnorm_v4_half_kernel<(int)16>(const __half *, const __half *, __half *, int, float)",
+        "kernel_duration_us": 7.136,
+        "l1_hit_rate": {
+          "value": 57.81,
+          "unit": "%"
+        },
+        "l2_read_hit_rate": {
+          "value": 36.06,
+          "unit": "%"
+        },
+        "dram_throughput_pct": 36.09,
+        "sm_throughput_pct": 9.02,
+        "achieved_occupancy_pct": 38.88,
+        "registers_per_thread": 30,
+        "shared_memory_bytes": 132,
+        "warp_stalls": {
+          "long_scoreboard": {
+            "stalled_cycles_per_issue": 8.01,
+            "pct_of_stalls": 42.6
+          },
+          "drain": {
+            "stalled_cycles_per_issue": 2.78,
+            "pct_of_stalls": 14.8
+          },
+          "barrier": {
+            "stalled_cycles_per_issue": 2.615,
+            "pct_of_stalls": 13.9
+          },
+          "wait": {
+            "stalled_cycles_per_issue": 1.328,
+            "pct_of_stalls": 7.1
+          },
+          "short_scoreboard": {
+            "stalled_cycles_per_issue": 1.258,
+            "pct_of_stalls": 6.7
+          },
+          "selected": {
+            "stalled_cycles_per_issue": 1.0,
+            "pct_of_stalls": 5.3
+          },
+          "lg_throttle": {
+            "stalled_cycles_per_issue": 0.76,
+            "pct_of_stalls": 4.0
+          },
+          "not_selected": {
+            "stalled_cycles_per_issue": 0.285,
+            "pct_of_stalls": 1.5
+          },
+          "mio_throttle": {
+            "stalled_cycles_per_issue": 0.237,
+            "pct_of_stalls": 1.3
+          },
+          "no_instruction": {
+            "stalled_cycles_per_issue": 0.18,
+            "pct_of_stalls": 1.0
+          },
+          "branch_resolving": {
+            "stalled_cycles_per_issue": 0.13,
+            "pct_of_stalls": 0.7
+          },
+          "math_pipe_throttle": {
+            "stalled_cycles_per_issue": 0.128,
+            "pct_of_stalls": 0.7
+          },
+          "dispatch_stall": {
+            "stalled_cycles_per_issue": 0.08,
+            "pct_of_stalls": 0.4
+          },
+          "sleeping": {
+            "stalled_cycles_per_issue": 0.0,
+            "pct_of_stalls": 0.0
+          },
+          "membar": {
+            "stalled_cycles_per_issue": 0.0,
+            "pct_of_stalls": 0.0
+          }
+        },
+        "n_launches_profiled": 4,
+        "raw_report": "/root/code/cuda/profiles/rmsnorm/v0.2/raw/v4_vec_reg_M128_H4096_ccnone_clkbase.ncu.txt"
+      }
+    }
+  }
+}

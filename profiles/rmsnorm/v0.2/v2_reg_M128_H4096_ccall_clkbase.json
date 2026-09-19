@@ -1,0 +1,90 @@
+{
+  "variant": "v2_reg",
+  "shape": [
+    128,
+    4096
+  ],
+  "ncu_version": "2022.3.0.0",
+  "cache_control": "all",
+  "clock_control": "base",
+  "clock_lock_warning": null,
+  "kernel_name": "void <unnamed>::rmsnorm_v2_kernel<__half, (int)16>(const T1 *, const T1 *, T1 *, int, float)",
+  "kernel_duration_us": 6.04,
+  "l1_hit_rate": {
+    "value": 32.29,
+    "unit": "%"
+  },
+  "l2_read_hit_rate": {
+    "value": 36.62,
+    "unit": "%"
+  },
+  "dram_throughput_pct": 34.59,
+  "sm_throughput_pct": 22.99,
+  "achieved_occupancy_pct": 45.49,
+  "registers_per_thread": 50,
+  "shared_memory_bytes": 132,
+  "warp_stalls": {
+    "long_scoreboard": {
+      "stalled_cycles_per_issue": 8.71,
+      "pct_of_stalls": 51.9
+    },
+    "lg_throttle": {
+      "stalled_cycles_per_issue": 2.26,
+      "pct_of_stalls": 13.5
+    },
+    "wait": {
+      "stalled_cycles_per_issue": 1.42,
+      "pct_of_stalls": 8.5
+    },
+    "barrier": {
+      "stalled_cycles_per_issue": 1.298,
+      "pct_of_stalls": 7.7
+    },
+    "selected": {
+      "stalled_cycles_per_issue": 1.0,
+      "pct_of_stalls": 6.0
+    },
+    "short_scoreboard": {
+      "stalled_cycles_per_issue": 0.84,
+      "pct_of_stalls": 5.0
+    },
+    "not_selected": {
+      "stalled_cycles_per_issue": 0.448,
+      "pct_of_stalls": 2.7
+    },
+    "math_pipe_throttle": {
+      "stalled_cycles_per_issue": 0.17,
+      "pct_of_stalls": 1.0
+    },
+    "dispatch_stall": {
+      "stalled_cycles_per_issue": 0.165,
+      "pct_of_stalls": 1.0
+    },
+    "drain": {
+      "stalled_cycles_per_issue": 0.163,
+      "pct_of_stalls": 1.0
+    },
+    "no_instruction": {
+      "stalled_cycles_per_issue": 0.13,
+      "pct_of_stalls": 0.8
+    },
+    "mio_throttle": {
+      "stalled_cycles_per_issue": 0.098,
+      "pct_of_stalls": 0.6
+    },
+    "branch_resolving": {
+      "stalled_cycles_per_issue": 0.088,
+      "pct_of_stalls": 0.5
+    },
+    "sleeping": {
+      "stalled_cycles_per_issue": 0.0,
+      "pct_of_stalls": 0.0
+    },
+    "membar": {
+      "stalled_cycles_per_issue": 0.0,
+      "pct_of_stalls": 0.0
+    }
+  },
+  "n_launches_profiled": 4,
+  "raw_report": "/root/code/cuda/profiles/rmsnorm/v0.2/raw/v2_reg_M128_H4096_ccall_clkbase.ncu.txt"
+}

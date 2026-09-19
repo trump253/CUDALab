@@ -1,0 +1,497 @@
+{
+  "id": "EXP-0008",
+  "kind": "revalidation",
+  "cudalab_version": "v0.2",
+  "date": "2026-09-19T13:00:16+08:00",
+  "parent": "v4_vec_reg",
+  "candidates": [
+    "v1_vec",
+    "v2_reg",
+    "v3_wideblock",
+    "baseline"
+  ],
+  "hypothesis": "v0.1 \u7684\u6027\u80fd\u7ed3\u8bba\uff08\u5c24\u5176 EXP-0007 \u7684 1.231\u00d7\uff09\u57fa\u4e8e\u975e\u914d\u5bf9\u3001\u5355\u7f13\u51b2\u3001\u65e0 DVFS \u6821\u9a8c\u7684\u6d4b\u91cf\uff0c\u7591\u4f3c\u53d7 1350 vs 1905 MHz \u6df7\u9891\u81a8\u80c0\u3002\u7528 v0.2 paired-streaming-v2 harness\uff08\u914d\u5bf9 A/B \u4ea4\u66ff\u987a\u5e8f\u3001DVFS guard\u3001hot/streaming \u53cc\u7f13\u5b58\u6a21\u5f0f\u3001round-level bootstrap \u51b3\u7b56\uff09\u5b8c\u6574\u590d\u9a8c\u5168\u90e8\u53d8\u4f53\u3002",
+  "harness": "paired-streaming-v2",
+  "benchmark_mode": [
+    "hot",
+    "streaming"
+  ],
+  "clock_policy": "\u4ec5 DVFS guard\uff08\u4e0d\u5141\u8bb8\u9501\u9891\uff09: \u6bcf\u4e2a\u6d4b\u91cf\u533a\u95f4\u524d\u540e\u5404 1 \u6b21 + \u4e4b\u540e 1 \u6b21 nvidia-smi \u91c7\u6837\uff0c\u6709\u6548 SM \u65f6\u949f = \u5747\u503c\uff1bpaired round \u4e24\u53d8\u4f53\u6709\u6548\u65f6\u949f\u76f8\u5bf9\u5dee >5% \u5224 invalid\uff081350 vs 1905 \u7c7b\u5931\u914d\u5fc5\u62d2\uff09\uff1b\u77e9\u9635 round \u5168\u53d8\u4f53\u65f6\u949f spread >5% \u5224 invalid\uff1b\u65e0\u65f6\u949f\u6570\u636e\u5224 invalid\uff1b\u91cd\u8bd5 \u22643 \u6b21\uff1bvalid_rounds<5 -> UNSTABLE\u3002\u672c\u6b21\u590d\u9a8c\u6240\u6709 run 9/9 valid\uff0c\u6709\u6548\u65f6\u949f\u7a33\u5b9a\u5728 1350 MHz\u3002",
+  "primary_target": {
+    "shape": [
+      128,
+      4096
+    ],
+    "dtype": "float16"
+  },
+  "correctness": {
+    "valid_suite": {
+      "baseline": {
+        "n_pass": 76,
+        "n_total": 76,
+        "all_pass": true,
+        "max_abs_error": 0.00390625,
+        "max_rel_error": 0.00097561
+      },
+      "v1_vec": {
+        "n_pass": 76,
+        "n_total": 76,
+        "all_pass": true,
+        "max_abs_error": 0.00390625,
+        "max_rel_error": 0.00097656
+      },
+      "v2_reg": {
+        "n_pass": 76,
+        "n_total": 76,
+        "all_pass": true,
+        "max_abs_error": 0.00390625,
+        "max_rel_error": 0.00097561
+      },
+      "v3_wideblock": {
+        "n_pass": 76,
+        "n_total": 76,
+        "all_pass": true,
+        "max_abs_error": 0.00390625,
+        "max_rel_error": 0.00097561
+      },
+      "v4_vec_reg": {
+        "n_pass": 76,
+        "n_total": 76,
+        "all_pass": true,
+        "max_abs_error": 0.00390625,
+        "max_rel_error": 0.00097182
+      }
+    },
+    "invalid_input_suite": {
+      "n_total": 28,
+      "n_passed": 27,
+      "n_skipped": 1,
+      "all_pass": true,
+      "note": "1 \u4e2a\u591a GPU \u7528\u4f8b\u56e0\u5355 GPU \u73af\u5883\u5b89\u5168\u8df3\u8fc7"
+    }
+  },
+  "paired_results": [
+    {
+      "comparison": "v4 vs v1 fp16 streaming (\u4e3b\u5f62\u72b6)",
+      "parent": "v4_vec_reg",
+      "candidate": "v1_vec",
+      "shape": [
+        128,
+        4096
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "paired_rounds": 9,
+      "valid_rounds": 9,
+      "invalid_dvfs_rounds": 0,
+      "median_speedup_parent_over_candidate": 1.011309,
+      "bootstrap_ci_95": [
+        1.001739,
+        1.019287
+      ],
+      "faster_rounds_candidate": "9/9",
+      "parent_median_us": 6.967,
+      "candidate_median_us": 6.897,
+      "decision": "NEUTRAL",
+      "decision_rule": "median 1.0113 within (0.95, 1.05) or mixed rounds (9/9 faster) or CI not excluded 1.00 (CI95=[1.001739, 1.019287]) -> NEUTRAL",
+      "file": "benchmarks/v0.2/v02_pair_v4_vec_reg_vs_v1_vec_M128_H4096_fp16_streaming.json"
+    },
+    {
+      "comparison": "v4 vs v1 fp16 hot (\u4e3b\u5f62\u72b6)",
+      "parent": "v4_vec_reg",
+      "candidate": "v1_vec",
+      "shape": [
+        128,
+        4096
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "paired_rounds": 9,
+      "valid_rounds": 9,
+      "invalid_dvfs_rounds": 0,
+      "median_speedup_parent_over_candidate": 0.932658,
+      "bootstrap_ci_95": [
+        0.837273,
+        0.965775
+      ],
+      "faster_rounds_candidate": "0/9",
+      "parent_median_us": 6.11,
+      "candidate_median_us": 6.591,
+      "decision": "REJECT",
+      "decision_rule": "median 0.9327 <= 0.95 AND 0/9 rounds faster (<= 30%) AND CI95 upper 0.9658 < 1.00 -> REJECT",
+      "file": "benchmarks/v0.2/v02_pair_v4_vec_reg_vs_v1_vec_M128_H4096_fp16_hot.json"
+    },
+    {
+      "comparison": "v4 vs v2 fp16 streaming (\u4e3b\u5f62\u72b6)",
+      "parent": "v4_vec_reg",
+      "candidate": "v2_reg",
+      "shape": [
+        128,
+        4096
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "paired_rounds": 9,
+      "valid_rounds": 9,
+      "invalid_dvfs_rounds": 0,
+      "median_speedup_parent_over_candidate": 1.018607,
+      "bootstrap_ci_95": [
+        0.964668,
+        1.07599
+      ],
+      "faster_rounds_candidate": "5/9",
+      "parent_median_us": 7.007,
+      "candidate_median_us": 6.879,
+      "decision": "NEUTRAL",
+      "decision_rule": "median 1.0186 within (0.95, 1.05) or mixed rounds (5/9 faster) or CI not excluded 1.00 (CI95=[0.964668, 1.07599]) -> NEUTRAL",
+      "file": "benchmarks/v0.2/v02_pair_v4_vs_v2_M128_H4096_fp16_streaming.json"
+    },
+    {
+      "comparison": "v4 vs v2 fp16 hot (\u4e3b\u5f62\u72b6)",
+      "parent": "v4_vec_reg",
+      "candidate": "v2_reg",
+      "shape": [
+        128,
+        4096
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "paired_rounds": 9,
+      "valid_rounds": 9,
+      "invalid_dvfs_rounds": 0,
+      "median_speedup_parent_over_candidate": 1.021505,
+      "bootstrap_ci_95": [
+        0.987975,
+        1.171462
+      ],
+      "faster_rounds_candidate": "6/9",
+      "parent_median_us": 6.144,
+      "candidate_median_us": 6.016,
+      "decision": "NEUTRAL",
+      "decision_rule": "median 1.0215 within (0.95, 1.05) or mixed rounds (6/9 faster) or CI not excluded 1.00 (CI95=[0.987975, 1.171462]) -> NEUTRAL",
+      "file": "benchmarks/v0.2/v02_pair_v4_vs_v2_M128_H4096_fp16_hot.json"
+    },
+    {
+      "comparison": "v4 vs v2 fp32 streaming (\u4e3b\u5f62\u72b6)",
+      "parent": "v4_vec_reg",
+      "candidate": "v2_reg",
+      "shape": [
+        128,
+        4096
+      ],
+      "dtype": "float32",
+      "cache_mode": "streaming",
+      "paired_rounds": 9,
+      "valid_rounds": 9,
+      "invalid_dvfs_rounds": 0,
+      "median_speedup_parent_over_candidate": 1.366559,
+      "bootstrap_ci_95": [
+        1.346558,
+        1.368181
+      ],
+      "faster_rounds_candidate": "9/9",
+      "parent_median_us": 13.504,
+      "candidate_median_us": 9.922,
+      "decision": "KEEP",
+      "decision_rule": "median 1.3666 >= 1.05 AND 9/9 rounds faster (>= 70%) AND CI95 lower 1.3466 > 1.00 -> KEEP",
+      "file": "benchmarks/v0.2/v02_pair_v4_vs_v2_M128_H4096_fp32_streaming.json"
+    },
+    {
+      "comparison": "v4 vs v2 fp32 hot (\u4e3b\u5f62\u72b6)",
+      "parent": "v4_vec_reg",
+      "candidate": "v2_reg",
+      "shape": [
+        128,
+        4096
+      ],
+      "dtype": "float32",
+      "cache_mode": "hot",
+      "paired_rounds": 9,
+      "valid_rounds": 9,
+      "invalid_dvfs_rounds": 0,
+      "median_speedup_parent_over_candidate": 1.617724,
+      "bootstrap_ci_95": [
+        1.592156,
+        1.629159
+      ],
+      "faster_rounds_candidate": "9/9",
+      "parent_median_us": 9.981,
+      "candidate_median_us": 6.145,
+      "decision": "KEEP",
+      "decision_rule": "median 1.6177 >= 1.05 AND 9/9 rounds faster (>= 70%) AND CI95 lower 1.5922 > 1.00 -> KEEP",
+      "file": "benchmarks/v0.2/v02_pair_v4_vs_v2_M128_H4096_fp32_hot.json"
+    },
+    {
+      "comparison": "v4 vs v2 fp16 streaming (128,8192)",
+      "parent": "v4_vec_reg",
+      "candidate": "v2_reg",
+      "shape": [
+        128,
+        8192
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "paired_rounds": 9,
+      "valid_rounds": 9,
+      "invalid_dvfs_rounds": 0,
+      "median_speedup_parent_over_candidate": 1.380279,
+      "bootstrap_ci_95": [
+        1.348853,
+        1.399462
+      ],
+      "faster_rounds_candidate": "9/9",
+      "parent_median_us": 14.013,
+      "candidate_median_us": 10.05,
+      "decision": "KEEP",
+      "decision_rule": "median 1.3803 >= 1.05 AND 9/9 rounds faster (>= 70%) AND CI95 lower 1.3489 > 1.00 -> KEEP",
+      "file": "benchmarks/v0.2/v02_pair_v4_vs_v2_M128_H8192_fp16_streaming.json"
+    },
+    {
+      "comparison": "v4 vs baseline fp16 streaming (\u4e3b\u5f62\u72b6)",
+      "parent": "v4_vec_reg",
+      "candidate": "baseline",
+      "shape": [
+        128,
+        4096
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "paired_rounds": 9,
+      "valid_rounds": 9,
+      "invalid_dvfs_rounds": 0,
+      "median_speedup_parent_over_candidate": 0.527364,
+      "bootstrap_ci_95": [
+        0.524085,
+        0.537739
+      ],
+      "faster_rounds_candidate": "0/9",
+      "parent_median_us": 6.928,
+      "candidate_median_us": 13.127,
+      "decision": "REJECT",
+      "decision_rule": "median 0.5274 <= 0.95 AND 0/9 rounds faster (<= 30%) AND CI95 upper 0.5377 < 1.00 -> REJECT",
+      "file": "benchmarks/v0.2/v02_pair_v4_vec_reg_vs_baseline_M128_H4096_fp16_streaming.json"
+    },
+    {
+      "comparison": "v4 vs baseline fp16 hot (\u4e3b\u5f62\u72b6)",
+      "parent": "v4_vec_reg",
+      "candidate": "baseline",
+      "shape": [
+        128,
+        4096
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "paired_rounds": 9,
+      "valid_rounds": 9,
+      "invalid_dvfs_rounds": 0,
+      "median_speedup_parent_over_candidate": 0.57486,
+      "bootstrap_ci_95": [
+        0.56456,
+        0.595431
+      ],
+      "faster_rounds_candidate": "0/9",
+      "parent_median_us": 5.953,
+      "candidate_median_us": 10.368,
+      "decision": "REJECT",
+      "decision_rule": "median 0.5749 <= 0.95 AND 0/9 rounds faster (<= 30%) AND CI95 upper 0.5954 < 1.00 -> REJECT",
+      "file": "benchmarks/v0.2/v02_pair_v4_vec_reg_vs_baseline_M128_H4096_fp16_hot.json"
+    },
+    {
+      "comparison": "v1 vs baseline fp16 streaming (\u4e3b\u5f62\u72b6)",
+      "parent": "v1_vec",
+      "candidate": "baseline",
+      "shape": [
+        128,
+        4096
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "paired_rounds": 9,
+      "valid_rounds": 9,
+      "invalid_dvfs_rounds": 0,
+      "median_speedup_parent_over_candidate": 0.578108,
+      "bootstrap_ci_95": [
+        0.530716,
+        0.599666
+      ],
+      "faster_rounds_candidate": "0/9",
+      "parent_median_us": 7.616,
+      "candidate_median_us": 13.172,
+      "decision": "REJECT",
+      "decision_rule": "median 0.5781 <= 0.95 AND 0/9 rounds faster (<= 30%) AND CI95 upper 0.5997 < 1.00 -> REJECT",
+      "file": "benchmarks/v0.2/v02_pair_v1_vec_vs_baseline_M128_H4096_fp16_streaming.json"
+    },
+    {
+      "comparison": "v1 vs baseline fp16 hot (\u4e3b\u5f62\u72b6)",
+      "parent": "v1_vec",
+      "candidate": "baseline",
+      "shape": [
+        128,
+        4096
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "paired_rounds": 9,
+      "valid_rounds": 9,
+      "invalid_dvfs_rounds": 0,
+      "median_speedup_parent_over_candidate": 0.568011,
+      "bootstrap_ci_95": [
+        0.554688,
+        0.579282
+      ],
+      "faster_rounds_candidate": "0/9",
+      "parent_median_us": 5.888,
+      "candidate_median_us": 10.368,
+      "decision": "REJECT",
+      "decision_rule": "median 0.5680 <= 0.95 AND 0/9 rounds faster (<= 30%) AND CI95 upper 0.5793 < 1.00 -> REJECT",
+      "file": "benchmarks/v0.2/v02_pair_v1_vec_vs_baseline_M128_H4096_fp16_hot.json"
+    },
+    {
+      "comparison": "v2 vs baseline fp16 streaming (\u4e3b\u5f62\u72b6)",
+      "parent": "v2_reg",
+      "candidate": "baseline",
+      "shape": [
+        128,
+        4096
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "paired_rounds": 9,
+      "valid_rounds": 9,
+      "invalid_dvfs_rounds": 0,
+      "median_speedup_parent_over_candidate": 0.528486,
+      "bootstrap_ci_95": [
+        0.496615,
+        0.539572
+      ],
+      "faster_rounds_candidate": "0/9",
+      "parent_median_us": 6.92,
+      "candidate_median_us": 13.145,
+      "decision": "REJECT",
+      "decision_rule": "median 0.5285 <= 0.95 AND 0/9 rounds faster (<= 30%) AND CI95 upper 0.5396 < 1.00 -> REJECT",
+      "file": "benchmarks/v0.2/v02_pair_v2_reg_vs_baseline_M128_H4096_fp16_streaming.json"
+    },
+    {
+      "comparison": "v2 vs baseline fp16 hot (\u4e3b\u5f62\u72b6)",
+      "parent": "v2_reg",
+      "candidate": "baseline",
+      "shape": [
+        128,
+        4096
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "paired_rounds": 9,
+      "valid_rounds": 9,
+      "invalid_dvfs_rounds": 0,
+      "median_speedup_parent_over_candidate": 0.570139,
+      "bootstrap_ci_95": [
+        0.469545,
+        0.580844
+      ],
+      "faster_rounds_candidate": "0/9",
+      "parent_median_us": 5.938,
+      "candidate_median_us": 10.415,
+      "decision": "REJECT",
+      "decision_rule": "median 0.5701 <= 0.95 AND 0/9 rounds faster (<= 30%) AND CI95 upper 0.5808 < 1.00 -> REJECT",
+      "file": "benchmarks/v0.2/v02_pair_v2_reg_vs_baseline_M128_H4096_fp16_hot.json"
+    }
+  ],
+  "full_matrix": {
+    "n_shape_runs": 28,
+    "shapes": [
+      [
+        1,
+        4096
+      ],
+      [
+        16,
+        4096
+      ],
+      [
+        128,
+        4096
+      ],
+      [
+        1024,
+        4096
+      ],
+      [
+        128,
+        8192
+      ],
+      [
+        1,
+        1024
+      ],
+      [
+        128,
+        1024
+      ]
+    ],
+    "dtypes": [
+      "float16",
+      "float32"
+    ],
+    "cache_modes": [
+      "hot",
+      "streaming"
+    ],
+    "variants": [
+      "baseline",
+      "v1_vec",
+      "v2_reg",
+      "v3_wideblock",
+      "v4_vec_reg"
+    ],
+    "all_rounds_valid": true,
+    "dir": "benchmarks/v0.2/",
+    "shape_winners": "benchmarks/v0.2/shape_winners.json"
+  },
+  "ncu_profile": {
+    "dir": "profiles/rmsnorm/v0.2/",
+    "shape": [
+      128,
+      4096
+    ],
+    "dtype": "float16",
+    "cache_controls": [
+      "all",
+      "none"
+    ],
+    "clock_control": "base",
+    "note": "\u5c0f kernel\uff08\u5de5\u4f5c\u96c6 ~1MB\uff09\u4e0b cc=all \u4e0e cc=none \u7684 duration/DRAM%/hit rate \u51e0\u4e4e\u65e0\u5dee\u5f02 \u2014\u2014 NCU \u5355\u6b21 launch \u7684 '\u51b7 L2' \u5bf9\u672c\u5de5\u4f5c\u8d1f\u8f7d\u4e0d\u654f\u611f\uff0c\u771f\u6b63\u7684\u7f13\u5b58\u6548\u5e94\u6760\u6746\u662f bench \u7684 hot/streaming \u7f13\u51b2\u7b56\u7565\u3002v0.1 \u672a\u4f20 --cache-control\uff08\u9ed8\u8ba4 all=\u70ed\u7f13\u5b58\uff09\uff0c\u5176 'cold L2' \u8bf4\u6cd5\u65e0\u914d\u7f6e\u4f9d\u636e\u3002ncu \u672a\u62a5\u544a\u9501\u9891\u8b66\u544a\uff0c\u4f46\u4e5f\u65e0\u9501\u9891\u6210\u529f\u7684\u6b63\u9762\u8bc1\u636e\uff08\u5bb9\u5668\u5185 nvidia-smi default_applications=[N/A]\uff09\uff0c\u6240\u6709\u53d8\u4f53\u540c\u4e00 clock-control \u8bbe\u7f6e\u4e0b\u76f8\u5bf9\u6bd4\u8f83\u6709\u6548\u3002"
+  },
+  "pytorch_reference": {
+    "file": "benchmarks/v0.2/pytorch_ref_M128_H4096_fp16.json",
+    "note": "torch 2.4.1 F.rms_norm\uff08\u975e\u878d\u5408\u8def\u5f84\uff09\u4ec5\u4f5c\u4e0a\u4e0b\u6587\u8bb0\u5f55\uff0c\u4e0d\u53c2\u4e0e\u51b3\u7b56"
+  },
+  "v01_revalidation": {
+    "EXP-0007_1.231x": {
+      "status": "REVISED",
+      "detail": "v0.1: v4 1.231\u00d7 faster than v1\uff085.828\u21924.736\u00b5s\uff09\uff0c\u4f46 v1 \u6d4b\u4e8e ~1350MHz\u3001v4 \u6d4b\u4e8e ~1905MHz\uff08DVFS \u6df7\u9891\uff09\u3002\u540c\u9891 1350MHz \u590d\u9a8c: streaming v4 6.967 vs v1 6.897\u00b5s\uff08v1 \u53cd\u800c\u5feb 1.1%\uff0cNEUTRAL\uff09\uff1bhot v4 6.11 vs v1 6.591\u00b5s\uff08v4 \u5feb 7.4%\uff0cREJECT v1\uff09\u30021.231\u00d7 \u4e0d\u53ef\u590d\u73b0\u3002"
+    },
+    "v01_best_v4_fp16_primary": {
+      "status": "CONFIRMED_WITH_CAVEATS",
+      "detail": "\u4e3b\u5f62\u72b6 fp16 \u4e0a v4 \u4e0e v2 \u7edf\u8ba1\u5e73\u5c40\uff08NEUTRAL\uff0cCI \u5747\u542b 1.0\uff09\uff0cv4 \u4fdd\u7559\u4e3a\u4e3b\u76ee\u6807 incumbent\uff1bv4 \u5bf9 v1 \u7684 hot \u4f18\u52bf 7.4% \u6210\u7acb\u3002"
+    },
+    "fp32_best": {
+      "status": "REVISED",
+      "detail": "fp32 \u4e3b\u5f62\u72b6 v2_reg 1.37\u00d7\uff08streaming\uff09/1.62\u00d7\uff08hot\uff09\u5feb\u4e8e v4\uff0c\u5747 KEEP\uff1bv0.1 \u672a\u533a\u5206 dtype \u8def\u5f84\u3002fp32 \u6700\u4f73 = v2_reg\u3002"
+    },
+    "h8192_fp16": {
+      "status": "REVISED",
+      "detail": "(128,8192) fp16 v2_reg 1.38\u00d7 \u5feb\u4e8e v4\uff08KEEP\uff09\uff1bv4 \u5728 H=8192 \u9000\u5316\uff08per=32 \u5bc4\u5b58\u5668\u538b\u529b\uff09\u3002"
+    },
+    "vs_baseline": {
+      "status": "CONFIRMED",
+      "detail": "\u5168\u90e8\u4f18\u5316\u53d8\u4f53\u5bf9 baseline \u5feb 1.7\u20131.9\u00d7\uff08fp16 \u4e3b\u5f62\u72b6\uff0cCI \u4e0d\u8de8 1.0\uff09\u3002"
+    }
+  },
+  "decision_summary": {
+    "fp16_primary_best": "v4_vec_reg\uff08v2 \u5e73\u5c40\uff0c\u4fdd\u7559 incumbent\uff09",
+    "fp32_best": "v2_reg",
+    "h8192_fp16_best": "v2_reg",
+    "rejected_at_primary_fp16": "v1_vec\uff08hot REJECT; streaming NEUTRAL \u4e14 v1 \u5fae\u5feb\uff09"
+  }
+}

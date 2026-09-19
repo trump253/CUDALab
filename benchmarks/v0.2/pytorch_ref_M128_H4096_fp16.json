@@ -1,0 +1,9 @@
+{
+  "available": true,
+  "api": "torch.nn.functional.rms_norm(input, normalized_shape, weight, eps)",
+  "eps": 1e-05,
+  "median_us": 66.202,
+  "min_us": 64.873,
+  "n_samples": 200,
+  "note": "PyTorch implementation context\uff08\u975e\u516c\u5e73 fused-kernel \u5bf9\u6bd4\uff09"
+}

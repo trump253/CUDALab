@@ -1,6 +1,6 @@
 {
   "suite": "negative-v0.2",
-  "generated": "2026-09-19T12:33:29+08:00",
+  "generated": "2026-09-19T12:44:57+08:00",
   "note": "非法输入必须在 kernel launch 前被明确异常拒绝；post_check_ok 验证拒绝未污染 CUDA 上下文。",
   "summary": {
     "n_total": 28,
