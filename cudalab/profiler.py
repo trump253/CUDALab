@@ -226,17 +226,24 @@ def profile_variant(variant: str, M: int = 128, H: int = 4096,
     summary["kernel_name"] = kernel_name
 
     def rate(metric: str):
-        """平均命中率；返回 (value, unit) 原样记录，不假设单位。"""
-        vals, units = [], set()
+        """平均命中率。ncu --csv 对 ratio 型指标输出三行：
+        <m>.max_rate（unit 空）/ <m>.pct（unit %）/ <m>.ratio（unit 空）。
+        优先取 .pct 行（百分比数值），缺失时回退 .ratio。"""
+        vals = []
+        unit = "%"
         for d in launches:
             for (m, u), v in d.items():
-                if m == metric:
+                if m == metric + ".pct" and u == "%":
                     vals.append(v)
-                    units.add(u)
+        if not vals:
+            unit = "ratio"
+            for d in launches:
+                for (m, u), v in d.items():
+                    if m == metric + ".ratio":
+                        vals.append(v)
         if not vals:
             return None
-        return {"value": round(sum(vals) / len(vals), 4),
-                "unit": sorted(units)[0] if units else None}
+        return {"value": round(sum(vals) / len(vals), 2), "unit": unit}
 
     summary["l1_hit_rate"] = rate("l1tex__t_sector_hit_rate")
     summary["l2_read_hit_rate"] = rate("lts__t_sector_op_read_hit_rate")
