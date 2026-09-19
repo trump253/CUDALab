@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-"""Run the CUDALab benchmark matrix for RMSNorm variants.
+"""对 RMSNorm 变体运行 CUDALab 基准矩阵。
 
-Examples:
+示例:
     $PYTHON scripts/benchmark_rmsnorm.py --variants baseline
     $PYTHON scripts/benchmark_rmsnorm.py --tag v01_final
 """
@@ -16,18 +16,18 @@ from cudalab.benchmark import bench_matrix, annotate_speedups, save_bench, BENCH
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--variants", default=None,
-                    help="comma-separated variants (default: all built)")
+                    help="逗号分隔的变体列表（默认: 已构建的全部）")
     ap.add_argument("--shapes", default=None,
-                    help="comma-separated 'MxH' list, e.g. 128x4096,1024x4096")
+                    help="逗号分隔的 'MxH' 列表，例如 128x4096,1024x4096")
     ap.add_argument("--dtype", default="float16")
-    ap.add_argument("--tag", default="matrix", help="output file tag")
+    ap.add_argument("--tag", default="matrix", help="输出文件标签")
     args = ap.parse_args()
 
     ext = get_ext()
     variants = (args.variants.split(",") if args.variants else ext.variants())
     for v in variants:
         if v not in ext.variants():
-            sys.exit(f"unknown variant {v!r}; available: {ext.variants()}")
+            sys.exit(f"未知变体 {v!r}; 可用: {ext.variants()}")
     shapes = BENCH_MATRIX
     if args.shapes:
         shapes = [tuple(int(x) for x in s.split("x")) for s in args.shapes.split(",")]
@@ -44,9 +44,9 @@ def main():
              f'{r["speedup_vs_cuda_baseline"]:.3f}'
              if r["speedup_vs_cuda_baseline"] else "-"]
             for r in recs]
-    print_table(["variant", "M", "H", "median_us", "p95_us", "min_us", "max_us",
-                 "eff_BW_GBs", "speedup_vs_baseline"], rows)
-    print(f"[bench] json -> {jp}\n[bench] csv  -> {cp}")
+    print_table(["变体", "M", "H", "中位_us", "p95_us", "最小_us", "最大_us",
+                 "有效带宽_GBs", "对baseline加速"], rows)
+    print(f"[基准] json -> {jp}\n[基准] csv  -> {cp}")
 
 
 def torch_dtype():

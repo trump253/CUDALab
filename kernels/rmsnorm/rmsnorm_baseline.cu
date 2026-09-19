@@ -1,13 +1,11 @@
-// CUDALab RMSNorm — baseline variant.
+// CUDALab RMSNorm — baseline 变体。
 //
-// Strategy: one CUDA block per row; all threads cooperatively reduce
-// sum(x^2) with FP32 accumulation (warp shuffle + one shared-memory
-// step), then a second pass recomputes each element as
-//   y_i = x_i * rsqrt(ss/H + eps) * w_i.
+// 策略: 每行一个 CUDA block；所有线程协作归约 sum(x^2)（FP32 累加，
+// warp shuffle + 一步共享内存），然后第二遍把每个元素重算为
+//   y_i = x_i * rsqrt(ss/H + eps) * w_i。
 //
-// Deliberately simple and readable: scalar (non-vectorized) loads,
-// fixed 256-thread blocks, no register residency across passes.
-// This is the reference point for all optimization experiments.
+// 刻意保持简单易读: 标量（非向量化）加载、固定 256 线程 block、
+// 两遍之间无寄存器驻留。这是所有优化实验的参考点。
 
 #include "rmsnorm_common.h"
 #include <ATen/cuda/CUDAContext.h>
@@ -30,25 +28,25 @@ __global__ void rmsnorm_baseline_kernel(const T* __restrict__ x,
     const T* __restrict__ xrow = x + (size_t)row * H;
     T* __restrict__ yrow = y + (size_t)row * H;
 
-    // ---- pass 1: sum of squares, FP32 accumulation ----
+    // ---- 第一遍: 平方和，FP32 累加 ----
     float ss = 0.f;
     for (int i = tid; i < H; i += nthreads) {
         float v = el_to_float(xrow[i]);
         ss += v * v;
     }
 
-    // intra-warp reduction
+    // warp 内归约
 #pragma unroll
     for (int offset = 16; offset > 0; offset >>= 1)
         ss += __shfl_down_sync(0xffffffffu, ss, offset);
 
     const int nwarp = (nthreads + 31) >> 5;
-    __shared__ float warp_sums[32];   // max 32 warps (block <= 1024)
+    __shared__ float warp_sums[32];   // 最多 32 个 warp（block <= 1024）
     __shared__ float s_inv_rms;
     if ((tid & 31) == 0) warp_sums[tid >> 5] = ss;
     __syncthreads();
 
-    // cross-warp reduction in warp 0
+    // warp 0 做跨 warp 归约
     if (tid < 32) {
         float v = (tid < nwarp) ? warp_sums[tid] : 0.f;
 #pragma unroll
@@ -59,7 +57,7 @@ __global__ void rmsnorm_baseline_kernel(const T* __restrict__ x,
     __syncthreads();
     const float inv_rms = s_inv_rms;
 
-    // ---- pass 2: normalize + scale by weight ----
+    // ---- 第二遍: 归一化 + 乘权重 ----
     for (int i = tid; i < H; i += nthreads) {
         float v = el_to_float(xrow[i]);
         float wv = el_to_float(w[i]);
@@ -91,7 +89,7 @@ void rmsnorm_baseline_fwd(const at::Tensor& x, const at::Tensor& w,
             launch<float>(x, w, out, eps);
             break;
         default:
-            TORCH_CHECK(false, "unsupported dtype for rmsnorm baseline");
+            TORCH_CHECK(false, "rmsnorm baseline 不支持该 dtype");
     }
 }
 

@@ -1,16 +1,16 @@
-// CUDALab RMSNorm — v1: vectorized loads/stores.
+// CUDALab RMSNorm — v1: 向量化加载/存储。
 //
-// Hypothesis (from baseline ncu profile): the baseline is memory-latency
-// bound (80% long_scoreboard stalls, DRAM only ~14%) and issues 2-byte
-// scalar loads (64B per warp instruction = 2 of 4 sectors). Loading/storing
-// 16 bytes per thread (8 fp16 via float4) halves the instruction count of
-// both passes and makes each warp load 512B (16 full sectors), improving
-// memory-level parallelism per issued instruction.
+// 假设（来自 baseline 的 ncu 剖析）: baseline 是访存延迟瓶颈
+// （80% long_scoreboard 停顿，DRAM 仅 ~14%），且发出 2 字节标量
+// 加载（每个 warp 指令 64B = 4 个 sector 中的 2 个）。每线程
+// 加载/存储 16 字节（float4 装 8 个 fp16）把两遍的指令数减半，
+// 并让每个 warp 加载 512B（16 个完整 sector），提高每条已发射
+// 指令的访存级并行度。
 //
-// Still two-pass (x re-read in pass 2), same 256-thread blocks, same
-// reduction. Only the access width changes, to isolate its effect.
+// 仍是两遍（第二遍重读 x）、同样 256 线程 block、同样的归约。
+// 只改访存宽度，以隔离其效果。
 //
-// Requires: H % 8 == 0 for fp16 (H % 4 == 0 for fp32).
+// 要求: fp16 需 H % 8 == 0（fp32 需 H % 4 == 0）。
 
 #include "rmsnorm_common.h"
 #include <ATen/cuda/CUDAContext.h>
@@ -22,7 +22,7 @@ namespace {
 
 constexpr int V1_BLOCK = 256;
 
-// vector helpers ----------------------------------------------------------
+// 向量辅助 --------------------------------------------------------------
 template <typename T> struct Vec;
 
 template <>
@@ -78,7 +78,7 @@ __global__ void rmsnorm_v1_kernel(const T* __restrict__ x,
     const V* __restrict__ wv = reinterpret_cast<const V*>(w);
     V* __restrict__ yv = reinterpret_cast<V*>(y + (size_t)row * Hv * VecT::N);
 
-    // pass 1: sum of squares (FP32), vectorized
+    // 第一遍: 平方和（FP32），向量化
     float ss = 0.f;
     for (int i = tid; i < Hv; i += nthreads) {
         float f[VecT::N];
@@ -104,11 +104,11 @@ __global__ void rmsnorm_v1_kernel(const T* __restrict__ x,
     __syncthreads();
     const float inv_rms = s_inv_rms;
 
-    // pass 2: normalize + weight, vectorized
+    // 第二遍: 归一化 + 乘权重，向量化
     for (int i = tid; i < Hv; i += nthreads) {
         float f[VecT::N];
         float wv_f[VecT::N];
-        VecT::sqsum_and_unpack(xv[i], f);      // reuse unpack (ignores sum)
+        VecT::sqsum_and_unpack(xv[i], f);      // 复用解包（忽略求和结果）
         VecT::sqsum_and_unpack(wv[i], wv_f);
 #pragma unroll
         for (int k = 0; k < VecT::N; k++)
@@ -123,7 +123,7 @@ void launch(const at::Tensor& x, const at::Tensor& w, at::Tensor& out,
     const int M = x.size(0);
     const int H = x.size(1);
     using VecT = Vec<T>;
-    TORCH_CHECK(H % VecT::N == 0, "v1 requires H % ", VecT::N, " == 0");
+    TORCH_CHECK(H % VecT::N == 0, "v1 要求 H % ", VecT::N, " == 0");
     const int Hv = H / VecT::N;
     cudaStream_t stream = at::cuda::getCurrentCUDAStream();
     rmsnorm_v1_kernel<T><<<dim3(M), V1_BLOCK, 0, stream>>>(
@@ -143,7 +143,7 @@ void rmsnorm_v1_fwd(const at::Tensor& x, const at::Tensor& w,
             launch<float>(x, w, out, eps);
             break;
         default:
-            TORCH_CHECK(false, "unsupported dtype for rmsnorm v1");
+            TORCH_CHECK(false, "rmsnorm v1 不支持该 dtype");
     }
 }
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-"""Run the CUDALab correctness suite for one or all RMSNorm variants.
+"""对单个（或全部）RMSNorm 变体运行 CUDALab 正确性套件。
 
-Examples:
+示例:
     $PYTHON scripts/test_rmsnorm.py --variant baseline
     $PYTHON scripts/test_rmsnorm.py
 """
@@ -16,10 +16,10 @@ import torch
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--variant", default=None, help="one variant (default: all)")
+    ap.add_argument("--variant", default=None, help="单个变体（默认: 全部）")
     ap.add_argument("--dtypes", default="float16,float32")
-    ap.add_argument("--no-edge", action="store_true", help="skip edge cases")
-    ap.add_argument("--out", default=None, help="explicit JSON output path")
+    ap.add_argument("--no-edge", action="store_true", help="跳过边界用例")
+    ap.add_argument("--out", default=None, help="显式指定 JSON 输出路径")
     args = ap.parse_args()
 
     ext = get_ext()
@@ -27,7 +27,7 @@ def main():
     dtypes = tuple(args.dtypes.split(","))
     for v in variants:
         if v not in ext.variants():
-            sys.exit(f"unknown variant {v!r}; available: {ext.variants()}")
+            sys.exit(f"未知变体 {v!r}; 可用: {ext.variants()}")
 
     from cudalab.correctness import run_suite, summarize, save_results
     for v in variants:
@@ -37,14 +37,14 @@ def main():
                  "PASS" if r.passed else "FAIL",
                  f"{r.max_abs_error:.2e}", f"{r.max_rel_error:.2e}"]
                 for r in results]
-        print_table(["variant", "shape", "dtype", "mode", "seed", "result",
+        print_table(["变体", "形状", "dtype", "模式", "种子", "结果",
                      "max_abs_err", "max_rel_err"], rows)
-        print(f"[{v}] {s['n_pass']}/{s['n_total']} pass, "
+        print(f"[{v}] 通过 {s['n_pass']}/{s['n_total']}, "
               f"max_abs={s['max_abs_error']:.2e} max_rel={s['max_rel_error']:.2e}")
         out = Path(args.out) if args.out else \
             ROOT / "experiments" / "rmsnorm" / "correctness" / f"{v}.json"
         p = save_results(results, out)
-        print(f"[{v}] results -> {p}")
+        print(f"[{v}] 结果 -> {p}")
     ok = True
     for v in variants:
         p = ROOT / "experiments" / "rmsnorm" / "correctness" / f"{v}.json"

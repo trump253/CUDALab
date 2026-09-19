@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-"""Profile one RMSNorm variant with ncu and save a structured summary.
+"""用 ncu 剖析单个 RMSNorm 变体，并保存结构化摘要。
 
-Example:
+示例:
     $PYTHON scripts/profile_rmsnorm.py --variant baseline --M 128 --H 4096
 """
 import argparse
@@ -19,9 +19,9 @@ def main():
     ap.add_argument("--H", type=int, default=4096)
     args = ap.parse_args()
 
-    ext = get_ext()  # build BEFORE profiling (ncu driver also builds itself)
+    ext = get_ext()  # 先构建再剖析（ncu 驱动程序自己也会构建）
     if args.variant not in ext.variants():
-        sys.exit(f"unknown variant {args.variant!r}; available: {ext.variants()}")
+        sys.exit(f"未知变体 {args.variant!r}; 可用: {ext.variants()}")
 
     s = profile_variant(args.variant, args.M, args.H)
     if "error" in s:

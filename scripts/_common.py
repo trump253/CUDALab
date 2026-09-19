@@ -1,4 +1,4 @@
-"""Shared bootstrap for CUDALab scripts."""
+"""CUDALab 脚本的共享引导代码。"""
 import os
 import sys
 from pathlib import Path

@@ -1,23 +1,19 @@
-// CUDALab RMSNorm — v4: vectorized + register-resident single pass.
+// CUDALab RMSNorm — v4: 向量化 + 寄存器驻留单遍。
 //
-// Combines the two validated directions:
-//   - v1 (KEEP): 16B vectorized accesses cut instruction count (EXP-0004,
-//     1.21x on primary target);
-//   - v2 (NEUTRAL): register-resident x removes the second global read,
-//     but v2 loaded with SCALAR 2B/4B accesses, which likely masked the
-//     benefit (EXP-0005: 0.989x, 50 regs).
+// 结合两个已验证的方向:
+//   - v1（KEEP）: 16B 向量化访存减少指令数（EXP-0004，主目标 1.21x）；
+//   - v2（NEUTRAL）: x 寄存器驻留消除第二次全局读取，但 v2 用的是
+//     标量 2B/4B 访问，可能掩盖了收益（EXP-0005: 0.989x，50 寄存器）。
 //
-// Hypothesis: a 16B-aligned vectorized initial load that keeps x in
-// registers gives both effects: minimum instruction count AND one global
-// read of x.
+// 假设: 用 16B 对齐的向量化初始加载把 x 装入寄存器，可同时获得
+// 两个效果: 最少指令数 + 只读一次 x。
 //
-// Memory layout: thread t owns the CONTIGUOUS slice [t*PER, (t+1)*PER) of
-// the row (slice-major, not strided), so 16B vector loads are naturally
-// aligned (PER is a multiple of 8 for fp16 / 4 for fp32) and a warp reads
-// a contiguous 512B span (perfectly coalesced).
+// 内存布局: 线程 t 拥有行内连续切片 [t*PER, (t+1)*PER)（切片主序，
+// 非跨步），因此 16B 向量加载天然对齐（fp16 时 PER 是 8 的倍数 /
+// fp32 时是 4 的倍数），一个 warp 读取连续 512B 跨度（完美合并访存）。
 //
-// Register budget: fp16 keeps x as __half2 (PER/2 regs); fp32 as float
-// (PER regs). PER = H/256 in {4,8,16,32}.
+// 寄存器预算: fp16 以 __half2 保存 x（PER/2 个寄存器）；fp32 以
+// float 保存（PER 个寄存器）。PER = H/256 ∈ {4,8,16,32}。
 
 #include "rmsnorm_common.h"
 #include <ATen/cuda/CUDAContext.h>
@@ -29,7 +25,7 @@ namespace {
 
 constexpr int V4_BLOCK = 256;
 
-// fp16 specialization ------------------------------------------------------
+// fp16 特化 --------------------------------------------------------------
 template <int PER>
 __global__ void rmsnorm_v4_half_kernel(const __half* __restrict__ x,
                                        const __half* __restrict__ w,
@@ -41,13 +37,13 @@ __global__ void rmsnorm_v4_half_kernel(const __half* __restrict__ x,
     const int nthreads = blockDim.x;
     const __half* __restrict__ xrow = x + (size_t)row * H;
     __half* __restrict__ yrow = y + (size_t)row * H;
-    const int base = tid * PER;   // first element owned by this thread
+    const int base = tid * PER;   // 本线程拥有的首个元素
 
     __half2 buf[PER / 2];
     float ss = 0.f;
 
     if (PER % 8 == 0) {
-        // 8 contiguous halves = one 16B float4
+        // 8 个连续 half = 一个 16B float4
         const float4* p = reinterpret_cast<const float4*>(xrow + base);
         const int nvec = PER / 8;
 #pragma unroll
@@ -62,7 +58,7 @@ __global__ void rmsnorm_v4_half_kernel(const __half* __restrict__ x,
             }
         }
     } else {
-        // PER == 4: two 4B half2 loads
+        // PER == 4: 两个 4B half2 加载
         const __half2* p = reinterpret_cast<const __half2*>(xrow + base);
 #pragma unroll
         for (int i = 0; i < PER / 2; i++) {
@@ -124,7 +120,7 @@ __global__ void rmsnorm_v4_half_kernel(const __half* __restrict__ x,
     }
 }
 
-// fp32 specialization -------------------------------------------------------
+// fp32 特化 ---------------------------------------------------------------
 template <int PER>
 __global__ void rmsnorm_v4_float_kernel(const float* __restrict__ x,
                                         const float* __restrict__ w,
@@ -202,7 +198,7 @@ void launch_half(const at::Tensor& x, const at::Tensor& w, at::Tensor& out,
         case 16: rmsnorm_v4_half_kernel<16><<<grid, block, 0, stream>>>(xp, wp, yp, H, (float)eps); return;
         case 32: rmsnorm_v4_half_kernel<32><<<grid, block, 0, stream>>>(xp, wp, yp, H, (float)eps); return;
         default:
-            TORCH_CHECK(false, "v4 requires H/256 in {4,8,16,32}; got H=", H);
+            TORCH_CHECK(false, "v4 要求 H/256 ∈ {4,8,16,32}；实际 H=", H);
     }
 }
 
@@ -222,7 +218,7 @@ void launch_float(const at::Tensor& x, const at::Tensor& w, at::Tensor& out,
         case 16: rmsnorm_v4_float_kernel<16><<<grid, block, 0, stream>>>(xp, wp, yp, H, (float)eps); return;
         case 32: rmsnorm_v4_float_kernel<32><<<grid, block, 0, stream>>>(xp, wp, yp, H, (float)eps); return;
         default:
-            TORCH_CHECK(false, "v4 requires H/256 in {4,8,16,32}; got H=", H);
+            TORCH_CHECK(false, "v4 要求 H/256 ∈ {4,8,16,32}；实际 H=", H);
     }
 }
 
@@ -237,7 +233,7 @@ void rmsnorm_v4_fwd(const at::Tensor& x, const at::Tensor& w,
             launch_float(x, w, out, eps);
             break;
         default:
-            TORCH_CHECK(false, "unsupported dtype for rmsnorm v4");
+            TORCH_CHECK(false, "rmsnorm v4 不支持该 dtype");
     }
 }
 

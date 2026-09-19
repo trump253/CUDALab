@@ -1,22 +1,19 @@
-"""CUDALab correctness harness.
+"""CUDALab 正确性校验框架。
 
-Principles:
-- The tolerance is FIXED for every variant and recorded in every result.
-  It must never be relaxed for a specific candidate to make it pass.
-- A kernel that FAILS correctness is never eligible to be a performance
-  winner (enforced in experiment.py).
-- Every result (pass AND fail) is reported and saved; failed cases are
-  never dropped.
+原则:
+- 容差对所有变体固定，并记录在每一份结果中。绝不为某个候选单独放宽
+  使其通过。
+- 正确性 FAIL 的内核永远没有资格成为性能胜者（在 experiment.py 中强制）。
+- 所有结果（通过和失败）都报告并保存；失败用例绝不删除。
 
-FP16 tolerance rationale (recorded, not negotiated):
-  - FP16 has ~3 decimal digits of precision (eps_rel = 2^-11 ~ 4.9e-4).
-  - y is rounded to fp16 once (round-to-nearest), so a single output
-    element may deviate by up to ~0.5 ulp ~ 2.4e-4 relative.
-  - x and w are exact (same input), ss is accumulated in FP32, so the
-    residual error budget is dominated by the final fp16 rounding plus
-    the fp32 reduction order (tiny).
-  - atol=2e-3, rtol=5e-3 covers observed max errors on N(0,1) inputs with
-    a comfortable margin, and was verified against measured results.
+FP16 容差的依据（已记录，不谈判）:
+  - FP16 约 3 位十进制精度（eps_rel = 2^-11 ~ 4.9e-4）。
+  - y 只做一次 fp16 舍入（就近舍入），单个输出元素最多偏差约
+    0.5 ulp ~ 2.4e-4（相对）。
+  - x 和 w 是精确的（同一输入），ss 以 FP32 累加，因此残余误差预算
+    由最终 fp16 舍入 + fp32 归约顺序（极小）主导。
+  - atol=2e-3、rtol=5e-3 对 N(0,1) 输入的实测最大误差留有充分余量，
+    并已对照实测结果验证。
 """
 from __future__ import annotations
 
@@ -32,15 +29,15 @@ from .reference import rmsnorm_ref, make_inputs, DEFAULT_EPS
 
 ROOT = Path(__file__).resolve().parent.parent
 
-# Fixed tolerance policy — identical for ALL variants.
+# 固定容差策略 —— 对所有变体完全一致。
 TOLERANCES = {
     "float16": {"atol": 2e-3, "rtol": 5e-3},
     "float32": {"atol": 1e-5, "rtol": 1e-4},
 }
-# guard for relative error to avoid amplifying noise near zero
+# 相对误差分母保护，避免在零附近放大噪声
 REL_EPS_GUARD = 1e-3
 
-# Standard shape matrix (M, H)
+# 标准形状矩阵 (M, H)
 SHAPE_MATRIX = [
     (1, 1024),
     (1, 2048),
@@ -54,7 +51,7 @@ SHAPE_MATRIX = [
     (1024, 1024),
     (1024, 4096),
 ]
-# Edge-case matrix: (M, H, mode, scale)
+# 边界用例矩阵: (M, H, mode, scale)
 EDGE_CASES = [
     (4, 4096, "zeros", 1.0),
     (4, 4096, "tiny", 1.0),
@@ -100,7 +97,7 @@ def check_one(variant: str, ext, x: torch.Tensor, w: torch.Tensor,
     has_nan = bool(torch.isnan(y).any().item())
     has_inf = bool(torch.isinf(y).any().item())
 
-    # allclose with the fixed recorded tolerance
+    # 用固定且已记录的容差做 allclose
     ok_close = bool(torch.allclose(y.float(), ref.float(),
                                    atol=tol["atol"], rtol=tol["rtol"]))
     ok = ok_close and not has_nan and not has_inf
@@ -124,7 +121,7 @@ def check_one(variant: str, ext, x: torch.Tensor, w: torch.Tensor,
 def run_suite(variant: str, ext, dtypes=("float16", "float32"),
               shapes: Optional[list] = None, edge: bool = True,
               seeds: tuple = SEEDS) -> list[CheckResult]:
-    """Full correctness suite for one variant."""
+    """单个变体的完整正确性套件。"""
     results: list[CheckResult] = []
     shapes = shapes if shapes is not None else SHAPE_MATRIX
     for dtype_name in dtypes:

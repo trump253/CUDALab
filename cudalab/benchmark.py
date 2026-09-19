@@ -1,36 +1,31 @@
-"""CUDALab benchmark harness.
+"""CUDALab 基准测试框架。
 
-Methodology (fixed for all variants — no per-candidate tuning of the
-measurement):
-- torch.cuda.Event timing with explicit synchronization; NEVER wall-clock
-  Python time on the GPU path.
-- Compilation must finish BEFORE any timing (callers: build first).
-- Fixed input tensors: the SAME x/w tensors (same values) are reused for
-  every variant of a given (shape, dtype). Inputs are generated once.
-- Timing method (v1 harness, "cuda-event-batched"):
-  a single-launch event measurement was found to add ~6us of launch
-  overhead and noise, which swamps 5-15us kernels (it even flipped a real
-  2.35x ncu kernel-time improvement into an apparent regression — see
-  EXP-0002 superseded record). Therefore each sample is a BATCH of
-  `batch` consecutive kernel launches between two cuda events, with a full
-  synchronize after each sample; sample time = elapsed / batch. Consecutive
-  launches on the same input are the realistic steady state for a
-  normalization op inside a model loop, and the method is identical for
-  every variant.
-- Per (variant, shape, dtype):
-    warmup launches (>=150) untimed,
-    then `iters` (>=100) timed samples of `batch` (>=32) launches each,
-    `rounds` (>=5) independent rounds (fresh warmup each round).
-- Primary metric: MEDIAN of all per-launch samples (across rounds).
-  Also report p95, min, max, and per-round medians (for the decision rule
-  that requires "most rounds consistently faster").
-- Effective DRAM bandwidth: (M*H*2 + H*2 + M*H*2) bytes / median time
-  (fp16). This is the memory traffic the kernel must move; reported as a
-  derived number, never fabricated.
+方法论（对所有变体固定 —— 绝不按候选微调测量方式）:
+- 使用 torch.cuda.Event 计时并显式同步；GPU 路径上绝不用墙钟
+  Python time。
+- 编译必须先于任何计时完成（调用方：先构建）。
+- 固定输入张量：给定（形状, dtype）的每个变体复用同一组 x/w 张量
+  （数值相同）。输入只生成一次。
+- 计时方法（v1 框架，"cuda-event-batched"）:
+  单发事件计时被发现会引入约 6us 的启动开销与噪声，淹没 5-15us
+  的内核（它甚至把一个真实的 2.35x ncu 内核时长改进翻转成了表面上的
+  回归 —— 见 EXP-0002 作废记录）。因此每个样本是 `batch` 次连续内核
+  启动（夹在两个 cuda 事件之间），每样本之后做一次完整同步；
+  样本时间 = 耗时 / batch。同一输入上的连续启动正是模型循环内归一化
+  算子的真实稳态，且该方法对所有变体完全一致。
+- 每个（变体, 形状, dtype）:
+    先 warmup 次不计时启动（>=150），
+    然后 `iters`（>=100）个计时样本，每样本 `batch`（>=32）次启动，
+    `rounds`（>=5）个独立轮次（每轮重新预热）。
+- 主指标：所有单发样本（跨轮次）的中位数（MEDIAN）。
+  同时报告 p95、min、max 和每轮中位数（供"多数轮次一致更快"的
+  判定规则使用）。
+- 有效 DRAM 带宽: (M*H*2 + H*2 + M*H*2) 字节 / 中位时间（fp16）。
+  这是内核必须搬动的内存流量；作为派生数字报告，绝不伪造。
 
-Fairness:
-- Same GPU (CUDA_VISIBLE_DEVICES=0), same inputs, same shape, same dtype.
-- GPU state (nvidia-smi) snapshot before/after each variant's suite run.
+公平性:
+- 同一 GPU（CUDA_VISIBLE_DEVICES=0）、同一输入、同一形状、同一 dtype。
+- 每个变体的套件运行前后各做一次 GPU 状态（nvidia-smi）快照。
 """
 from __future__ import annotations
 
@@ -46,13 +41,13 @@ import torch
 
 ROOT = Path(__file__).resolve().parent.parent
 
-WARMUP = 150      # untimed launches
-ITERS = 100       # timed samples per round
-BATCH = 32        # launches per timed sample
+WARMUP = 150      # 不计时的预热启动次数
+ITERS = 100       # 每轮计时样本数
+BATCH = 32        # 每计时样本的启动次数
 ROUNDS = 5
 HARNESS_VERSION = "cuda-event-batched-v1"
 
-# Benchmark matrix: (M, H). Primary optimization target: (128, 4096).
+# 基准矩阵: (M, H)。主要优化目标: (128, 4096)。
 BENCH_MATRIX = [
     (1, 4096),
     (16, 4096),
@@ -66,7 +61,7 @@ PRIMARY_TARGET = (128, 4096)
 
 
 def gpu_state() -> dict:
-    """Snapshot key GPU counters via nvidia-smi (best effort)."""
+    """经 nvidia-smi 快照关键 GPU 计数器（尽力而为）。"""
     try:
         out = subprocess.run(
             ["nvidia-smi",
@@ -86,17 +81,17 @@ def gpu_state() -> dict:
         d["name"] = fields[1]
         d["ts"] = time.time()
         return d
-    except Exception as e:  # best effort, never fatal
+    except Exception as e:  # 尽力而为，永不致命
         return {"error": str(e)}
 
 
 def _time_one_round(fn, warmup: int, iters: int, batch: int) -> list[float]:
-    """One independent round.
+    """一个独立轮次。
 
-    Untimed warmup, then `iters` samples; each sample = `batch` consecutive
-    launches between two cuda events, synchronized, time/batch = per-launch
-    time in us. Synchronizing per sample keeps every sample an independent,
-    fully-drained measurement (no unsynchronized timing anywhere).
+    先不计时的预热，然后 `iters` 个样本；每个样本 = 两个 cuda 事件之间
+    的 `batch` 次连续启动，同步后 time/batch = 单发时间（us）。
+    每样本同步保证每个样本都是独立、完全排空的测量（任何地方都没有
+    未同步的计时）。
     """
     for _ in range(warmup):
         fn()
@@ -110,7 +105,7 @@ def _time_one_round(fn, warmup: int, iters: int, batch: int) -> list[float]:
             fn()
         stop.record()
         torch.cuda.synchronize()
-        times.append(start.elapsed_time(stop) * 1e3 / batch)  # us per launch
+        times.append(start.elapsed_time(stop) * 1e3 / batch)  # 单发 us
     return times
 
 
@@ -118,7 +113,7 @@ def bench_variant(variant: str, ext, M: int, H: int,
                   dtype: torch.dtype = torch.float16,
                   warmup: int = WARMUP, iters: int = ITERS,
                   batch: int = BATCH, rounds: int = ROUNDS) -> dict:
-    """Benchmark one (variant, shape, dtype). Returns a full record."""
+    """基准测试单个（变体, 形状, dtype）。返回完整记录。"""
     dev = "cuda"
     g = torch.Generator(device=dev)
     g.manual_seed(1234)
@@ -130,8 +125,7 @@ def bench_variant(variant: str, ext, M: int, H: int,
     out = torch.empty_like(x)
 
     def fn():
-        # pre-allocated output: timed region = kernel launch only,
-        # no allocation, no copy.
+        # 预分配输出: 计时区域 = 仅内核启动，无分配、无拷贝。
         ext.forward_into(variant, x, w, out, 1e-5)
 
     state_before = gpu_state()
@@ -144,7 +138,7 @@ def bench_variant(variant: str, ext, M: int, H: int,
     state_after = gpu_state()
 
     n = M * H
-    bytes_moved = (n * 2) + (H * 2) + (n * 2)  # read x + read w + write y (fp16)
+    bytes_moved = (n * 2) + (H * 2) + (n * 2)  # 读 x + 读 w + 写 y（fp16）
     med_us = statistics.median(all_times)
     p95_us = float(sorted(all_times)[int(0.95 * len(all_times)) - 1])
 
@@ -181,7 +175,7 @@ def bench_matrix(variants: list[str], ext, shapes: list = BENCH_MATRIX,
 def annotate_speedups(recs: list[dict],
                       baseline: str = "baseline",
                       pytorch_ref_fn=None) -> list[dict]:
-    """Add speedup_vs_cuda_baseline / speedup_vs_pytorch_reference columns."""
+    """添加 speedup_vs_cuda_baseline / speedup_vs_pytorch_reference 列。"""
     by_shape = {}
     for r in recs:
         by_shape.setdefault((tuple(r["shape"]), r["dtype"]), {})[r["variant"]] = r

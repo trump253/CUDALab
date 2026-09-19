@@ -1,16 +1,15 @@
-"""CUDALab experiment tracking + acceptance rules.
+"""CUDALab 实验追踪 + 采纳规则。
 
-One optimization attempt = one experiment record (JSON), including failed
-ones. Failed experiments are first-class data and are never dropped.
+一次优化尝试 = 一条实验记录（JSON），失败的也不例外。失败的实验是
+一等数据，绝不丢弃。
 
-Acceptance rules (v0.1, fixed):
-- correctness FAIL            -> REJECT  (unconditional)
-- else compare candidate vs CURRENT BEST at the primary target shape:
-    median speedup >= 1.05 AND at least 3 of 5 rounds faster  -> KEEP
-    median speedup <= 0.95 AND at least 3 of 5 rounds slower  -> REJECT
-    otherwise (within +/-5%, or mixed rounds)                  -> NEUTRAL
-- The full benchmark matrix of the candidate is always stored; decisions
-  are explained from the primary target, matrix evidence is kept.
+采纳规则（v0.1，固定）:
+- 正确性 FAIL            -> REJECT（无条件）
+- 否则在主目标形状上比较候选与当前最佳:
+    中位数加速 >= 1.05 且 5 轮中至少 3 轮更快  -> KEEP
+    中位数加速 <= 0.95 且 5 轮中至少 3 轮更慢  -> REJECT
+    其余（±5% 以内、或轮次结果混杂）          -> NEUTRAL
+- 候选的完整基准矩阵始终保存；判定由主目标形状解释，矩阵证据保留。
 """
 from __future__ import annotations
 
@@ -26,7 +25,7 @@ KEEP, REJECT, NEUTRAL = "KEEP", "REJECT", "NEUTRAL"
 
 KEEP_THRESHOLD = 0.05      # >= +5%
 REJECT_THRESHOLD = -0.05   # <= -5%
-MAJORITY_ROUNDS = 3        # of ROUNDS (5)
+MAJORITY_ROUNDS = 3        # 相对 ROUNDS（5）
 
 
 def _next_id() -> str:
@@ -65,11 +64,11 @@ def evaluate(candidate_bench: list[dict],
              correctness_summary: dict,
              primary_shape: tuple = (128, 4096),
              dtype: str = "float16") -> dict:
-    """Apply the fixed acceptance rules.
+    """应用固定的采纳规则。
 
-    candidate_bench must contain records for BOTH the current-best variant
-    and the candidate (same shapes/dtype, same harness settings).
-    Returns {"decision": ..., "detail": {...}}.
+    candidate_bench 必须同时包含当前最佳变体和候选的记录
+    （相同形状/dtype、相同框架参数）。
+    返回 {"decision": ..., "detail": {...}}。
     """
     detail: dict = {
         "primary_shape": list(primary_shape),

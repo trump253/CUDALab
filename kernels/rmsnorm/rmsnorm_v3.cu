@@ -1,16 +1,14 @@
-// CUDALab RMSNorm — v3: wider blocks (512 threads), scalar accesses.
+// CUDALab RMSNorm — v3: 更宽的 block（512 线程），标量访问。
 //
-// Hypothesis (to be falsified): the baseline's 256-thread blocks yield only
-// ~8 warps per SM-block; doubling the block size to 512 threads doubles the
-// resident warps per block, which should hide global-memory latency better
-// *within* the reduction passes. No other change (still scalar loads,
-// two-pass) so the effect of block size is isolated.
+// 假设（待证伪）: baseline 的 256 线程 block 每个 SM-block 只有 ~8 个
+// warp；把 block 加大到 512 线程可使驻留 warp 翻倍，从而在归约遍内
+// 更好地隐藏全局访存延迟。其他一切不变（仍是标量加载、两遍），
+// 以隔离块大小的效果。
 //
-// Expected risk: the block-wide reduction barrier now spans 16 warps, and
-// total grid parallelism (M blocks) is unchanged — a genuine test of the
-// REJECT/NEUTRAL decision branch.
+// 预期风险: block 级归约屏障现在跨越 16 个 warp，且总网格并行度
+// （M 个 block）不变 —— 对 REJECT/NEUTRAL 判定分支的一次真实检验。
 //
-// Requires H % 512 == 0.
+// 要求 H % 512 == 0。
 
 #include "rmsnorm_common.h"
 #include <ATen/cuda/CUDAContext.h>
@@ -70,7 +68,7 @@ void launch(const at::Tensor& x, const at::Tensor& w, at::Tensor& out,
             double eps) {
     const int M = x.size(0);
     const int H = x.size(1);
-    TORCH_CHECK(H % V3_BLOCK == 0, "v3 requires H % 512 == 0; got H=", H);
+    TORCH_CHECK(H % V3_BLOCK == 0, "v3 要求 H % 512 == 0；实际 H=", H);
     cudaStream_t stream = at::cuda::getCurrentCUDAStream();
     rmsnorm_v3_kernel<T><<<dim3(M), V3_BLOCK, 0, stream>>>(
         reinterpret_cast<const T*>(x.data_ptr()),
@@ -89,7 +87,7 @@ void rmsnorm_v3_fwd(const at::Tensor& x, const at::Tensor& w,
             launch<float>(x, w, out, eps);
             break;
         default:
-            TORCH_CHECK(false, "unsupported dtype for rmsnorm v3");
+            TORCH_CHECK(false, "rmsnorm v3 不支持该 dtype");
     }
 }
 

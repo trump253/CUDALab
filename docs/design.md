@@ -1,95 +1,78 @@
-# CUDALab — Core Design
+# CUDALab — 核心设计
 
-## The central principle
+## 核心原则
 
-**The LLM / agent is the optimizer; it is NOT the objective evaluator.**
+**LLM / 智能体是优化者，但它不是客观评估者。**
 
 ```
-        hypothesis                code change
-  ┌──────────────┐   ──────────►  ┌──────────────┐
-  │              │                │              │
-  │  Agent/LLM   │                │  CUDA source │
-  │  (proposes)  │   ◄──────────  │  (modified)  │
-  │              │  evidence      └──────┬───────┘
-  └──────▲───────┘                       │ compile
-         │                               ▼
-         │                     ┌──────────────────┐
-         │                     │  Objective layer │
-         │   structured        │  (no LLM inside) │
-         └─────────────────────┤                  │
-               results         │ 1. correctness   │  pass/fail + error metrics
-                               │ 2. benchmark     │  median/p95 per round, matrix
-                               │ 3. ncu profiler  │  stalls, DRAM/SM %, occupancy
-                               └──────────────────┘
+               假设                      代码修改
+          ┌──────────────────►  ┌──────────────────┐
+          │                     │                  │
+   ┌──────┴─────────┐           │    CUDA 源码      │
+   │   Agent/LLM    │   证据     │    （已修改）     │
+   │   （提出假设）  │ ◄──────────└────────┬─────────┘
+   └──────▲─────────┘                     │ 编译
+          │                                ▼
+          │                     ┌─────────────────────┐
+          │   结构化结果         │    客观层（无 LLM）   │
+          └─────────────────────┤ 1. 正确性校验        │ pass/fail + 误差指标
+                                │ 2. 基准测试          │ 每轮 median/p95、完整矩阵
+                                │ 3. ncu 剖析          │ stalls、DRAM/SM %、占用率
+                                └─────────────────────┘
 ```
 
-The agent's job: read the structured evidence, form a **hypothesis**
-("the kernel is long-scoreboard bound, so vectorizing loads should reduce
-stall cycles"), write the kernel change, and record the experiment.
+智能体的工作：阅读结构化证据，形成**假设**（"内核受 long_scoreboard
+限制，因此向量化加载应减少停顿周期"），编写内核改动，记录实验。
 
-The objective layer's job: produce numbers the agent cannot argue with.
-It has no natural-language output, no opinion, no "rounding up" of weak
-results, and no access to the hypothesis.
+客观层的工作：产出智能体无法辩驳的数字。它没有自然语言输出、没有观点、
+不会把弱结果"四舍五入"粉饰，也接触不到假设。
 
-## Why this is more reliable than "let the LLM look at CUDA code and guess"
+## 为什么这比"让 LLM 看着 CUDA 代码猜"更可靠
 
-1. **Honesty of the feedback channel.** An LLM judging its own kernel
-   change is a self-grading exam: it will describe a 0.99x result as a
-   "modest improvement" and skip the shapes where it lost. A benchmark
-   harness that emits `median_us`, per-round medians, and the full shape
-   matrix cannot flatter. The acceptance rule (KEEP requires >=5% AND a
-   round majority) is applied by code, not by interpretation.
+1. **反馈通道的诚实性。** LLM 评判自己的内核改动是自批自改的考试：
+   它会把 0.99x 的结果描述成"温和改进"，并跳过它输掉的形状。而输出
+   `median_us`、每轮中位数和完整形状矩阵的基准框架不会阿谀奉承。
+   采纳规则（KEEP 要求 ≥5% 且轮次过半）由代码执行，不靠解读。
 
-2. **Failure is data, not embarrassment.** In this project the first
-   timing harness (single-launch cuda events) *falsely rejected a real
-   2.35x kernel-time improvement* (EXP-0002, superseded). Only because the
-   profiler (ncu) was an independent objective instrument did the
-   discrepancy surface, the harness get fixed, and every variant get
-   re-measured under the corrected method. A pure "LLM guesses" workflow
-   has no second instrument to contradict the first number.
+2. **失败是数据，不是尴尬。** 本项目的第一版计时框架（单发 cuda 事件）
+   **误拒了一个真实存在 2.35x 内核时长改进的变体**（EXP-0002，已作废）。
+   正是因为剖析器（ncu）是独立的客观仪器，矛盾才暴露出来，框架才得以
+   修复，所有变体才得以在修正后的方法下重测。纯"LLM 猜"的流程没有
+   第二件仪器去反驳第一个数字。
 
-3. **Reproducibility of every decision.** Each experiment JSON stores:
-   the hypothesis, the exact source changes, the correctness summary, the
-   full benchmark matrix (parent and candidate, same run), the profile
-   observation, the decision, and the decision rule that fired. Any human
-   (or later agent) can re-derive the KEEP/REJECT/NEUTRAL verdict from the
-   stored numbers alone.
+3. **每个决策都可复现。** 每份实验 JSON 保存：假设、确切的源码改动、
+   正确性摘要、完整基准矩阵（父变体与候选，同一次运行）、剖析观察、
+   判定、以及触发的判定规则。任何人（或后来的智能体）都可以仅凭存档
+   数字重新推导出 KEEP/REJECT/NEUTRAL 结论。
 
-4. **Scope discipline.** Because the objective layer is fixed (shapes,
-   dtypes, tolerances, rounds, target shape), the agent cannot quietly
-   narrow the test to where it wins. The full matrix is always saved and
-   always reported — including the shapes where the current best loses
-   (e.g. v4 vs v1 at M=128/H=8192).
+4. **范围纪律。** 客观层是固定的（形状、dtype、容差、轮次、目标形状），
+   智能体无法悄悄把测试收窄到它获胜的地方。完整矩阵永远保存、永远
+   报告 —— 包括当前最佳输掉的形状（如 M=128/H=8192 上 v4 vs v1）。
 
-5. **The agent still does what LLMs are good at.** Hypothesis generation
-   from profiler evidence, writing the kernel, diagnosing compile/runtime
-   errors (alignment faults, macro/template errors), and interpreting
-   cross-instrument discrepancies (cold-L2 ncu vs warm-L2 benchmark
-   rankings) are exactly the open-ended work where structured automation
-   alone fails.
+5. **智能体仍做 LLM 擅长的事。** 从剖析证据中生成假设、编写内核、
+   诊断编译/运行时错误（对齐错误、宏/模板错误）、以及解读跨仪器
+   矛盾（冷 L2 的 ncu vs 热 L2 的基准排序），正是纯结构化自动化会
+   失败的开放性工作。
 
-## Concretization in v0.1
+## v0.1 中的具体落实
 
-| Concern            | Owner                              | Mechanism |
-|--------------------|------------------------------------|-----------|
-| Hypothesis         | Agent                              | reads profile JSON + bench matrix |
-| Kernel code        | Agent                              | new `kernels/rmsnorm/rmsnorm_*.cu`, self-registering |
-| Build determinism  | Objective                          | `cudalab/build.py` content-hash build cache |
-| Correctness        | Objective                          | `cudalab/correctness.py`, fixed tolerances |
-| Timing             | Objective                          | `cudalab/benchmark.py`, batched cuda events |
-| GPU analysis       | Objective                          | `cudalab/profiler.py` (ncu --csv -> JSON) |
-| Decision           | Objective (rule), Agent (invocation) | `cudalab/experiment.py` |
-| Record             | Objective                          | `experiments/rmsnorm/EXP-*.json`, all kept |
+| 关注点       | 负责方                          | 机制 |
+|--------------|--------------------------------|------|
+| 假设         | 智能体                         | 阅读剖析 JSON + 基准矩阵 |
+| 内核代码     | 智能体                         | 新增 `kernels/rmsnorm/rmsnorm_*.cu`，自注册 |
+| 构建确定性   | 客观层                         | `cudalab/build.py` 内容哈希构建缓存 |
+| 正确性       | 客观层                         | `cudalab/correctness.py`，固定容差 |
+| 计时         | 客观层                         | `cudalab/benchmark.py`，批量 cuda 事件 |
+| GPU 分析     | 客观层                         | `cudalab/profiler.py`（ncu --csv → JSON） |
+| 判定         | 客观层（规则）、智能体（调用） | `cudalab/experiment.py` |
+| 记录         | 客观层                         | `experiments/rmsnorm/EXP-*.json`，全部保留 |
 
-## Known tensions (documented, not hidden)
+## 已知张力（如实记录，不隐藏）
 
-- **Warm vs cold L2:** ncu profiles with cold L2 (its default cache
-  control), while the decision benchmark measures the steady state of
-  back-to-back launches (L2-warm). At this data size (1MB x at 128x4096
-  fits in the 5.5MB L2) the two can rank close variants differently
-  (v1 vs v4). The decision uses the steady-state harness because it
-  matches deployment; both numbers are stored.
-- **Run-to-run variance** at ~5us kernels is ~±10% (GPU clocks are not
-  lockable in this container). KEEP margins in this project (1.21-1.39x)
-  are far outside that band; a NEUTRAL call (0.989x) could in principle
-  flip across runs — a real limitation, noted per-record.
+- **热 L2 vs 冷 L2：** ncu 默认缓存控制下以冷 L2 剖析，而判定基准测量
+  的是背靠背连续启动的稳态（L2 热）。在本项目数据规模下（128x4096 的
+  x 只有 1MB，装得进 5.5MB L2），两者对接近的变体可能给出不同排序
+  （v1 vs v4）。判定采用稳态框架，因为它贴近实际部署；两套数字都存档。
+- **逐次运行方差**：~5us 的内核约 ±10%（本容器内 GPU 时钟无法锁定）。
+  本项目 KEEP 的余量（1.21-1.39x）远超该区间；NEUTRAL 判定（0.989x）
+  原则上可能跨运行翻转 —— 这是真实局限，按记录逐条注明。

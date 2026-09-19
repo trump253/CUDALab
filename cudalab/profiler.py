@@ -1,19 +1,18 @@
-"""CUDALab GPU profiler integration (Nsight Compute 2022.3, sm_75).
+"""CUDALab GPU 剖析器集成（Nsight Compute 2022.3，sm_75）。
 
-Runs `ncu --csv` over a tiny profile-only driver and converts the report
-into a structured JSON summary. Null fields when a metric is unavailable —
-never fabricated numbers. Raw ncu output (stdout+stderr) is always kept
-under profiles/rmsnorm/raw/ for audit.
+在小型专用剖析驱动程序上运行 `ncu --csv`，并把报告转换为结构化
+JSON 摘要。指标取不到时字段为 null —— 绝不伪造数字。ncu 原始输出
+（stdout+stderr）始终保留在 profiles/rmsnorm/raw/ 下供审计。
 
-Metric names verified via `ncu --query-metrics` on this GPU/ncu version.
+指标名已在本 GPU / 本 ncu 版本上用 `ncu --query-metrics` 核实。
 
-Interpretation notes (sm_75, NCU 2022.3):
-- `gpu__time_duration.sum` is reported in **nsecond** by --csv; converted
-  to microseconds here.
-- stall reasons use `smsp__average_warps_issue_stalled_<r>_per_issue_active.ratio`
-  = stalled warp-cycles per issue-active cycle (unit `inst`). The derived
-  `.pct` field for these metrics is not meaningful (>100%), so percentages
-  are computed here as share of the sum of all stall reasons.
+解读说明（sm_75，NCU 2022.3）:
+- `gpu__time_duration.sum` 在 --csv 中报告的单位是 **nsecond**；此处
+  换算为微秒。
+- 停顿原因使用 `smsp__average_warps_issue_stalled_<r>_per_issue_active.ratio`
+  = 每 issue-active 周期的停顿 warp 周期数（单位 `inst`）。这些指标的
+  派生 `.pct` 字段无意义（>100%），因此这里的百分比按"占全部停顿
+  原因之和的份额"计算。
 """
 from __future__ import annotations
 
@@ -29,10 +28,10 @@ ROOT = Path(__file__).resolve().parent.parent
 PROF_DIR = ROOT / "profiles" / "rmsnorm"
 
 NCU = "/usr/local/bin/ncu"
-# ncu in this container cannot exec a symlinked interpreter; use the real binary.
+# 本容器内 ncu 无法 exec 符号链接的解释器；使用真实二进制。
 PYTHON_REAL = "/root/miniconda3/envs/pytorch/bin/python3.10"
 
-# Verified-available metrics (NCU 2022.3, sm_75).
+# 已核实可用的指标（NCU 2022.3，sm_75）。
 METRICS = [
     "gpu__time_duration.sum",
     "dram__throughput.avg.pct_of_peak_sustained_elapsed",
@@ -75,7 +74,7 @@ g = torch.Generator(device="cuda"); g.manual_seed(1234)
 x = torch.randn({M}, {H}, generator=g, dtype=torch.float32, device="cuda").half().contiguous()
 w = (torch.randn({H}, generator=g, dtype=torch.float32, device="cuda") * 0.5 + 1.0).half().contiguous()
 out = torch.empty_like(x)
-# 2 untimed warmup launches (ncu --launch-skip 2), then 4 profiled
+# 2 次不计时的预热启动（ncu --launch-skip 2），之后 4 次被剖析
 for _ in range(6):
     ext.forward_into("{variant}", x, w, out, 1e-5)
 torch.cuda.synchronize()
@@ -84,8 +83,8 @@ print("profile driver done")
 
 
 def _parse_csv_launches(text: str) -> tuple[list[dict], str | None]:
-    """Parse ncu --csv output. Returns (list of per-launch metric dicts, kernel name)."""
-    # strip non-CSV progress lines before the header
+    """解析 ncu --csv 输出。返回（每次启动的指标 dict 列表, 内核名）。"""
+    # 去掉表头之前的非 CSV 进度行
     lines = text.splitlines()
     start = 0
     for i, ln in enumerate(lines):
@@ -129,7 +128,7 @@ def _avg(launches: list[dict], metric: str, unit: str = None):
 def profile_variant(variant: str, M: int = 128, H: int = 4096,
                     out_path: Path | None = None, ncu: str = NCU,
                     launch_skip: int = 2, launch_count: int = 4) -> dict:
-    """Profile one variant at one shape; returns (and saves) the summary."""
+    """剖析单个变体在单个形状上的表现；返回（并保存）摘要。"""
     PROF_DIR.mkdir(parents=True, exist_ok=True)
     raw_dir = PROF_DIR / "raw"
     raw_dir.mkdir(exist_ok=True)
@@ -152,7 +151,7 @@ def profile_variant(variant: str, M: int = 128, H: int = 4096,
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=900, env=env)
     except FileNotFoundError:
-        raise RuntimeError(f"ncu not found at {ncu}")
+        raise RuntimeError(f"在 {ncu} 找不到 ncu")
     raw_txt.write_text("$ ncu cmd\n" + " ".join(cmd) + "\n\n=== stdout ===\n"
                        + proc.stdout + "\n=== stderr ===\n" + proc.stderr)
 
@@ -205,7 +204,7 @@ def profile_variant(variant: str, M: int = 128, H: int = 4096,
     if sm_s is not None or sm_d is not None:
         summary["shared_memory_bytes"] = int((sm_s or 0) + (sm_d or 0))
 
-    # stall reasons: .ratio = stalled warp-cycles per issue-active cycle
+    # 停顿原因: .ratio = 每 issue-active 周期的停顿 warp 周期数
     stalls = {}
     for m in METRICS:
         if m.startswith(STALL_PREFIX) and m.endswith(STALL_SUFFIX):
