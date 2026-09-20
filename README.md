@@ -18,8 +18,9 @@ v0.4 回答两个问题：**(1) evaluator 能否从 v2.2 升级到 v2.3**（对�
 guard + raw/filtered 双轨 + filter-sensitivity，修复 v0.3.1 登记的
 不对称 guard 已知局限）；**(2) 闭环能否迁移到第三个算子 RoPE**。
 分支 `v0.4-rope`（基线 main = v0.3.1 = 86bd871），**不 merge 回
-main、不开始 v0.5**（等待外部 review）。
-最终报告：`docs/report_v0.4_result.md`（发布时）。
+main、不开始 v0.5**（已 push，等待外部 review）。
+最终报告：`docs/report_v0.4_result.md`（定稿，含独立 review 与 Lead
+最终审计 §17）。
 
 **CUDALab Operators：RMSNorm / Softmax / RoPE**（interleaved RoPE：
 a=x[2i], b=x[2i+1], c=cos[pos,i], s=sin[pos,i]；y[2i]=a*c−b*s，
@@ -35,7 +36,7 @@ v0.4 交付：
   |log(filtered/raw)|>log(1.10) → 敏感；KEEP/REJECT + 敏感 →
   `apply_filter_gate` 降级 UNSTABLE，记录 original_decision）。guard
   逻辑抽为纯 CPU 函数（stats.apply_spike_guard/block_stats/crossblock_flag），
-  tests/test_evaluator_v23_cpu.py 28/28。
+  tests/test_evaluator_v23_cpu.py 29/29（review 后 +1：raw 侧聚合约定钉死）。
 - **v2.3 回归硬门 PASS**（RoPE 之前，`benchmarks/v2.3_regression/`）：
   Softmax baseline vs vec4 streaming **1.6745** [1.6727,1.6793] 9/9
   （v2.2 参考 1.6772/1.6890 精确复现，raw=filtered，rejected 0/0）；
@@ -46,7 +47,10 @@ v0.4 交付：
   主目标 (1024,128)；9 形状矩阵 (1,64)…(4096,128)；FP16 主 + FP32，
   禁 BF16；sm_75 / CUDA 11.8）。baseline 正确性 384/384（finiteness +
   double-rounding 算术界 K=2 vs fp64 精确旋转 + norm 保持；与 torch
-  参考 allclose 报告不门控）+ negative 30/31（1 例预期 PASS 对照）。
+  参考 allclose 报告不门控；review 后新增独立表值核对门：表 vs
+  θ(pos,i)=pos·10000^(−2i/D) 的 fp64 独立求值全网格核对 + 固定误差界，
+  5 变体共享、折叠进 all_pass）+ negative 33/34 执行、all_pass=true
+  （34 例 = 31 基础 + 3 per-variant 整除性；2 预期 PASS 对照 + 1 跳过）。
 - **同步验证修复（v0.4 最重要的工程发现之一）**：首跑 baseline
   28.8/29.8 µs 被定位为验证路径缺陷——positions 值域检查（0≤p<L）
   的**同步** D2H 拷贝逐 launch 强制流同步（~25–30 µs）。修复：
@@ -63,7 +67,7 @@ v0.4 交付：
   | ROPE-0001 | `rope_v1_2pair` | long_sb 69% → 1 线程→2 pairs（MLP 杠杆） | NEUTRAL（1.0000 [0.9849,1.0160]）；NCU 单 launch −7.6% 但稳态流内无效 |
   | ROPE-0002 | `rope_v2_4pair` | MLP 到 4 pairs（D%8==0） | NEUTRAL（1.0010 [0.9331,1.0211]）；NCU +25%，波坍缩开始 |
   | ROPE-0003 | `rope_v3_half2` | 发射侧非瓶颈 → 指令数削减控制（fp16 `__half2` 打包） | NEUTRAL（0.9974 [0.9888,1.0025]）—— 成功的阴性对照 |
-  | ROPE-0004 | `rope_v4_8pair` | MLP 边界（D%16==0） | NEUTRAL（0.9922 [0.9861,1.0055]，rejected fast=39）；NCU +104%，波坍缩灾难区 |
+  | ROPE-0004 | `rope_v4_8pair` | MLP 边界（D%16==0） | NEUTRAL（0.9922 [0.9861,1.0055]，rejected fast=39 = r1 锚定偏差计数，见报告 §9）；NCU +104%，波坍缩灾难区 |
 
   结论：baseline 在 (1024,128) 已贴近稳态 launch 发射下限（~6.4 µs
   流内 vs ~4.0 µs NCU 单 launch）；MLP 甜区 1–2 pairs/thread；
@@ -74,8 +78,11 @@ v0.4 交付：
   ≥5% 优势，NEUTRAL 是正确决策）。
 - **全矩阵**：36 格（9 形状 × 2 dtype × hot/streaming）× 5 变体
   全部保留（`benchmarks/rope/rope_v04_matrix_*` + `rope_v04_matrix_shape_winners.json`）。
-  质量：31/36 格 9/9 valid、5 格 7–8/9（spike/cross-block 拒轮透明记录，
-  全部 ≥7 推荐值）；**0 格 filter-sensitive**（raw 与 filtered 结论一致）。
+  质量：31/36 格 9/9 valid、4 格 8/9、1 格 7/9（spike/cross-block 拒轮透明
+  记录，全部 ≥7 推荐值）；fast cross-block flag 共 11 个（2 个 M1_H64
+  streaming 格 3 轮，整轮作废 → 零 variant 偏置，报告 §11）；
+  **0 格 filter-sensitive**（raw 与 filtered 结论一致；raw 侧聚合约定
+  review 后与 filtered 侧对齐为 per-round 比值中位数）。
   **无一格存在 policy 层面的唯一胜出者**：36 格 winner/runner-up 比值
   0.994–1.033，全部 <1.05 KEEP 线（per-cell winner 分布 baseline 16 /
   v1_2pair 15 / v2_4pair 3 / v3_half2 2 / v4_8pair 0 —— 矩阵 winner 仅
@@ -85,8 +92,11 @@ v0.4 交付：
   kernel）仅作 implementation context（主目标 fp16 262.1 µs / fp32
   180.3 µs，`benchmarks/rope/pytorch_ref_M1024_H128.json`），不产生
   "X× faster than PyTorch" headline。
-- 独立 review：3 个 subagent（CUDA Correctness / Benchmark Methodology /
-  RoPE Math）+ Lead 最终审计（发布时）。
+- 独立 review：3 个 subagent（CUDA Correctness = PASS W/CAVEATS /
+  Benchmark Methodology = PASS / RoPE Math = PASS W/CAVEATS）+ Lead
+  最终审计，全部交付并处置（kernel 头注释 load 计数、v3 位级声明、
+  独立表值核对门、negative per-variant 整除性、raw 侧聚合约定；
+  正确性/negative 记录重录）。详见 `docs/report_v0.4_result.md` §17。
 
 ## v0.3 + v0.3.1 合并修复（Evaluator Generalization + Softmax 自主优化，历史保留）
 
@@ -423,7 +433,7 @@ harness 位于 `cudalab/evaluator/bench.py`（`cudalab/bench_v2.py` 为兼容 sh
 | ROPE-0001 | `rope_v1_2pair` | NEUTRAL（1.0000 [0.9849,1.0160]，4/9） | 1 线程→2 pairs（grid 减半、8 loads 提前，MLP 杠杆）；NCU 单 launch **−7.6%**（3.696 vs 4.000 µs）但稳态流内无效——**kernel 时长不是瓶颈，launch 发射速率才是**（NCU 诊断 vs paired 决策分工的实例） |
 | ROPE-0002 | `rope_v2_4pair` | NEUTRAL（1.0010 [0.9331,1.0211]，5/9） | 4 pairs/thread（D%8==0）；NCU **+25%**（5.008 µs，occupancy 21.5%）——波坍缩开始 |
 | ROPE-0003 | `rope_v3_half2` | NEUTRAL（0.9974 [0.9888,1.0025]，2/9） | fp16 `__half2` 打包 load/store + FP32 旋转（指令数削减控制，数学与 baseline 位级一致）；**成功的阴性对照**——发射侧非瓶颈的预测被证实，验证评估器拒绝灵敏度 |
-| ROPE-0004 | `rope_v4_8pair` | NEUTRAL（0.9922 [0.9861,1.0055]，3/9；rejected fast=39） | 8 pairs/thread（D%16==0）；NCU **+104%**（8.176 µs，occupancy 11.9%）——波坍缩灾难区；rejected fast=39 证明 v2.3 快侧 spike 防护在真实数据上工作 |
+| ROPE-0004 | `rope_v4_8pair` | NEUTRAL（0.9922 [0.9861,1.0055]，3/9；rejected fast=39） | 8 pairs/thread（D%16==0）；NCU **+104%**（8.176 µs，occupancy 11.9%）——波坍缩灾难区；rejected fast=39 = r1 锚定偏差计数（环境恢复后合法样本被拒，pair 判定稳健，报告 §9）；v2.3 快侧 guard 的真实行为展示 = 矩阵 11 个 cross-block flag（§11） |
 
 四个候选 384/384 正确性全部通过。**全部 NEUTRAL 是 PASS 结局**（"不要
 追求 RoPE 一定优化成功"）：baseline 在 (1024,128) 已贴近稳态 launch 发射
@@ -512,7 +522,7 @@ cudalab/
   softmax_correctness.py / softmax_negative.py   Softmax 正确性(72 例)/负例(15 例)套件
   rope_correctness.py   RoPE 正确性(384 例：finiteness + double-rounding 算术界
                         K=2 vs fp64 精确旋转 + norm 保持；allclose 报告不门控)
-  rope_negative.py      RoPE 负例(31 例，launch 前 TORCH_CHECK + 启动后检查)
+  rope_negative.py      RoPE 负例(34 例，launch 前 TORCH_CHECK + 启动后检查)
   dispatch.py           RMSNorm 形状/dtype 分发表（v0.2.1 证据政策，v0.4 未改）
   benchmark.py          v0.1 批量 cuda-event 框架（保留，历史对照）
   stats.py / decision.py / profiler.py / bench_v2.py / …   v0.2 导入路径兼容 shim
@@ -535,11 +545,12 @@ kernels/rope/             v0.4 新算子（interleaved RoPE）
   rope_common.h     自注册变体注册表 + el_to_float/el_from_float + validate 契约
                     （rope_forward/rope_forward_into 入口声明只在 bindings.cpp）
   rope_baseline.cu  1 线程→1 pair（grid M×D/2，block 128，FP32 旋转；**incumbent**）
-  rope_v1_2pair.cu  1 线程→2 pairs（grid M×D/4，8 loads 提前，MLP 杠杆）
-  rope_v2_4pair.cu  1 线程→4 pairs（grid M×D/8，12 loads 提前；要求 D%8==0）
-  rope_v3_half2.cu  fp16 `__half2` 打包 load/store + FP32 旋转（指令数削减控制，
-                    数学与 baseline 位级一致；fp32 路径 = baseline 标量）
-  rope_v4_8pair.cu  1 线程→8 pairs（grid M×D/16，24 loads 提前；要求 D%16==0）
+  rope_v1_2pair.cu  1 线程→2 pairs（grid M×D/4，8 loads 提前，fp16 在途 8B→16B，MLP 杠杆）
+  rope_v2_4pair.cu  1 线程→4 pairs（grid M×D/8，16 loads 提前，fp16 在途 8B→32B；要求 D%8==0）
+  rope_v3_half2.cu  fp16 `__half2` 打包 load/store + FP32 旋转（指令数削减控制；
+                    fp16 路径与 baseline 位级一致 192/192；fp32 路径 = baseline 标量，
+                    跨 build 存在 nvcc codegen/FMA 位级漂移，不做位级声明，见报告 §6/§14.7）
+  rope_v4_8pair.cu  1 线程→8 pairs（grid M×D/16，32 loads 提前，fp16 在途 8B→64B；要求 D%16==0）
   bindings.cpp      PyTorch 扩展入口（forward/forward_into 带 validate 参数，默认
                     true；validate=false 跳过 positions 值域 D2H 同步，仅供预验证
                     基准池/NCU driver；正确性/negative/正常调用保持完整验证）
@@ -550,7 +561,7 @@ scripts/
 tests/
   test_evaluator_cpu.py     stats/decision 纯 CPU 单元测试（v0.3 全过）
   test_evaluator_v23_cpu.py v2.3 对称 guard / raw-filtered / filter-sensitive
-                            确定性单测（28/28）
+                            确定性单测（29/29）
   test_softmax_cpu.py       Softmax 数值 + online (m,l) merge 恒等测试（20/20）
   test_invalid_inputs.py / test_dispatch.py
 docs/
@@ -565,7 +576,7 @@ experiments/softmax/   SFM-0001…0004（MD + result/pair JSON）+ correctness/v
                        + final_reval/ + best.json（36 格 classify_cell）
                        + v0.3.1/（合并修复验证：4 变体正确性 + negative + 隔离验证记录）
 experiments/rope/      ROPE-0001…0004（result/pair JSON）+ correctness/v0.4/
-                       （baseline + 4 候选 384/384 + invalid_inputs 30/31）
+                       （baseline + 4 候选 384/384 + 表核对 + invalid_inputs 33/34）
 benchmarks/softmax/    base_*/inc_*/full5_* 36 格 × 多组 + pair_*（v0.2 路径原样保留）
 benchmarks/v0.3_regression/   RMSNorm/Softmax 回归硬门记录（v2.2 协议）
 benchmarks/v2.3_regression/   v2.3 回归硬门记录（gate_summary + 4 pair + repeat）
@@ -621,7 +632,7 @@ $PYTHON -c "from cudalab.build import build; build('rope')"      # rope 扩展
 # 统一 CLI（算子无关；--help 可查全部子命令）
 $PYTHON scripts/cudalab.py test softmax --variant softmax_baseline   # 单变体正确性（72 例）+ negative
 $PYTHON scripts/cudalab.py test rmsnorm --variant v4_vec_reg         # 单变体正确性（76 例）+ negative
-$PYTHON scripts/cudalab.py test rope --variant rope_baseline         # 单变体正确性（384 例）+ negative（31 例）
+$PYTHON scripts/cudalab.py test rope --variant rope_baseline         # 单变体正确性（384 例 + 表核对）+ negative（34 例）
 # 注: 隔离变体（softmax_hsplit2）在 CLI 各入口被拒绝（NOT_FOR_NORMAL_DISPATCH）
 $PYTHON scripts/cudalab.py benchmark pair softmax \
     --parent softmax_baseline --candidate softmax_vec4 \
@@ -665,7 +676,7 @@ $PYTHON scripts/profile_v2.py
 
 # CPU 单元测试（无需 GPU）
 $PYTHON tests/test_evaluator_cpu.py
-$PYTHON tests/test_evaluator_v23_cpu.py  # v0.4: 28/28（对称 guard / raw-filtered / filter-sensitive）
+$PYTHON tests/test_evaluator_v23_cpu.py  # v0.4: 29/29（对称 guard / raw-filtered / filter-sensitive / raw 侧约定）
 $PYTHON tests/test_dispatch.py
 $PYTHON tests/test_softmax_cpu.py        # v0.3: 20/20（数值 + online merge 恒等）
 ```
