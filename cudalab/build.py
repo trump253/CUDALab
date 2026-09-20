@@ -129,6 +129,14 @@ if __name__ == "__main__":
         for name in ext.variants():
             y = ext.forward(name, x, w, 1e-5)
             print(name, "ok", y.shape, y.dtype)
+    elif op == "rope":
+        from cudalab.operators.rope import make_rotary_table, make_positions
+        x = torch.randn(4, 128, dtype=torch.float16, device="cuda")
+        positions = make_positions(4, 4096, pattern="sequential")
+        cos_t, sin_t = make_rotary_table(4096, 128, torch.float16)
+        for name in ext.variants():
+            y = ext.forward(name, x, positions, cos_t, sin_t)
+            print(name, "ok", y.shape, y.dtype)
     else:
         x = torch.randn(4, 4096, dtype=torch.float16, device="cuda")
         for name in ext.variants():

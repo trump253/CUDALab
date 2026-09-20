@@ -1,0 +1,53 @@
+{
+  "harness": "paired-streaming-v2.3",
+  "cases": [
+    {
+      "tag": "v23reg_rmsnorm_v4_vs_v1_M128_H4096_fp16_streaming",
+      "file": "/root/code/cuda/benchmarks/v2.3_regression/v23reg_rmsnorm_v4_vs_v1_M128_H4096_fp16_streaming.json",
+      "operator": "rmsnorm",
+      "parent": "v4_vec_reg",
+      "candidate": "v1_vec",
+      "median_speedup": 1.037543,
+      "raw_speedup": 1.037543,
+      "filtered_speedup": 1.037543,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）",
+      "rejected_samples": {
+        "fast": 0,
+        "slow": 1
+      },
+      "valid_rounds": 9,
+      "faster_rounds": "9/9",
+      "ci95": [
+        1.027895,
+        1.098996
+      ],
+      "decision": "NEUTRAL",
+      "rule": "median 1.0375 within (0.95, 1.05) or mixed rounds (9/9 faster) or CI not excluded 1.00 (CI95=[1.027895, 1.098996]) -> NEUTRAL"
+    },
+    {
+      "tag": "v23reg_softmax_baseline_vs_vec4_M128_H4096_fp16_streaming",
+      "file": "/root/code/cuda/benchmarks/v2.3_regression/v23reg_softmax_baseline_vs_vec4_M128_H4096_fp16_streaming.json",
+      "operator": "softmax",
+      "parent": "softmax_baseline",
+      "candidate": "softmax_vec4",
+      "median_speedup": 1.674508,
+      "raw_speedup": 1.674508,
+      "filtered_speedup": 1.674508,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）",
+      "rejected_samples": {
+        "fast": 0,
+        "slow": 0
+      },
+      "valid_rounds": 9,
+      "faster_rounds": "9/9",
+      "ci95": [
+        1.672655,
+        1.679296
+      ],
+      "decision": "KEEP",
+      "rule": "median 1.6745 >= 1.05 AND 9/9 rounds faster (>= 70%) AND CI95 lower 1.6727 > 1.00 -> KEEP"
+    }
+  ]
+}

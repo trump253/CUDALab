@@ -1,0 +1,49 @@
+{
+  "harness": "paired-streaming-v2.3",
+  "cases": [
+    {
+      "tag": "v23reg_rmsnorm_v4_vs_v1_M128_H4096_fp16_streaming_repeat2",
+      "file": "/root/code/cuda/benchmarks/v2.3_regression/v23reg_rmsnorm_v4_vs_v1_M128_H4096_fp16_streaming_repeat2.json",
+      "operator": "rmsnorm",
+      "mode": "streaming",
+      "median_speedup": 0.957568,
+      "raw_speedup": 0.958856,
+      "filtered_speedup": 0.957568,
+      "filter_sensitive": false,
+      "rejected_samples": {
+        "fast": 0,
+        "slow": 51
+      },
+      "valid_rounds": 9,
+      "faster_rounds": "0/9",
+      "ci95": [
+        0.950919,
+        0.96232
+      ],
+      "decision": "NEUTRAL",
+      "rule": "median 0.9576 within (0.95, 1.05) or mixed rounds (0/9 faster) or CI not excluded 1.00 (CI95=[0.950919, 0.96232]) -> NEUTRAL"
+    },
+    {
+      "tag": "v23reg_rmsnorm_v4_vs_v1_M128_H4096_fp16_hot",
+      "file": "/root/code/cuda/benchmarks/v2.3_regression/v23reg_rmsnorm_v4_vs_v1_M128_H4096_fp16_hot.json",
+      "operator": "rmsnorm",
+      "mode": "hot",
+      "median_speedup": 0.99227,
+      "raw_speedup": 0.99227,
+      "filtered_speedup": 0.99227,
+      "filter_sensitive": false,
+      "rejected_samples": {
+        "fast": 0,
+        "slow": 19
+      },
+      "valid_rounds": 9,
+      "faster_rounds": "2/9",
+      "ci95": [
+        0.989298,
+        1.010596
+      ],
+      "decision": "NEUTRAL",
+      "rule": "median 0.9923 within (0.95, 1.05) or mixed rounds (2/9 faster) or CI not excluded 1.00 (CI95=[0.989298, 1.010596]) -> NEUTRAL"
+    }
+  ]
+}

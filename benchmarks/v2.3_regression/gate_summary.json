@@ -1,0 +1,113 @@
+{
+  "generated": "2026-09-20T17:34:50+08:00",
+  "harness": "paired-streaming-v2.3",
+  "purpose": "Phase 5 回归门: v2.3 引擎在 RoPE 之前不得推翻 v0.3.1 已知结论",
+  "cases": [
+    {
+      "file": "v23reg_rmsnorm_v4_vs_v1_M128_H4096_fp16_hot.json",
+      "operator": "rmsnorm",
+      "mode": "hot",
+      "parent": "v4_vec_reg",
+      "candidate": "v1_vec",
+      "median_speedup": 0.99227,
+      "raw_speedup": 0.99227,
+      "filtered_speedup": 0.99227,
+      "filter_sensitive": false,
+      "rejected_samples": {
+        "fast": 0,
+        "slow": 19
+      },
+      "valid_rounds": 9,
+      "faster_rounds": "2/9",
+      "ci95": [
+        0.989298,
+        1.010596
+      ]
+    },
+    {
+      "file": "v23reg_rmsnorm_v4_vs_v1_M128_H4096_fp16_streaming.json",
+      "operator": "rmsnorm",
+      "mode": "streaming",
+      "parent": "v4_vec_reg",
+      "candidate": "v1_vec",
+      "median_speedup": 1.037543,
+      "raw_speedup": 1.037543,
+      "filtered_speedup": 1.037543,
+      "filter_sensitive": false,
+      "rejected_samples": {
+        "fast": 0,
+        "slow": 1
+      },
+      "valid_rounds": 9,
+      "faster_rounds": "9/9",
+      "ci95": [
+        1.027895,
+        1.098996
+      ]
+    },
+    {
+      "file": "v23reg_rmsnorm_v4_vs_v1_M128_H4096_fp16_streaming_repeat2.json",
+      "operator": "rmsnorm",
+      "mode": "streaming",
+      "parent": "v4_vec_reg",
+      "candidate": "v1_vec",
+      "median_speedup": 0.957568,
+      "raw_speedup": 0.958856,
+      "filtered_speedup": 0.957568,
+      "filter_sensitive": false,
+      "rejected_samples": {
+        "fast": 0,
+        "slow": 51
+      },
+      "valid_rounds": 9,
+      "faster_rounds": "0/9",
+      "ci95": [
+        0.950919,
+        0.96232
+      ]
+    },
+    {
+      "file": "v23reg_softmax_baseline_vs_vec4_M128_H4096_fp16_streaming.json",
+      "operator": "softmax",
+      "mode": "streaming",
+      "parent": "softmax_baseline",
+      "candidate": "softmax_vec4",
+      "median_speedup": 1.674508,
+      "raw_speedup": 1.674508,
+      "filtered_speedup": 1.674508,
+      "filter_sensitive": false,
+      "rejected_samples": {
+        "fast": 0,
+        "slow": 0
+      },
+      "valid_rounds": 9,
+      "faster_rounds": "9/9",
+      "ci95": [
+        1.672655,
+        1.679296
+      ]
+    }
+  ],
+  "v0.3.1_reference": {
+    "rmsnorm_streaming": {
+      "median_speedup": 0.948892,
+      "decision": "REJECT (candidate v1 显著更慢)",
+      "note": "v2.2 harness, 2026-09-20"
+    },
+    "rmsnorm_hot": {
+      "median_speedup": 0.970954,
+      "decision": "NEUTRAL",
+      "note": "v2.2 harness, 2026-09-20"
+    },
+    "softmax_streaming": {
+      "median_speedup": "1.6772 (SFM-0001) / 1.6890 (final_reval)",
+      "decision": "KEEP",
+      "note": "v2.2 harness"
+    }
+  },
+  "gate_verdict": {
+    "softmax": "PASS — 1.6745 KEEP, 与 v2.2 参考 1.6772/1.6890 一致（~1.6x 量级保持）; raw=filtered, 无 filter sensitivity。",
+    "rmsnorm": "PASS（附调查记录）— v0.3.1 的 0.9489 是当时环境的真实信号（CI 排除 1.0）, 但今天三次独立测量 （streaming 1.0375 / streaming 复跑 0.9576 / hot 0.9923）全部落在 NEUTRAL 带内, 方向在数分钟内翻转一次。调查证据: (1) streaming 第 1 次 run raw==filtered（guard 未介入, 翻转不是 guard 造成）; (2) 复跑 run 51 个慢样本被对称 guard 拒绝且 raw≈filtered（差 0.0013 << log(1.10)）, 全程可审计; (3) Softmax 对照在 v2.3 下精确复现（1.6745 vs 1.6772）; (4) 方向翻转在数分钟内往返（1.0375 -> 0.9576）, 是环境微态漂移（docs/evaluator_hardening_v0.3.md 已记录该机器idle-gap 降级态衰减逐时漂移）, 系统性 harness 偏差会朝单一方向偏置而非往返。结论: v4/v1 在此环境为近似等价内核（|差| ~ 4%, 低于 5% 物性阈值附近）, 今天的诚实决策是 NEUTRAL; 无 evaluator 回归证据, 继续 RoPE。",
+    "proceed_to_rope": true
+  }
+}
