@@ -34,10 +34,10 @@
 | 正确性 / 负例 | 5 个 softmax 变体全部 72/72（容差逐变体相同，fp16 atol 2e-3/rtol 5e-3）；negative 14/14+1 skip（launch 前 TORCH_CHECK） |
 | 基准矩阵 | 36 格 × 5 变体 full5 + base/inc 各 36 格，全部 9/9 valid；主目标 (128,4096) fp16 |
 | 自主优化实验 | **4/4**（profiler→hypothesis 驱动）：SFM-0001 `softmax_vec4` **KEEP**（streaming 1.6772→1.6890 稳健复现；hot 记录值 1.2916 存在机器态漂移，final_reval 0.9865 NEUTRAL，已披露）→ **incumbent = `softmax_vec4`**；SFM-0002 online NEUTRAL（瓶颈是延迟不是带宽）；SFM-0003 vec4_ilp2 NEUTRAL（每线程 ILP 不是杠杆）；SFM-0004 hsplit2 **REJECT**（occupancy 44%→86% 但 barrier stall 5.6%→31-35%，不 occupancy-bound），v0.3.1 起 **隔离**（UNSAFE_HISTORICAL_EXPERIMENT / NOT_FOR_NORMAL_DISPATCH，见 §6）。**失败内核全部保留（历史证据）**；四个正交维度测完 ≠ 设计空间穷尽（v0.3.1 措辞更正） |
-| best.json | `experiments/softmax/best.json`（classify_cell，v0.2.1 语义）：36 格全部 **NO_UNIQUE_WINNER**（win/runner-up 比值 0.998–1.048 < 1.05）；17 格 INCUMBENT 标签（vec4 在 top-2）/ 19 NO_UNIQUE_WINNER |
+| best.json | `experiments/softmax/best.json`（classify_cell，v0.2.1 语义；v0.3.1 语义澄清）：36 格全部 decision=NEUTRAL → **NO_UNIQUE_WINNER**（winner/runner-up 比值 0.9972–1.0479，全部 <1.05 KEEP 线）；17 格 INCUMBENT 标签（vec4 在 top-2，被 policy 保留）/ 19 NO_UNIQUE_WINNER。"无唯一胜出者"是策略层面结论，不是"统计平局"断言（36 格中 21 格 winner 对 runner-up CI95 > 1.0，统计显著但 <5%；详见报告 Q4 与 summary.note） |
 | NCU | baseline vs 4 候选（双 cache-control，v0.2.1 语义）+ incumbent 复验（<1% 漂移）；per-launch µs 与 NCU dur 的时钟/L2 语义差异已在报告说明 |
 | 独立审计 | `docs/benchmark_audit_v0.3.md`：**PASS WITH CAVEATS**（数据逐项可复现、决策与规则一致、重构忠实；caveat #1 SFM-0001 hot 漂移已在 SFM-0001.md §6 + 报告披露，caveat #3b 日期笔误已修正） |
-| 机器态限定 | (128,4096) fp16 **hot** 模式跨运行配对结果漂移（vec4 hot 1.29→1.37→0.99 三次运行；streaming 1.68 稳定）；RMSNorm 回归 hot 1.0144 NEUTRAL（v0.2 为 0.9327 REJECT）/ streaming 0.9419 REJECT（v0.2 为 0.9592 NEUTRAL）——点估计漂移、机制不变，定位为机器态而非 evaluator 缺陷 |
+| 机器态限定 | (128,4096) fp16 **hot** 模式跨运行配对结果漂移（vec4 vs baseline hot 两次 committed 运行：1.2916 @21:03（SFM-0001 主 paired）→ 0.9865 @21:41（final_reval），约 40 分钟内跨越 KEEP 线；streaming 1.68 稳定）；RMSNorm 回归 hot 1.0144 NEUTRAL（v0.2 为 0.9327 REJECT）/ streaming 0.9419 REJECT（v0.2 为 0.9592 NEUTRAL）——点估计漂移、机制不变，定位为机器态而非 evaluator 缺陷 |
 | 未做 | dispatcher 默认不做（无 paired 确认的 per-shape 路由证据）；不 merge main；不开始 v0.4 |
 
 ## v0.2 完成摘要（2026-09-19）

@@ -268,10 +268,14 @@ cache-control（v0.2.1 语义，先 --query-metrics 验证）；PyTorch 参照�
 | SFM-0001 `softmax_vec4` | 标量小事务是瓶颈（long_scoreboard 60.6%）→ 4 宽向量化 | **KEEP**（hot 1.2916 / streaming 1.6772，9/9）→ incumbent |
 | SFM-0002 `softmax_online` | 3 读 1 写 → 2 读 1 写（online (m,l) + merge 恒等；先 docs/softmax_algorithm.md + 5 个 CPU 恒等测试门禁） | NEUTRAL（bottleneck 是延迟不是带宽） |
 | SFM-0003 `softmax_vec4_ilp2` | 每线程在飞 load 加倍隐藏延迟 | NEUTRAL（寄存器/屏障代价抵消） |
-| SFM-0004 `softmax_hsplit2` | occupancy 44%→86%（H 对半分 2 块/行 + (m,l) 跨块合并，单 launch） | **REJECT**（barrier stall 5.6%→31%；不 occupancy-bound） |
+| SFM-0004 `softmax_hsplit2` | occupancy 44%→86%（H 对半分 2 块/行 + (m,l) 跨块合并，单 launch） | **REJECT**（barrier stall 5.6%→31%；不 occupancy-bound）；v0.3.1 起**隔离**（UNSAFE_HISTORICAL_EXPERIMENT / NOT_FOR_NORMAL_DISPATCH，见 SFM-0004.md §6） |
 
-失败实验全部保留（NEUTRAL/REJECT 内核留在仓库作参考实现）。
-**四轴设计空间闭合：vec4 为 (128,4096) fp16 单 launch 结构下的结构最优。**
+失败实验全部保留（NEUTRAL/REJECT 内核留在仓库作参考实现与历史证据）。
+**四个设计维度（宽度/流量/每线程 ILP/块级并行）全部测完**（v0.3 原文称
+"四轴设计空间闭合"，v0.3.1 措辞更正：测完 4 个正交维度 ≠ 设计空间穷尽）。
+**`softmax_vec4` 是当前 acceptance policy 下的 incumbent；后续候选尚未
+达到 ≥5% 的替换门槛**（NEUTRAL 是 policy_decision，不是"统计平局"或
+"结构最优"）。
 dispatcher：默认不做（v0.3 无 paired 确认的 per-shape 路由证据）。
 
 ### Phase 6 — 最终完整重验 ✅

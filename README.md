@@ -67,12 +67,19 @@ v0.3 交付：
   1.6772 [1.6568,1.6794] 9/9 → KEEP**（final_reval 1.6890 稳健复现）；
   hot 记录值 1.2916 存在机器态漂移（final_reval 0.9865 NEUTRAL，
   [SFM-0001.md §6](experiments/softmax/SFM-0001.md) 披露），KEEP 以
-  primary 判据 streaming 为准。四轴设计空间闭合：vec4 为 (128,4096) fp16
-  单 launch 结构下的结构最优。
+  primary 判据 streaming 为准。四个设计维度（宽度/流量/每线程 ILP/
+  块级并行）全部测完 ≠ 设计空间穷尽（v0.3.1 措辞更正）：
+  **`softmax_vec4` 是当前 acceptance policy 下的 incumbent；后续候选
+  尚未达到 ≥5% 的替换门槛**（NEUTRAL 是 policy_decision，不是"统计
+  平局"或"结构最优"——统计语义见 v0.3.1 澄清与报告 Q3/Q4）。
 - **best.json**（`experiments/softmax/best.json`，classify_cell，
-  v0.2.1 语义）：36 格（9 形状 × 2 dtype）全部 **NO_UNIQUE_WINNER**
-  （winner/runner-up 比值 0.998–1.048 < 1.05 KEEP 线）；17 格 INCUMBENT
-  标签（vec4 在 top-2）/ 19 NO_UNIQUE_WINNER。
+  v0.2.1 语义；v0.3.1 语义澄清）：36 格（9 形状 × 2 dtype）全部 decision=
+  NEUTRAL → **NO_UNIQUE_WINNER**（winner/runner-up 比值 0.9972–1.0479，
+  全部 <1.05 KEEP 线）；17 格 INCUMBENT 标签（vec4 在 top-2，被 policy
+  保留）/ 19 NO_UNIQUE_WINNER。NO_UNIQUE_WINNER 是**策略层面**的"无
+  唯一胜出者"，不是"统计平局"断言：36 格中 21 格 winner 对 runner-up
+  CI95 全在 1.0 之上（统计显著更快但 <5% → policy NEUTRAL），15 格 CI95
+  跨 1.0（统计不可区分）——详见报告 Q4 与 summary.note。
 - **RMSNorm 回归硬门 PASS**（eae07bb + 最终复跑 85faeca）：CPU tests +
   negative 29/30+1 skip + 正确性 76/76 × 2 + paired 全兼容 v0.2 结论
   （hot 1.0144 NEUTRAL / streaming 0.9419 REJECT，点估计漂移、机制不变，

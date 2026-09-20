@@ -6,9 +6,11 @@
   能否**原样迁移**到第二个算子？
 - **TL;DR**: 能。evaluator 核心通用化后，RMSNorm 回归硬门 PASS、Softmax 上
   完成 4 个 profiler 驱动的自主优化实验（1 KEEP / 2 NEUTRAL / 1 REJECT），
-  得到 (128,4096) fp16 结构最优 incumbent `softmax_vec4`（streaming 1.69× vs
-  baseline，稳健复现）；36 格全矩阵**无统计唯一胜出者**（v0.2.1 语义如实
-  记录）；全部数字可逐项复现（独立审计 PASS WITH CAVEATS）。最重要的
+  得到 (128,4096) fp16 当前 acceptance policy 下的 incumbent `softmax_vec4`
+  （streaming 1.69× vs baseline，KEEP，稳健复现；v0.3.1 措辞更正：不是
+  "结构最优"——后续候选尚未达到 ≥5% 的替换门槛）；36 格全矩阵**无
+  策略层面唯一胜出者**（NO_UNIQUE_WINNER，v0.2.1 语义如实记录；v0.3.1:
+  其中 21 格 winner 统计显著快于 runner-up 但改进 <5%，详见 Q4）；全部数字可逐项复现（独立审计 PASS WITH CAVEATS）。最重要的
   caveat 是 **(128,4096) fp16 hot 模式的机器态敏感性**——详见 Q6。
 
 ---
@@ -99,7 +101,8 @@ baseline 重构回归（标量核移入 `softmax_scalar.h`）72/72 逐位一致�
 
 四个实验按 profiler 证据逐一推进，覆盖 4 个设计轴：
 **宽度 → 流量 → 每线程 ILP → 块级并行**。前 3 轴之外的第 4 轴直接证伪，
-设计空间闭合。
+4 个正交维度全部测完（v0.3 原文称"设计空间闭合"；v0.3.1 措辞更正：
+测完 4 个维度 ≠ 设计空间穷尽，见下文与 Q4）。
 
 | 实验 | 假设 | paired 结果（(128,4096) fp16，9/9 valid） | 决策 |
 |---|---|---|---|
@@ -112,6 +115,14 @@ baseline 重构回归（标量核移入 `softmax_scalar.h`）72/72 逐位一致�
 31–39%）。streaming 1.0413 是全部实验中**最接近翻转**的案例（median 距
 1.05 KEEP 线差 0.0087，CI 全在 1.0 之上，9/9 轮更快）——按既定规则判
 NEUTRAL 正确，规则未被临时调整。
+**v0.3.1 语义澄清（此案例是典型）**：NEUTRAL **不是**"统计平局"——
+online 对 vec4 在该指标下**统计上显著更快**（CI95 全在 1.0 之上，
+9/9 轮更快，statistical_relation = FASTER），但 median 改进 4.13% 低于
+5% 的实质替换门槛（material threshold）→ policy_decision = NEUTRAL →
+incumbent（vec4）保留。项目语义区分两层：`statistical_relation`
+（FASTER / SLOWER / UNRESOLVED，CI95 是否排除 1.0）与 `policy_decision`
+（KEEP / REJECT / NEUTRAL / UNSTABLE，decide_v2，KEEP 额外要求
+median ≥ 5% + 多数轮更快）。
 
 **SFM-0003（每线程 ILP 轴）——NEUTRAL 的教训**：与 vec4 逐位一致（8/8 位
 模式），但寄存器 19→28，NCU：`long_scoreboard` 51.0→45.4% 改善的同时
@@ -137,11 +148,17 @@ stream / 多 device 并发调用存在 race 风险。因此 `softmax_hsplit2` �
 `ext.forward("softmax_hsplit2", ...)` 受控历史审计入口（详见
 `experiments/softmax/SFM-0004.md` §6）。
 
-**设计空间闭合（v0.3 原始表述；v0.3.1 措辞更正见 §"v0.3.1 合并修复"）**：宽度（KEEP）→ 流量（NEUTRAL）→ 每线程 ILP（NEUTRAL）→
-块级并行（REJECT）。**`softmax_vec4` 是 (128,4096) fp16、单 launch/行
-结构下在 sm_75 上的结构最优**。所有失败内核（online/ilp2/hsplit2）**永久
-保留在仓库**作参考实现与实验证据（`experiments/softmax/SFM-000*.md` +
-result/pair JSON 同 commit 提交）。
+**四个设计维度全部测完（v0.3 原文称"设计空间闭合"，v0.3.1 措辞更正）**：
+宽度（KEEP）→ 流量（NEUTRAL）→ 每线程 ILP（NEUTRAL）→
+块级并行（REJECT）。**v0.3.1 更正**："四个正交维度测完"≠"设计空间
+穷尽"——split-K、其他 launch 结构、不同块组织等方向在 v0.3 范围外未测，
+不能由 4 个维度外推为整体最优。**`softmax_vec4` 是当前 acceptance
+policy 下的 incumbent；后续候选尚未达到 ≥5% 的替换门槛**（NEUTRAL 是
+policy_decision，不是"统计平局"，更不是"结构最优"的结论）。
+所有失败内核（online/ilp2/hsplit2）**永久保留在仓库**作参考实现与
+实验证据（`experiments/softmax/SFM-000*.md` + result/pair JSON 同
+commit 提交；hsplit2 于 v0.3.1 隔离为 UNSAFE_HISTORICAL_EXPERIMENT，
+见 SFM-0004.md §6，数据完整保留）。
 
 ## Q4. 性能在 shape/dtype 矩阵上如何扩展？
 
@@ -188,13 +205,20 @@ PyTorch 参照为 200 样本中位延迟。）
    streaming 9.503 → 9.154（仅 1.04×，矩阵口径）——fp32 主目标收益显著
    小于 fp16（与 RMSNorm v0.2 的 fp32 弱点观察同构）。
 
-**`experiments/softmax/best.json`（classify_cell，v0.2.1 语义）**：
-全部 36 格 winner-vs-runner-up **NO_UNIQUE_WINNER**（ratio 0.9972–1.0479，
-全部 <1.05 KEEP 线）；17 格 **INCUMBENT** 标签（incumbent `softmax_vec4`
-位于该格 top-2，与顶部变体统计平局）/ 19 格 NO_UNIQUE_WINNER 标签。
+**`experiments/softmax/best.json`（classify_cell，v0.2.1 语义；v0.3.1
+语义澄清）**：全部 36 格 decision=NEUTRAL → **NO_UNIQUE_WINNER**
+（ratio 0.9972–1.0479，全部 <1.05 KEEP 线）；17 格 **INCUMBENT** 标签
+（incumbent `softmax_vec4` 位于该格 top-2 且被 policy 保留）/ 19 格
+NO_UNIQUE_WINNER 标签。**v0.3.1 澄清**：NO_UNIQUE_WINNER 是**策略层面**
+的"无唯一胜出者"（顶部变体对 runner-up 未达到 median ≥ 5% + CI95>1.0 +
+多数轮更快的 KEEP 线），**不是**"顶部两变体统计平局"的断言——36 格中
+21 格 winner-vs-runner-up CI95 全在 1.0 之上（winner 统计显著更快，
+statistical_relation=FASTER，但改进低于 5% 实质阈值 →
+policy_decision=NEUTRAL）；其余 15 格 CI95 跨 1.0（统计不可区分）。
 主目标格（(128,4096) fp16 streaming）winner=online（5.760）vs
-runner-up=vec4（6.015），ratio 1.0443 [1.0393, 1.0453] 9/9 → NEUTRAL →
-统计平局 → INCUMBENT 标签。**best.json 不声称任何 per-shape 路由证据**
+runner-up=vec4（6.015），ratio 1.0443 [1.0393, 1.0453] 9/9 → **统计上
+显著更快，但改进 4.43% < 5%** → NEUTRAL → INCUMBENT 标签（incumbent
+保留，非"统计平局"）。**best.json 不声称任何 per-shape 路由证据**
 （见"未做"）。注意：INCUMBENT 标签 ≠ "对 baseline 显著胜出"，vec4 对
 baseline 的显著优势只存在于 paired 记录（SFM-0001/final_reval，
 streaming 1.69 KEEP）。
@@ -209,7 +233,7 @@ streaming 1.69 KEEP）。
 | baseline 起点 | 已经历 v0.1 优化迭代（v4_vec_reg 是 v0.1 incumbent；v1/v2/v3/v4 同为 2 遍结构的不同宽度/寄存器配置） | 朴素标量 3 遍（1 块/行，2B/线程） |
 | 第一刀 | 宽度/寄存器重排：v4 vs v1 streaming 1.011 NEUTRAL / hot 0.9327（REJECT v1）；vs baseline 1.740× hot / 1.896× streaming | 宽度：vec4 vs baseline **streaming 1.6772 KEEP**（hot 记录 1.2916，机器态敏感） |
 | 后续空间 | 基本平坦：v1/v2/v4 两两 NEUTRAL，主形状 fp16 **NO_UNIQUE_WINNER** | 3 个后续轴：流量 NEUTRAL / ILP NEUTRAL / occupancy REJECT |
-| 结局 | 无统计唯一胜出者（v4 保留 incumbent，非统计确认唯一最佳） | 1 个 KEEP（width 轴陡峭）后 3 连非 KEEP，四轴闭合，vec4 = 结构最优 |
+| 结局 | 无统计唯一胜出者（v4 保留 incumbent，非统计确认唯一最佳） | 1 个 KEEP（width 轴陡峭）后 3 连非 KEEP；vec4 = 当前 acceptance policy 下的 incumbent（四个维度测完 ≠ 设计空间穷尽，v0.3.1 措辞更正） |
 
 **解读**：
 - RMSNorm 进入 v0.2 循环时已接近局部最优 → 循环**正确地**得出"top-2 平坦、
@@ -360,10 +384,20 @@ $PY tests/test_softmax_cpu.py                                       # 20/20 CPU�
 ## 附录 B. 术语
 
 - **KEEP / REJECT / NEUTRAL / UNSTABLE**：decide_v2 四态（Q0 阈值）。
+  **v0.3.1 语义分层**：这是 `policy_decision`（是否达到替换/保留的
+  实质门槛），与 `statistical_relation`（FASTER / SLOWER / UNRESOLVED，
+  只看 CI95 是否排除 1.0）是两层独立结论："CI95 明确排除 1.0 但
+  median < 1.05"= 统计显著更快但低于实质门槛 → policy NEUTRAL，
+  **不是**"统计平局"。
 - **NO_UNIQUE_WINNER（classify_cell）**：某格内 winner 与 runner-up 的
-  round-level paired 比值无显著差异（NEUTRAL/REJECT 或 <5 有效轮之外的
-  平局语义，v0.2.1 修正）；**不是** "没有变体快于 baseline"。
+  round-level paired 比值未达到 KEEP 线（decision=NEUTRAL/REJECT，或
+  <5 有效轮 → UNSTABLE；v0.2.1 修正）。**v0.3.1 澄清**：这是策略层面
+  的"无唯一胜出者"，**不是**"无统计显著差异"的断言——v0.3 的 36 格中
+  21 格 winner-vs-runner-up CI95 全在 1.0 之上（统计显著更快但 <5%，
+  见 Q4）；其余 15 格 CI95 跨 1.0（统计不可区分）。也**不是** "没有
+  变体快于 baseline"。
 - **INCUMBENT 标签（best.json）**：实验链 incumbent（`softmax_vec4`）位于
-  该格 top-2，与顶部变体统计平局；不暗示对 baseline 的显著优势。
+  该格 top-2 且被 acceptance policy 保留（v0.3.1：不是"与顶部变体统计
+  平局"的断言，见上条）；不暗示对 baseline 的显著优势。
 - **hot / streaming**：固定预分配 buffer（L2 热）/ 16 组 buffer 轮转
   （工作集 > L2，每次 launch 面对近似冷 L2）。

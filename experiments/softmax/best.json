@@ -847,6 +847,6 @@
     },
     "incumbent": "softmax_vec4",
     "incumbent_source": "SFM-0001 KEEP (vec4 vs baseline: streaming 1.6772 / hot 1.2916, v2.2); SFM-0002/0003 NEUTRAL, SFM-0004 REJECT -> incumbent 保持 vec4",
-    "note": "全部 36 格 winner-vs-runner-up 均无统计显著差异（NO_UNIQUE_WINNER）；incumbent 标签仅表示实验链 incumbent 位于该格 top-2（与顶部变体统计平局），不是对 baseline 的显著胜出 —— vec4 对 baseline 的显著优势见 SFM-0001 与 final_reval 的 paired 记录（streaming 1.69 KEEP，hot 机器态敏感）。"
+    "note": "全部 36 格 decision=NEUTRAL → status=NO_UNIQUE_WINNER。v0.3.1 语义澄清：NO_UNIQUE_WINNER 是**策略层面**的\"无唯一胜出者\"（顶部变体对 runner-up 未达到 median ≥ 5% + CI95>1.0 + 多数轮更快的 KEEP 线），**不是**\"顶部两变体统计平局\"的断言 —— 36 格中 21 格 winner-vs-runner-up CI95 全在 1.0 之上（winner 统计显著更快，statistical_relation=FASTER，但 median 改进 <5%，低于实质阈值 → policy_decision=NEUTRAL，如主目标 streaming：online vs vec4 1.0443 [1.0393, 1.0453] 9/9）；15 格 CI95 跨 1.0（统计不可区分，statistical_relation=UNRESOLVED）。INCUMBENT 标签仅表示实验链 incumbent（softmax_vec4）位于该格 top-2 且被 acceptance policy 保留，不暗示对 baseline 的显著胜出 —— vec4 对 baseline 的显著优势见 SFM-0001 与 final_reval 的 paired 记录（streaming 1.69 KEEP，hot 机器态敏感）。v0.3.1：statistical_relation（FASTER/SLOWER/UNRESOLVED）与 policy_decision（KEEP/REJECT/NEUTRAL/UNSTABLE）分列；\"CI 排除 1.0 但 median<1.05\"不是\"统计平局\"。"
   }
 }
