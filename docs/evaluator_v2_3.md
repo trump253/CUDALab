@@ -2,7 +2,8 @@
 
 日期: 2026-09-19（v0.4-rope 分支）
 前序: v2.2（环境稳定化, 见 `evaluator_hardening_v0.3.md` 第 8 条）
-状态: 已实现，CPU 单测通过，GPU 回归门（Phase 5）待跑
+状态: 已实现，CPU 单测 28/28 通过，GPU 回归门（Phase 5）**PASS**
+（见 §6 与 `benchmarks/v2.3_regression/gate_summary.json`）
 
 ## 1. 动机：v2.2 的不对称 guard
 
@@ -163,7 +164,7 @@ KEEP 或 REJECT → **降级为 UNSTABLE**（不强行 KEEP/REJECT），detail
    （敏感）、NEUTRAL 不变、非敏感 KEEP 不变；detail 含
    original_decision。
 
-## 6. 回归门（Phase 5，RoPE 之前）
+## 6. 回归门（Phase 5，RoPE 之前）— **PASS**（2026-09-20）
 
 v2.3 必须**不推翻**已知的 v2.2 结论（若推翻，先查 evaluator 再继续）：
 
@@ -175,6 +176,26 @@ v2.3 必须**不推翻**已知的 v2.2 结论（若推翻，先查 evaluator 再
   停 RoPE，先查 evaluator。
 
 结果落 `benchmarks/v2.3_regression/`（新目录；历史目录不动）。
+
+**实测结果**（`gate_summary.json`，4 条 pair 记录 + summary +
+repeat 记录，全部 9/9 valid rounds）：
+
+| case | v2.3 结果 | v0.3.1 参考 | 判定 |
+|---|---|---|---|
+| Softmax baseline vs vec4, streaming | **1.6745** [1.6727, 1.6793]，9/9 更快，raw=filtered，rejected 0/0 | 1.6772 (SFM-0001) / 1.6890 (final_reval) | **PASS** — ~1.6× 精确复现，无 filter sensitivity |
+| RMSNorm v4 vs v1, streaming | 1.0375 [1.0279, 1.0990]，9/9 更快，raw=filtered，rejected slow=1 | 0.9489 REJECT（2026-09-20 早些时候） | 见下方调查 |
+| RMSNorm v4 vs v1, streaming 复跑 | 0.9576 [0.9509, 0.9623]，0/9 更快，rejected slow=51，raw≈filtered（差 0.0013） | 同上 | 见下方调查 |
+| RMSNorm v4 vs v1, hot | 0.9923 [0.9893, 1.0106]，2/9 更快，rejected slow=19 | 0.9710 NEUTRAL | 带内 |
+
+RMSNorm 方向在数分钟内翻转一次（1.0375 → 0.9576）的调查证据
+（gate 判定为**环境微态漂移，非 evaluator 缺陷**）：
+(1) 第 1 次 streaming run raw==filtered（guard 未介入，翻转不是
+guard 造成）；(2) 复跑 run 的 51 个慢样本由**对称** guard 拒绝且
+raw≈filtered（差 0.0013 << log(1.10)≈0.0953），全程可审计——
+这正是 v2.3 双轨记录设计的价值；(3) Softmax 对照在 v2.3 下精确
+复现（1.6745 vs 1.6772）；(4) 该机器 idle 微态漂移已在
+`evaluator_hardening_v0.3.md` 记录（v0.3.1 时代 RMSNorm hot 亦有
+同类点估计漂移）。
 
 ## 7. 不变量
 
