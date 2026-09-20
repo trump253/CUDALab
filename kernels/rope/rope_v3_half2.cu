@@ -6,8 +6,16 @@
 //   * 输出 (y0,y1) 用一次 __floats2half2_rn（2 值 1 指令）+ 一次
 //     4B __half2 store（baseline: 2 次 el_from_float + 2 次 2B store）
 //   * cos/sin 各 1 个 2B 标量 load（与 baseline 相同）
-// 旋转数学保持在 FP32（与 baseline 逐位一致的 4 mul + 1 sub + 1 add,
-// 每元素 RN 舍入相同）—— 本变体不改变算术, 只改访存/转换指令结构。
+// 旋转数学保持在 FP32（4 mul + 1 sub + 1 add）—— 本变体不改变算术,
+// 只改访存/转换指令结构。逐位一致性按路径区分（v0.4 review F5 更正,
+// 原"与 baseline 逐位一致"的表述被记录数据推翻）:
+//   * fp16 路径（本变体唯一实质改动处）: 与 baseline 逐位一致 ——
+//     384 项套件中 192/192 个 fp16 用例在 5 个变体间 max_abs 完全相同;
+//   * fp32 路径: 源码与 baseline 相同, 但记录显示 110/192 个 fp32 用例
+//     的误差值在变体/构建间不同（如 (1024,64) fp32 pos_max_seq_len-1:
+//     baseline 4.8e-7 vs 候选 2.4e-7, arith ratio 0.4438 vs 0.4831,
+//     均在界内全过）—— nvcc 逐函数 codegen/FMA 收缩漂移, 故 fp32
+//     路径**不作逐位一致声明**, 只声明在固定 arith 界内。
 // fp32 路径无转换可削, 退化为与 baseline 相同的标量代码（预期
 // NEUTRAL, 在矩阵中如实记录）。
 //

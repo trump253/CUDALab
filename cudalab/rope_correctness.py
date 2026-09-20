@@ -24,9 +24,17 @@
     无论 torch 参考的逐元素双舍入路径）都满足:
         |impl − exact| ≤ 2^-23·(|a*c| + |b*s|) + 0.5·ulp_dtype(|impl|)
     推导: FP32 乘/加各引入 ≤ 0.5·ulp32 ≤ 2^-23·|值| 的绝对误差
-    （双舍入路径: 两次乘 + 一次减, 最坏 2^-23·(|a*c|+|b*s|+|y|);
+    （双舍入路径: 两次乘 + 一次减/加, 最坏 2^-23·(|a*c|+|b*s|+|y|);
     FMA 路径: |a*c − b*s| 一次精确舍入, 更紧）; 最终 cast 引入
-    ≤ 0.5·ulp_dtype。
+    ≤ 0.5·ulp_dtype。减/加的 2^-23·|y| 项未单独展开, 仍被 tol 覆盖:
+    y0 的 |y0| ≤ |a*c|+|b*s|（三角不等式）, 直接落在 pair_base 内并由
+    K=2 加倍覆盖; y1 元素的乘项为 |a*s|、|b*c|, 有
+    |a*s|+|b*c| ≤ |y1| + 2·min(|a*s|,|b*c|) 且
+    min ≤ |y1| + 4·(|a*c|+|b*s|)（|y1| 小时 |a*s|≈|b*c|, 此时
+    |a*c|+|b*s| ≥ 2√(|a*s|·|b*c|), AM-GM）, 与 tol 的两个
+    0.5·ulp 项及 K=2 合计后仍覆盖（数值验证: v0.4 首跑全套件
+    max ratio 0.5054 ≤ 1; v0.4 独立 review 的 CPU 双路径复验
+    max 0.32, 见 docs/report_v0.4_result.md §17）。
     套件对每元素取 K=2 安全余量并覆盖 exact 与 impl 两个可能的
     binade:
         tol = 2·(2^-23·(|a*c|+|b*s|) + 0.5·ulp_dtype(|y|)
@@ -63,6 +71,32 @@
         2·(2·|y|·3e-8) + 2·(3e-8)² ≤ 7.3e-12, 比值 ≤ 1.8e-3 < 5e-3。
       - float32: 1e-30 —— 仅为避免 zeros 输入 0/0 = NaN。
     ref 的范数误差一并报告（ref 由本项目构造, 旁路信息, 不判定）。
+
+(3) 独立表值核对（v0.4 review 新增, 判表不判核）
+    (1)(2) 两门都**以表的存储值为输入**（arith 的 exact 参考与
+    norm 的两侧都用同一张表）——共同模式: 表自身的构造错误
+    （base 取错 1000/10^10、指数符号、i 轴张错、cos/sin 互换、
+    相位符号）会让 kernel 与 ref 一起错, 三门全过。本核对把表
+    对**数学定义** θ(pos,i) = pos·base^(-2i/D)（fp64 独立求值）
+    全网格核对（无采样, 4096×D/2 点 × 2 信号）, 固定误差界:
+        err ≤ 8·2^-23·|angle64| + 2^-22 + ulp_dtype(|value|)
+    推导: 表按约定 FP32 构造（freq = base^θ 的 FP32 pow/exp 误差
+    ~数 ulp, × pos ≤ 2^12 放大 + 乘积舍入 ≤ 2^-23·|angle|, 合计
+    ≤ ~5·2^-23·|angle|, 取 8·2^-23 留 ~1.8x 余量; |d cos/dθ| ≤ 1
+    故角误差直通）; FP32 cos/sin 实现误差 ≤ 2 ulp ≤ 2^-22
+    （|value| ≤ 1 时 ulp32 ≤ 2^-23）; 最终 cast 到 dtype 实际
+    ≤ 0.5·ulp_dtype, 按套件 K=2 约定记为整 1 ulp。全网格验证
+    （2026-09, 本工具链, 4×(dtype,D) 组合共 ~1.0M 点）:
+    max err/bound = 0.4996（fp16, D=128, ~2x 余量）/ 0.1129
+    （fp32, D=128）, 0 违例; pos0 行 cos≡1 / sin≡0 逐位精确。
+    另记录正交性 c²+s²−1（fp64 于存储值）: 实测 max 6.87e-4
+    （fp16）/ 8.95e-8（fp32）, 固定阈值 2e-3 / 1e-6（~3x/~11x
+    余量; 该项此前仅被 (2) 范数门以 ~2.8x 余量间接覆盖）。
+    base/指数/i 轴/符号类错误在此界下必然以 O(1) 量级违例
+    （如 base 取 1000: 角偏差 ~O(|angle|) ≫ 界 ~1e-3）, 本核对
+    将其从"结构不可见"变为门内可捕获。
+    核对对象是**套件实际使用的表**（cuda 构造后提升 fp64 比对）,
+    确定性、全网格, 与 5 个变体共享同一结果, 折叠进 all_pass。
 """
 from __future__ import annotations
 
@@ -105,6 +139,14 @@ NRM_DENOM_FLOOR = {"float16": 4e-9, "float32": 1e-30}
 # 双舍入误差界的安全余量 K（见模块 docstring 推导）。
 ARITH_K = 2.0
 _NEG23 = 2.0 ** -23
+
+# 独立表值核对的固定参数（见模块 docstring (3)）。
+# 误差界: err ≤ TABLE_ANGLE_COEF·2^-23·|angle64| + TABLE_COS_IMPL_TERM
+#            + ulp_dtype(|value|)
+TABLE_ANGLE_COEF = 8.0
+TABLE_COS_IMPL_TERM = 2.0 ** -22
+# 正交性 c²+s²−1（fp64 于存储值）固定阈值, 全网格实测 × ~3x/~11x。
+TABLE_ORTHO_TOL = {"float16": 2e-3, "float32": 1e-6}
 
 
 @dataclass
@@ -173,6 +215,57 @@ def _ulp(v: torch.Tensor, dtype_name: str) -> torch.Tensor:
     ulp = torch.pow(2.0, e - 10)
     return torch.where(v32 >= tiny16, ulp,
                        torch.full_like(v32, 2.0 ** -24))
+
+
+def check_table_independence(cos_t: torch.Tensor, sin_t: torch.Tensor,
+                             D: int, dtype_name: str) -> dict:
+    """独立表值核对（判定门, 见模块 docstring (3)）。
+
+    把套件实际使用的 cos/sin 表（cuda 构造, 提升 fp64 无损）对数学
+    定义 θ(pos,i) = pos·base^(-2i/D) 的 fp64 独立求值做全网格比对,
+    误差界固定: err ≤ 8·2^-23·|angle64| + 2^-22 + ulp_dtype(|value|)。
+    返回记录字段 + "passed"（err 界 / pos0 逐位 / 正交性 三项合取）。
+    确定性, 与变体无关（同 dtype,D 的表相同）。
+    """
+    d2 = D // 2
+    i64 = torch.arange(d2, dtype=torch.float64)
+    freq64 = torch.tensor(ROPE_BASE, dtype=torch.float64) \
+        ** (-2.0 * i64 / D)
+    pos64 = torch.arange(MAX_SEQ_LEN, dtype=torch.float64)
+    angle64 = pos64[:, None] * freq64[None, :]
+    ref_cos = torch.cos(angle64)
+    ref_sin = torch.sin(angle64)
+    c64 = cos_t.double().cpu()
+    s64 = sin_t.double().cpu()
+    err_c = (c64 - ref_cos).abs()
+    err_s = (s64 - ref_sin).abs()
+    base_bound = (TABLE_ANGLE_COEF * _NEG23 * angle64.abs()
+                  + TABLE_COS_IMPL_TERM)
+    bound_c = base_bound + _ulp(c64.abs(), dtype_name)
+    bound_s = base_bound + _ulp(s64.abs(), dtype_name)
+    ratio_c = err_c / bound_c
+    ratio_s = err_s / bound_s
+    max_ratio = float(max(ratio_c.max().item(), ratio_s.max().item()))
+    n_violations = int(((err_c > bound_c) | (err_s > bound_s)).sum())
+    pos0_exact = bool((c64[0] == 1.0).all() and (s64[0] == 0.0).all())
+    ortho = float((c64 ** 2 + s64 ** 2 - 1.0).abs().max())
+    ortho_ok = ortho <= TABLE_ORTHO_TOL[dtype_name]
+    return {
+        "dtype": dtype_name,
+        "D": D,
+        "n_points": int(c64.numel()),
+        "bound": (f"{TABLE_ANGLE_COEF:g}·2^-23·|angle64| + "
+                  f"2^-22 + ulp_dtype(|value|); "
+                  "angle64 = pos·base^(-2i/D) fp64 独立求值"),
+        "max_abs_err_cos": round(float(err_c.max()), 12),
+        "max_abs_err_sin": round(float(err_s.max()), 12),
+        "max_err_over_bound": round(max_ratio, 12),
+        "n_violations": n_violations,
+        "pos0_exact": pos0_exact,
+        "c2_plus_s2_minus_1_max": round(ortho, 12),
+        "ortho_tol": TABLE_ORTHO_TOL[dtype_name],
+        "passed": bool((max_ratio <= 1.0) and pos0_exact and ortho_ok),
+    }
 
 
 def arith_ratio(y: torch.Tensor, x: torch.Tensor, positions: torch.Tensor,
@@ -257,15 +350,17 @@ def check_one(variant: str, ext, x: torch.Tensor,
         seed=seed, pattern=pattern, mode=mode,
         passed=(arith_ok and nrm_ok and not m["has_nan"]
                 and not m["has_inf"]),
-        arith_max_ratio=round(ratio, 8),
-        norm_rel_error=round(nrm, 8),
+        # v0.4 review (F6): 8 位小数会把 tiny 量级的审计值舍成 0.0,
+        # 改 12 位（与 evaluator/correctness.py compute_metrics 一致）。
+        arith_max_ratio=round(ratio, 12),
+        norm_rel_error=round(nrm, 12),
         has_nan=m["has_nan"],
         has_inf=m["has_inf"],
         max_abs_error=m["max_abs_error"],
         max_rel_error=m["max_rel_error"],
         ok_close=m["ok_close"],
-        arith_tol_max=round(tol_max, 8),
-        ref_norm_rel_error=round(nrm_ref, 8),
+        arith_tol_max=round(tol_max, 12),
+        ref_norm_rel_error=round(nrm_ref, 12),
         atol=m["atol"], rtol=m["rtol"],
         nrm_rel_tol=NRM_REL_TOL[dtype_name],
         note=note,
@@ -275,14 +370,24 @@ def check_one(variant: str, ext, x: torch.Tensor,
 def run_suite(variant: str, ext,
               dtypes: tuple = DTYPES, ds: tuple = DS, ms: tuple = MS,
               patterns: tuple = POSITION_PATTERNS,
-              modes: tuple = INPUT_MODES) -> list[CheckResult]:
-    """单个变体的完整 RoPE 正确性套件（384 项检查）。"""
+              modes: tuple = INPUT_MODES,
+              table_checks_out: dict | None = None) -> list[CheckResult]:
+    """单个变体的完整 RoPE 正确性套件（384 项检查）。
+
+    table_checks_out（可选）: 传入 dict 时, 每个 (dtype, D) 的独立
+    表值核对结果（见 check_table_independence）以 "float16_D64" 等
+    为键写入（判表不判核, 与变体无关, 折叠进 run_correctness 的
+    all_pass）。
+    """
     results: list[CheckResult] = []
     for dtype_name in dtypes:
         dtype = getattr(torch, dtype_name)
         for D in ds:
             # 每个 (dtype, D) 一张确定性 cos/sin 表（计时/测试共享构造）
             cos_t, sin_t = make_rotary_table(MAX_SEQ_LEN, D, dtype)
+            if table_checks_out is not None:
+                table_checks_out[f"{dtype_name}_D{D}"] = \
+                    check_table_independence(cos_t, sin_t, D, dtype_name)
             for M in ms:
                 for pattern in patterns:
                     pos = _build_positions(M, pattern)
@@ -313,7 +418,8 @@ def summarize(results: list[CheckResult]) -> dict:
     return s
 
 
-def save_results(results: list[CheckResult], out_path: Path) -> Path:
+def save_results(results: list[CheckResult], out_path: Path,
+                 table_checks: dict | None = None) -> Path:
     return save_suite(out_path, {
         "operator": "rope",
         "suite": "rope-correctness-v0.4",
@@ -325,12 +431,16 @@ def save_results(results: list[CheckResult], out_path: Path) -> Path:
                  "对精确 float64 旋转, K=2 余量）AND norm_rel_error <= "
                  "NRM_REL_TOL; y vs rope_ref 的 elementwise allclose 只报告"
                  "不判定（无界抵消深度下对合法 FP32 实现不是正确合同, "
-                 "见模块 docstring (1) 的 v0.4 首跑修正记录）"),
+                 "见模块 docstring (1) 的 v0.4 首跑修正记录）。"
+                 "独立表值核对（table_independence_check, 见 docstring (3)）"
+                 "按 (dtype,D) 记录, 由 run_correctness 折叠进 all_pass"),
         "reference": ("rope_ref: x.float() 提升, 与内核同一张 cos/sin 表"
                       "（FP32 提升后运算）, 旋转后 cast 回 x dtype; "
                       "exact 参考 = rope_ref64（fp64 精确旋转）"),
-        "cos_sin_table": f"L={MAX_SEQ_LEN}, base={ROPE_BASE}, "
-                         "FP32 计算后 cast 到 dtype",
+        "cos_sin_table": (f"L={MAX_SEQ_LEN}, base={ROPE_BASE}, "
+                          "FP32 计算后 cast 到 dtype（构造精度约定, 见 "
+                          "table_independence_check 的独立 fp64 核对）"),
+        "table_independence_check": table_checks or {},
         "matrix": {
             "dtypes": list(DTYPES),
             "D": list(DS),

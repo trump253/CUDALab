@@ -30,7 +30,7 @@ from .operators.rope import make_rotary_table
 ROOT = Path(__file__).resolve().parent.parent
 
 SUITE_VERSION = "negative-v0.4-rope"
-V = "rope_baseline"  # 当前唯一变体
+V = "rope_baseline"  # 默认（套件主体）变体；per-variant 用例见 build_cases
 
 
 def _post_check_ok(ext, variant: str = V) -> bool:
@@ -53,9 +53,10 @@ def build_cases(ext, variant: str = V) -> list[dict]:
     cases: list[dict] = []
 
     def add(cid, description, call, expected="reject",
-            expect_msg_contains=None):
-        cases.append(dict(id=cid, variant=variant, description=description,
-                          call=call, expected=expected,
+            expect_msg_contains=None, variant_=None):
+        cases.append(dict(id=cid, variant=variant_ or variant,
+                          description=description, call=call,
+                          expected=expected,
                           expect_msg_contains=expect_msg_contains))
 
     # ---- 合法基线（各用例在此基础上单点破坏）----
@@ -105,6 +106,26 @@ def build_cases(ext, variant: str = V) -> list[dict]:
     add("unknown_variant", "未知变体名（注册表查找失败, 非 launch 错误）",
         lambda: ext.forward("no_such_rope_variant", x, pos, cos_t, sin_t),
         expect_msg_contains="未知 rope 变体")
+
+    # ---- per-variant 整除性约束（v1/v2/v4 launcher 的 TORCH_CHECK,
+    #      v0.4 review finding 补测: 此前无 negative 用例覆盖）----
+    def add_div_case(cid, vname, d, expect_sub, desc):
+        xv = torch.randn(M, d, dtype=torch.float16, device=dev)
+        pv = torch.arange(M, dtype=torch.int64, device=dev)
+        cv, sv = make_rotary_table(L, d, torch.float16)
+        add(cid, desc,
+            lambda: ext.forward(vname, xv, pv, cv, sv),
+            expect_msg_contains=expect_sub, variant_=vname)
+
+    add_div_case("divisibility_v1_D6", "rope_v1_2pair", 6, "D%4==0",
+                 "v1_2pair 要求 D%4==0: D=6 (D/2=3, 3%2!=0) 必须在 "
+                 "launch 前拒绝")
+    add_div_case("divisibility_v2_D12", "rope_v2_4pair", 12, "D%8==0",
+                 "v2_4pair 要求 D%8==0: D=12 (D/2=6, 6%4!=0) 必须在 "
+                 "launch 前拒绝（D=12 满足 v1 的 D%4==0, 不满足 v2）")
+    add_div_case("divisibility_v4_D24", "rope_v4_8pair", 24, "D%16==0",
+                 "v4_8pair 要求 D%16==0: D=24 (D/2=12, 12%8!=0) 必须在 "
+                 "launch 前拒绝（D=24 满足 v1/v2, 不满足 v4）")
 
     # ---- positions 的契约 ----
     add("pos_len_mismatch", "positions 长度 3 ≠ M=4",
@@ -231,7 +252,7 @@ def run_negative_suite(ext, out_path: Path | None = None,
         else:
             r = _run_case_core(c["variant"], c["description"], c["call"],
                                c["expected"], c["expect_msg_contains"],
-                               lambda: _post_check_ok(ext, variant))
+                               lambda: _post_check_ok(ext, c["variant"]))
         r["id"] = c["id"]
         results.append(r)
 

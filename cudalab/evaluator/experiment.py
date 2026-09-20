@@ -121,6 +121,11 @@ def classify_cell(variants: list[str], rounds: list[dict],
     # 判据与 bench_matrix 记录级一致: winner flip 显式判；否则共同
     # top-2（filtered winner/runner）的 raw 比值 vs filtered 比值差
     # >10% 判敏感。filter_sensitive 且决策 KEEP/REJECT → UNSTABLE。
+    # v0.4 review 更正: raw 侧与 filtered 侧必须用**同一聚合约定**
+    # （per-round runner/winner 比值的中位数, 与 s["median"] 一致）;
+    # 旧版 raw 侧误用跨 round 中位数之比, 在 round 双峰格会与
+    # filtered 侧约定背离（如 (1024,128) fp32 streaming: 1.059 vs
+    # 1.0028）, 使 filter_sensitive 判定依赖约定而非数据。
     has_raw = all("us_raw" in r and winner in r["us_raw"]
                   and runner in r["us_raw"]
                   and r["us_raw"][winner] is not None
@@ -144,7 +149,12 @@ def classify_cell(variants: list[str], rounds: list[dict],
                 f"winner flip: raw winner {ranked_raw[0]!r} != filtered "
                 f"winner {winner!r}（guard 改变了结论）")
         else:
-            raw_ratio = raw_medians[runner] / raw_medians[winner]
+            raw_ratios = [r["us_raw"][runner] / r["us_raw"][winner]
+                          for r in valid
+                          if r["us_raw"][runner] is not None
+                          and r["us_raw"][winner] is not None]
+            raw_ratio = (statistics.median(raw_ratios) if raw_ratios
+                         else raw_medians[runner] / raw_medians[winner])
             fs, fs_reason = _stats.filter_sensitive(raw_ratio, s["median"])
     else:
         out["all_variants_raw_median_us"] = None

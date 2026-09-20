@@ -55,9 +55,10 @@ def compute_metrics(y: torch.Tensor, ref: torch.Tensor, dtype_name: str,
     # 用固定且已记录的容差做 allclose
     ok_close = bool(torch.allclose(y.float(), ref.float(),
                                    atol=tol["atol"], rtol=tol["rtol"]))
+    # v0.4 review (F6): 8 位小数会把 1e-9 量级的审计值舍成 0.0, 改 12 位。
     m = {
-        "max_abs_error": round(max_abs, 8),
-        "max_rel_error": round(max_rel, 8),
+        "max_abs_error": round(max_abs, 12),
+        "max_rel_error": round(max_rel, 12),
         "has_nan": has_nan,
         "has_inf": has_inf,
         "ok_close": ok_close,

@@ -1,15 +1,15 @@
 {
   "suite": "negative-v0.4-rope",
-  "generated": "2026-09-20T18:33:41+08:00",
+  "generated": "2026-09-20T23:42:32+08:00",
   "note": "非法输入必须在 kernel launch 前被明确异常拒绝；post_check_ok 验证拒绝未污染 CUDA 上下文。baseline 为标量访存，无对齐契约（见 valid_offset_view_control）。",
   "summary": {
-    "n_total": 31,
-    "n_reject_expected": 28,
-    "n_reject_ok": 28,
+    "n_total": 34,
+    "n_reject_expected": 31,
+    "n_reject_ok": 31,
     "n_pass_expected": 2,
     "n_pass_ok": 2,
     "n_skipped": 1,
-    "n_passed": 30,
+    "n_passed": 33,
     "all_pass": true
   },
   "cases": [
@@ -142,6 +142,45 @@
       "post_check_ok": true,
       "pass": true,
       "id": "unknown_variant"
+    },
+    {
+      "variant": "rope_v1_2pair",
+      "description": "v1_2pair 要求 D%4==0: D=6 (D/2=3, 3%2!=0) 必须在 launch 前拒绝",
+      "expected": "reject",
+      "status": "rejected",
+      "exception_type": "RuntimeError",
+      "message": "rope_v1_2pair 要求 D/2 可被 2 整除（D%4==0），实际 D=6",
+      "expect_msg_contains": "D%4==0",
+      "msg_match": true,
+      "post_check_ok": true,
+      "pass": true,
+      "id": "divisibility_v1_D6"
+    },
+    {
+      "variant": "rope_v2_4pair",
+      "description": "v2_4pair 要求 D%8==0: D=12 (D/2=6, 6%4!=0) 必须在 launch 前拒绝（D=12 满足 v1 的 D%4==0, 不满足 v2）",
+      "expected": "reject",
+      "status": "rejected",
+      "exception_type": "RuntimeError",
+      "message": "rope_v2_4pair 要求 D/2 可被 4 整除（D%8==0），实际 D=12",
+      "expect_msg_contains": "D%8==0",
+      "msg_match": true,
+      "post_check_ok": true,
+      "pass": true,
+      "id": "divisibility_v2_D12"
+    },
+    {
+      "variant": "rope_v4_8pair",
+      "description": "v4_8pair 要求 D%16==0: D=24 (D/2=12, 12%8!=0) 必须在 launch 前拒绝（D=24 满足 v1/v2, 不满足 v4）",
+      "expected": "reject",
+      "status": "rejected",
+      "exception_type": "RuntimeError",
+      "message": "rope_v4_8pair 要求 D/2 可被 8 整除（D%16==0），实际 D=24",
+      "expect_msg_contains": "D%16==0",
+      "msg_match": true,
+      "post_check_ok": true,
+      "pass": true,
+      "id": "divisibility_v4_D24"
     },
     {
       "variant": "rope_baseline",

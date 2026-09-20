@@ -8,8 +8,8 @@
 // 依据（baseline NCU, M=1024 D=128 fp16, cc=all clkbase）:
 //   long_scoreboard = 69.3% 的 stall（内存延迟等待）,
 //   dram 23.25% / sm 11.61% —— 延迟受限而非带宽/计算受限;
-//   baseline 每线程仅 3 个 load 在途（x 4B + cos 2B + sin 2B）。
-// 假设: 在途字节 x2（fp16: 6B -> 16B load）将把 long_scoreboard
+//   baseline 每线程 4 个标量 load 在途（a, b, c, s; fp16 共 8B）。
+// 假设: 在途字节 x2（fp16: 8B -> 16B load）将把 long_scoreboard
 // 占比与 kernel 时长同时压下来, 且 32768 线程（0.535 wave）的
 // 占用损失不抵消收益。
 //

@@ -15,12 +15,14 @@
 """
 from __future__ import annotations
 
+import statistics
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from cudalab.evaluator import decision as D      # noqa: E402
+from cudalab.evaluator import experiment as E    # noqa: E402
 from cudalab.evaluator import stats as S         # noqa: E402
 
 
@@ -305,6 +307,52 @@ def test_constructed_filter_sensitive_end_to_end():
     assert dec2 == D.UNSTABLE
     assert detail2["original_decision"] == D.KEEP
     assert "FILTER_SENSITIVE" in detail2["rule"]
+
+
+# ---- v0.4 review 更正: classify_cell 的 raw 轨聚合约定 -------------------------
+
+def test_matrix_raw_convention_median_of_round_ratios():
+    """v0.4 methodology review（finding 4, nit）钉死: classify_cell 的
+    raw 侧必须与 filtered 侧使用**同一聚合约定** —— per-round runner/
+    winner 比值的中位数（与 s["median"] 一致）, 而不是跨 round 中位数
+    之比（旧版实现）。两约定在 round 双峰格会背离, 使 filter_sensitive
+    判定依赖约定而非数据。
+
+    构造 7 个 valid round（n=7 ≥ MIN_VALID_ROUNDS）, 两变体 w/r:
+      filtered us: 每轮 (w=10.0, r=10.6) → per-round 比值恒 1.06
+                   → s["median"]=1.06 → decide_v2 = KEEP
+      us_raw 双峰: 5 轮 (10.0; 10.6/10.6/10.6/11.7) + 2 轮 (50.0, 50.0)
+        旧约定（跨 round 中位数之比）= med(r)/med(w) = 11.7/10.0 = 1.17
+             |log(1.17/1.06)| = 0.0998 > log(1.10) = 0.0953
+             → 会误判 FILTER_SENSITIVE → KEEP 被降级 UNSTABLE
+        新约定（per-round 比值的中位数）
+             = median(1.06×3, 1.17, 1.0×3) = 1.06
+             → |log(1.06/1.06)| = 0 → 不敏感 → KEEP 成立
+
+    同一份数据两约定结论相反（UNSTABLE vs SIGNIFICANT_WINNER）,
+    本测试钉住新约定。
+    """
+    raws = [(10.0, 10.6), (10.0, 10.6), (10.0, 10.6), (10.0, 11.7),
+            (50.0, 50.0), (50.0, 50.0), (50.0, 50.0)]
+    rounds = [{"valid": True,
+               "us": {"w": 10.0, "r": 10.6},
+               "us_raw": {"w": w, "r": r}} for w, r in raws]
+
+    # 先证明测试数据能区分两约定（旧约定确实会判敏感）
+    old_ratio = statistics.median(r for _, r in raws) / \
+        statistics.median(w for w, _ in raws)
+    assert abs(old_ratio - 1.17) < 1e-9
+    old_sensitive, _ = S.filter_sensitive(old_ratio, 1.06)
+    assert old_sensitive is True, "测试数据必须能区分两种约定"
+
+    out = E.classify_cell(["w", "r"], rounds)
+    assert out["filter_sensitive"] is False
+    assert out["decision"] == D.KEEP
+    assert out["status"] == E.SIGNIFICANT_WINNER
+    assert out["winner"] == "w" and out["runner_up"] == "r"
+    assert out["winner_raw"] == "w"
+    # 审计字段（per-variant raw 中位数）仍照常记录
+    assert out["all_variants_raw_median_us"] == {"w": 10.0, "r": 11.7}
 
 
 # ---- runner --------------------------------------------------------------------

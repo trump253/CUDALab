@@ -127,6 +127,8 @@ def cmd_test(a) -> int:
           f"n_pass={res['summary']['n_pass']}/{res['summary']['n_total']} "
           f"max_abs={res['summary']['max_abs_error']} "
           f"max_rel={res['summary']['max_rel_error']}")
+    if "table_check_all_pass" in res:  # rope v0.4 review: 独立表值核对
+        print(f"  table_check_all_pass={res['table_check_all_pass']}")
     print(f"  -> {res['saved']}")
     neg = op.run_negative(ext)
     s = neg["summary"]

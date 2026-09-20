@@ -313,10 +313,17 @@ print("profile driver done")
         if out_dir is None:
             out_dir = self.experiments_dir / "correctness" / "v0.4"
         out_dir.mkdir(parents=True, exist_ok=True)
-        results = run_suite(variant, ext)
-        saved = save_results(results, out_dir / f"{variant}.json")
+        # v0.4 review: 独立表值核对（判表不判核, 补 arith/norm 两门的
+        # 共同模式盲区）按 (dtype,D) 记录并折叠进 all_pass。
+        table_checks: dict = {}
+        results = run_suite(variant, ext, table_checks_out=table_checks)
+        saved = save_results(results, out_dir / f"{variant}.json",
+                             table_checks=table_checks)
         s = summarize(results)
-        return {"all_pass": s["all_pass"], "summary": s, "saved": str(saved)}
+        table_ok = all(tc["passed"] for tc in table_checks.values())
+        return {"all_pass": bool(s["all_pass"] and table_ok),
+                "table_check_all_pass": table_ok,
+                "summary": s, "saved": str(saved)}
 
     def run_negative(self, ext) -> dict:
         from ..rope_negative import run_negative_suite

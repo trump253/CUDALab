@@ -1,8 +1,10 @@
 // CUDALab RoPE — ROPE-0004 候选: 一个 thread -> 8 个 RoPE pair。
 //
 // 相对 rope_baseline 的唯一改动: 每线程处理相邻的 8 个 pair，
-// grid 缩为 M * (D/16)。24 次 global load 全部 hoist 到计算之前
-// （fp16 下每线程在途 load 字节 6B -> 48B），store 推迟到最后。
+// grid 缩为 M * (D/16)。32 次 global load（16 x + 8 cos + 8 sin）
+// 全部 hoist 到计算之前（fp16 下每线程在途 load 字节 8B -> 64B），
+// store 推迟到最后。（v0.4 review 更正: 原注释误写 24 次/48B,
+// 按源码 kPairs=8 × 4 loads 实为 32 次/64B。）
 //
 // 依据（baseline NCU, M=1024 D=128 fp16, cc=all clkbase）:
 //   long_scoreboard = 69.3% 的 stall —— 延迟受限; DRAM 仅 23%。
