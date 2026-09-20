@@ -223,3 +223,27 @@ CI 上界 0.9669 < 1.0）与 hot median 0.9969（CI 含 1.0）→
 4. **时钟读数不可作为负载状态证据**（§2.1）: v2.2 记录不再含
    round 内时钟字段；`gpu_state_before` 反映的是 run 前的
    空闲/过渡态，只作环境参考。
+
+## 7. v0.3.1 登记：guard 不对称性（KNOWN LIMITATION）
+
+**KNOWN LIMITATION: spike / cross-block guards are asymmetric and may
+preferentially reject slow excursions.**
+
+- **机制**: spike guard（样本 > 1.5× 运行中 clean 基线中位数）与
+  cross-block guard（block 中位数 > 运行中位数 ×1.15）都只拒绝
+  **异常慢**的状态（ratio > 阈值），不拒绝异常快的状态。若机器瞬时
+  进入更快的状态（时钟上跳、邻近进程退出），快样本会原样进入统计，
+  而慢 excursion 被剔除——选择偏差方向：不对称拒绝可能轻微偏向
+  "候选更快"一侧。
+- **对 v0.3 数据的影响评估**: SFM-0001 primary（(128,4096) fp16 paired，
+  harness paired-streaming-v2.2）streaming 记录
+  `invalid_spikes_rounds=0`、`invalid_crossblock_rounds=0`（hot 同为 0）
+  ——决定性 run 上两个 guard 均未触发，1.68× 结论不依赖这些过滤；
+  全部 36 格矩阵记录均可按 `invalid_spikes_rounds` /
+  `invalid_crossblock_rounds` 字段逐格审计。v0.3.1 RMSNorm 回归复验
+  （`benchmarks/v0.3.1_regression/`）记录同样带该计数字段，用于
+  确认回归门未触发 guard。
+- **Evaluator v2.3 TODO**: 引入对称阈值（快离群同样判无效）或
+  log-latency 稳健偏差（如 log t 的 median/MAD，方向不敏感），
+  消除不对称剔除带来的选择偏差；v2.3 的判据与记录字段对 v2.2
+  保持向后兼容（只增字段，不改写既有语义）。

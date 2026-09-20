@@ -124,3 +124,25 @@
 | 2 | 边界决策脆弱（SFM-0002 streaming 等） | 维持 NEUTRAL（规则未改、按既定规则判定正确）；残余风险（n=9 功效 + <15% guard 盲区）已在 `docs/evaluator_hardening_v0.3.md` §6 列出，最终报告 Q6 同步披露 |
 | 3a | 机器状态漂移 | 已声明（v2.2 文档 + 本分支各处）；最终报告 Q6 作为 Evaluator Generalization Verdict 的限定条件之一 |
 | 3b | SFM-0004.md 日期笔误 | 已修正为 2026-09-19 |
+
+## 8. v0.3.1 补记（2026-09-20，merge review 修复后）
+
+本审计的 findings（#1–#3）结论不变。v0.3.1 修复 4 项 merge review
+finding（hsplit2 隔离、统计语义澄清、带宽表述更正、evaluator 局限
+登记），**未改动任何基准数据或判定**：
+
+- Fix 1–3 不触碰数值/判定记录：hsplit2 原判 REJECT，本就不在
+  best.json 链上，隔离只改 dispatch 面；统计语义与带宽更正为措辞层。
+- 新增 KNOWN LIMITATION（对 caveat #2 的补充）：spike / cross-block
+  guard **不对称，可能偏好性拒绝慢 excursion**
+  （"KNOWN LIMITATION: spike / cross-block guards are asymmetric and
+  may preferentially reject slow excursions."）。证据核查：SFM-0001
+  primary streaming 记录 `invalid_spikes_rounds=0`、
+  `invalid_crossblock_rounds=0`（hot 同为 0）；v0.3.1 RMSNorm 回归
+  （`benchmarks/v0.3.1_regression/`，v4_vec_reg vs v1_vec，(128,4096)
+  fp16，2 模式 × 9 rounds，2026-09-20）18/18 valid，
+  invalid_environment/spikes/crossblock 全为 0——guard 不对称性在
+  决定性 run 与回归 run 上均未触发，未影响任何已发布数字。
+- 后续：Evaluator v2.3 TODO（对称阈值或 log-latency 稳健偏差）已登记
+  于 `docs/evaluator_hardening_v0.3.md` §7 与最终报告 Q6 §8；属
+  evaluator 演进项，不在 v0.3.1 范围。

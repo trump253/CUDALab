@@ -13,6 +13,43 @@
   其中 21 格 winner 统计显著快于 runner-up 但改进 <5%，详见 Q4）；全部数字可逐项复现（独立审计 PASS WITH CAVEATS）。最重要的
   caveat 是 **(128,4096) fp16 hot 模式的机器态敏感性**——详见 Q6。
 
+## v0.3.1 合并修复（merge review 修复，2026-09-20，本分支追加）
+
+merge review 提出的 4 项 finding 全部修复。**不新增内核、不新增实验、
+不开始 v0.4**；v0.3 全部基准/剖析数据不变（仅措辞、语义与登记层修改）：
+
+1. **`softmax_hsplit2` 隔离**（UNSAFE_HISTORICAL_EXPERIMENT / REJECT /
+   NOT_FOR_NORMAL_DISPATCH）：跨 block spin-wait 依赖 CUDA 调度模型不保证的
+   并发驻留假设（liveness/死锁风险），HsGlobal scratch 为进程级共享状态
+   （多 stream / 多 device race 风险）。已从默认 `variants()` 移除，
+   test/benchmark/profile/optimize 全部 CLI 与引擎路径拒绝；内核与
+   SFM-0004 全部历史证据原样保留。显式 `ext.forward` 调用保留为受控
+   审计入口（SFM-0004.md §6；验证 `experiments/softmax/v0.3.1/`）。
+2. **统计语义澄清**：区分 `statistical_relation`
+   （FASTER/SLOWER/UNRESOLVED）与 `policy_decision`
+   （KEEP/REJECT/NEUTRAL/UNSTABLE）。"CI95 排除 1.0 但 <5%" 是政策
+   NEUTRAL（统计显著但改进未达 ≥5% 实质门槛），不再表述为"统计平局"；
+   移除"结构最优 / 设计空间闭合"表述。`softmax_vec4` 是当前 acceptance
+   policy 下的 incumbent；后续候选尚未达到 ≥5% 的替换门槛。
+3. **带宽表述更正**：2080 Ti 规格峰值 **616 GB/s**（此前误写 550）；
+   `algorithmic_bw_gbps` 是逻辑算法流量（算法 IO / 时间），不是实测
+   DRAM 吞吐——M=1024 H=4096 无 NCU DRAM 证据（逻辑吞吐 485 GB/s =
+   78.7% 规格峰值），"DRAM 饱和 / 带宽墙"类断言撤回或弱化，是否真正
+   饱和需对应形状 NCU 验证；working-set 表述统一为"是否 > L2 取决于
+   shape，以 `working_set_gt_l2` 为准"。
+4. **Evaluator 已知局限登记**：spike / cross-block guard 不对称，可能
+   偏好性拒绝慢 excursion（KNOWN LIMITATION，Q6 §8）；Evaluator v2.3
+   TODO；v0.3.1 RMSNorm 回归复验记录于 `benchmarks/v0.3.1_regression/`。
+
+**v0.3.1 验证**（2026-09-20，`experiments/softmax/v0.3.1/`）：CPU 测试
+18/18（evaluator）+ 20/20（softmax）+ 6/6（dispatch）；正确性 4 个正常
+变体各 72/72；negative 套件 14/14 + 1 skip（与 v0.3 一致）；隔离门禁全
+过（正常列表 4 变体不含 hsplit2）；hsplit2 仅经显式 `ext.forward` 受控
+入口可调用（max_abs_diff 4.768e-07）；SFM-0004 数据字节级未动。
+按 review 约定不需要 36 格重跑与 SFM-0001 重基准。
+commits：`4267102`（隔离）/ `6748670`（统计语义）/ `a84d02b`（带宽
+更正）/ 本 commit（局限登记 + 回归记录）。
+
 ---
 
 ## 0. 范围与方法学
@@ -353,6 +390,36 @@ kernel **launch 前**被拒（`TORCH_CHECK`）；无 per-variant 特殊路径进
 计时（回退路径与 baseline 共享同一份标量核，审计确认无偏置）；
 incumbent/best 由 `evaluator.experiment.classify_cell` 产生，无手工指定；
 NO_UNIQUE_WINNER/REJECT 均如实记录（未为"成功故事"翻转任何判定）。
+
+### 8. v0.3.1：Evaluator 已知局限（guard 不对称性）
+
+**KNOWN LIMITATION: spike / cross-block guards are asymmetric and may
+preferentially reject slow excursions.**
+
+spike guard（样本 > 1.5× 运行中 clean 基线中位数）与 cross-block guard
+（block 中位数 > 运行中位数 ×1.15）都只拒绝**异常慢**的状态，不拒绝
+异常快的状态：若机器瞬时进入更快的状态，快样本会原样进入统计，而慢
+excursion 被剔除——选择偏差方向为可能轻微偏向"候选更快"一侧。
+
+- **对 v0.3 数据的影响**：SFM-0001 primary（(128,4096) fp16 paired）
+  streaming 记录 `invalid_spikes_rounds=0`、`invalid_crossblock_rounds=0`
+  （hot 同为 0）——决定性 run 上 guard 未触发，1.68× 结论不依赖这些
+  过滤；36 格全部记录可按这两个字段逐格审计。
+- **v0.3.1 回归复验**（`benchmarks/v0.3.1_regression/`，2026-09-20
+  15:29–15:30 +08:00，harness paired-streaming-v2.2，v4_vec_reg 为
+  parent / v1_vec 为 candidate，(128,4096) fp16，2 模式 × 9 rounds）：
+  18/18 valid，`invalid_environment_rounds` / `invalid_spikes_rounds` /
+  `invalid_crossblock_rounds` 全为 0——回归门未触发 guard。决策：
+  streaming median 0.9489 [0.9253, 0.9584]，candidate 更快 1/9 →
+  **REJECT**（v1 较慢，v4 > v1 与 v0.2 方向一致；2026-09-19 同日 R7
+  同对为 0.9592 NEUTRAL，跨运行受机器态影响，运行内配对仍有决策意义）；
+  hot median 0.9710 [0.9635, 0.9768]，1/9 → **NEUTRAL**（CI95 排除
+  1.0、统计上 v4 更快，但 median 未过 0.95 实质门槛 → 政策 NEUTRAL，
+  与 Q4 的 SFM-0002 语义澄清同类）。
+- **Evaluator v2.3 TODO**：对称阈值（快离群同样判无效）或
+  log-latency 稳健偏差（log t 的 median/MAD，方向不敏感），消除不
+  对称剔除的选择偏差。已登记于 `docs/evaluator_hardening_v0.3.md`
+  §7 与 `docs/benchmark_audit_v0.3.md` §8。
 
 ---
 
