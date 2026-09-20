@@ -152,6 +152,7 @@ valid<5 → UNSTABLE；1350 vs 1905 拦截行为有单元测试覆盖；复验 4
 
 ### Phase 5 — hot / streaming cache modes ✅ 已完成
 （POOL_SIZE=16 轮换 buffer；(128,4096) fp16 streaming working_set 33.5 MB > L2 5.5 MB；
+是否 > L2 取决于 shape，以 JSON 中的 `working_set_gt_l2` 字段为准；
 pool_size/working_set_bytes/element_size 均记录于 JSON）
 
 原计划:

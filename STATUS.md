@@ -50,7 +50,7 @@ v0.1 的 best，`best.json` 为 v0.2 当前最佳。
 | 项目 | v0.2 结果 |
 |---|---|
 | 正确性 | 5/5 变体 76/76 PASS（`correctness/v0.2/`）+ 负例套件 29/30 符合预期（1 多 GPU 用例单卡环境跳过） |
-| 基准 harness | `paired-streaming-v2`：配对 A/B 交替、DVFS guard（>5% 拒轮）、hot/streaming 双模式、预分配 16-buffer 池（streaming 工作集 33.5 MB > 5.5 MB L2） |
+| 基准 harness | `paired-streaming-v2`：配对 A/B 交替、DVFS guard（>5% 拒轮）、hot/streaming 双模式、预分配 16-buffer 池（streaming 是否 > L2 取决于 shape，以 `working_set_gt_l2` 为准；v0.2 主形状 (128,4096) fp16 = 33.5 MB > 5.5 MB L2） |
 | 全矩阵 | 7 形状 × {fp16,fp32} × {hot,streaming} × 5 变体 = 28 run，**369/369 rounds valid**（0 DVFS invalid，全程 1350 MHz） |
 | 主形状 fp16 (128,4096) | **无统计唯一胜出者（NO_UNIQUE_WINNER，v0.2.1 语义修正）**：streaming（primary）v1/v2/v4 两两 NEUTRAL；hot（secondary）v4 vs v1 REJECT v1（median v4/v1 0.9327，0/9 轮 v1 更快）、v4 vs v2 NEUTRAL；v4_vec_reg 保留为 v0.1 incumbent（非统计确认唯一最佳）；vs baseline 1.56×（hot）/ 1.87×（streaming） |
 | fp32 | **v2_reg 为最佳**（vs v4：1.37× streaming / 1.62× hot，KEEP） |
@@ -105,7 +105,9 @@ v0.2 review 提出的 4 项 findings 全部修复（无新内核、无 v0.2 数�
 - DVFS guard 只能检测并拒绝失配轮，不能预防；nvidia-smi 轮询是区间外代理采样。
 - NCU `--clock-control base` 在容器内无锁频正面证据。
 - 矩阵模式 round-level ratio 对离群干扰轮敏感（winner 仅指示性，判定以 paired 为准）。
-- streaming 33.5 MB 工作集未达 DRAM 带宽饱和；M=1 区域 launch-bound。
+- `algorithmic_bw_gbps` 为逻辑算法流量（算法 IO / 时间），非实测 DRAM 带宽，
+  不能由它断言"饱和 / 未达饱和"（v0.3.1 更正：2080 Ti 规格峰值 616 GB/s）；
+  M=1 区域 launch-bound。
 - compute-sanitizer 不可用（未做越界/竞态检查）。
 - 分发表（v0.2.1）仅在 3 个实测格路由优化变体（2 个 paired-evidence + 1 个
   incumbent-fallback），其余实测/未实测组合一律 baseline（evidence > coverage）。

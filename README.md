@@ -112,7 +112,8 @@ v0.2 交付：
   （v0.2.1 增补 2 例 v4 FP32 H=1024 对齐回归）；
 - **配对基准 harness `paired-streaming-v2`**：A/B 交替顺序去偏、每轮 3 次 SM 时钟
   采样的 DVFS guard（>5% 相对差判 invalid round）、hot/streaming 双缓存模式、
-  预分配缓冲池（streaming 工作集 33.5 MB > 5.5 MB L2）；
+  预分配缓冲池（streaming 工作集是否 > L2 取决于 shape，以记录中的
+  `working_set_gt_l2` 为准；v0.2 主形状 (128,4096) fp16 = 33.5 MB > 5.5 MB L2）；
 - **round-level 统计与决策引擎**（纯 CPU、可单测）：paired speedup 中位数 +
   bootstrap 95% CI（固定种子 20260919）+ KEEP/REJECT/NEUTRAL/UNSTABLE 四态判定；
 - **NCU 方法学审计**：`--cache-control` 语义修正（v0.2.1，此前写反）——
@@ -155,8 +156,9 @@ CPU 输入、非连续输入、out 张量错配、bf16、eps=NaN/负、v1/v4 指
 | **v4_vec_reg** | **6.610** | **1.56×** | **7.039** | **1.87×** |
 
 - **hot** = 固定预分配 buffer（L2 热）；**streaming** = 16 组 buffer 逐 launch
-  轮转（工作集 33.5 MB > L2 5.5 MB，每次 launch 面对冷 L2）。streaming 延迟更高
-  是**真实访存成本**，不是测量缺陷；两种模式都如实报告。
+  轮转（是否 > L2 取决于 shape，以 `working_set_gt_l2` 为准；v0.1 主形状
+  (128,4096) fp16 = 33.5 MB > L2 5.5 MB，每次 launch 面对冷 L2）。streaming
+  延迟更高是**真实访存成本**，不是测量缺陷；两种模式都如实报告。
 - 配对判定（9 rounds，bootstrap CI95）：
   - v4 vs baseline：streaming 1.896× [1.860, 1.908]、hot 1.740× [1.680, 1.771] → **KEEP v4**
   - v1 vs baseline：streaming 1.730×、hot 1.761× → v1 显著快于 baseline
@@ -521,8 +523,11 @@ final_reval/ + best.json）、`benchmarks/softmax/`、`profiles/softmax/`、
 - 矩阵模式（round-robin，非配对）的 round-level ratio 对离群干扰轮敏感
   （如 (16,4096) fp32 hot 的 round 2 有 3/5 变体升至 10–13 µs，且该轮时钟恒
   1350 MHz、DVFS guard 未拦截）：矩阵 winner 仅指示性，最终判定以 paired A/B 为准。
-- streaming 工作集 33.5 MB 仍不足以让 DRAM 带宽完全饱和（M=1024 行才接近）；
-  M=1 区域是 launch-bound，绝对延迟无意义。
+- `algorithmic_bw_gbps` 是逻辑吞吐（算法 IO / 时间），不是实测 DRAM 带宽，
+  不能由它得出"饱和 / 接近饱和"结论（v0.3.1 措辞更正：2080 Ti 规格峰值
+  616 GB/s，(1024,4096) fp16 streaming 逻辑吞吐 ≈485 GB/s = 78.7% 规格峰值，
+  DRAM 饱和未建立，是否真正达到饱和需对应 NCU 验证）；M=1 区域是
+  launch-bound，绝对延迟无意义。
 - `compute-sanitizer` 不可用，未做越界/竞态检查（v0.1/v0.2 均如此）。
 - 分发表（v0.2.1 证据政策）仅在 3 个实测格路由优化变体（2 个 paired-evidence +
   1 个 incumbent-fallback）；其余实测格（matrix-only，含 hot/streaming 冲突格）
@@ -540,4 +545,4 @@ final_reval/ + best.json）、`benchmarks/softmax/`、`profiles/softmax/`、
 - 引入 compute-sanitizer（越界/竞态）作为正确性的第二道门。
 - fp32 路径专项：v4 的 fp32 寄存器路径是已知弱点（v2 快 1.37–1.62×），
   允许新变体时优先做 fp32 向量化重设计。
-- 更大 M（8192/16384）矩阵，覆盖 DRAM 带宽饱和区。
+- 更大 M（8192/16384）矩阵，覆盖带宽敏感区（DRAM 饱和判断需对应 NCU 验证）。
