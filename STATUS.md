@@ -1,8 +1,23 @@
 # CUDALab — 状态
 
 **日期：** 2026-09-19
-**阶段：** v0.3 — Evaluator Generalization + Softmax Autonomous Optimization（数据与文档全部完成，已 push `v0.3-softmax`）
-**状态：** 分支 `v0.3-softmax`（基线 main = v0.2.1 = dfe9e9b），**不 merge 回 main、不开始 v0.4**；报告后 STOP 等外部 reviewer。
+**阶段：** v0.3 + v0.3.1 合并修复（Merge Fix，4 项 review finding，无新内核）
+**状态：** 分支 `v0.3-softmax`（基线 main = v0.2.1 = dfe9e9b），**不 merge 回 main、不开始 v0.4**；v0.3.1 完成后 STOP 等最终 merge review。
+
+## v0.3.1 合并修复摘要（2026-09-19）
+
+针对 v0.3 分支 review 的 4 项 finding，只修 finding、不加内核、不重跑全矩阵：
+
+| # | Finding | 处置 |
+|---|---|---|
+| 1 | `softmax_hsplit2` 依赖 CUDA 调度模型不保证的跨 block 并发驻留假设（spin-wait → liveness 风险）+ HsGlobal 进程级 scratch race 风险 | **隔离**：UNSAFE_HISTORICAL_EXPERIMENT / REJECTED / NOT_FOR_NORMAL_DISPATCH；默认 `ext.variants()` 移除（bindings.cpp quarantine 集），CLI/引擎显式请求明确拒绝；内核源码与全部 SFM-0004 数据保留。SFM-0004.md §6 |
+| 2 | "CI 排除 1.0 但 <5%" 被误称为"统计平局"；"结构最优 / 设计空间闭合"过度外推 | 区分 `statistical_relation`（FASTER/SLOWER/UNRESOLVED）与 `policy_decision`（KEEP/REJECT/NEUTRAL/UNSTABLE）；README/报告/best.json 措辞更正为"`softmax_vec4` 是当前 acceptance policy 下的 incumbent；后续候选尚未达到 ≥5% 的替换门槛" |
+| 3 | 2080 Ti 峰值误写 550 GB/s；由 `algorithmic_bw_gbps`（逻辑流量）推出"DRAM 饱和 / 带宽墙"不成立 | 更正为 **616 GB/s**；(1024,4096) fp16 ≈ 485 GB/s 逻辑吞吐 = 78.7% 卡规格，**是否真正达到 DRAM 饱和需要对应 NCU 验证（该形状无 NCU DRAM 证据）**；相关"饱和/带宽墙"结论撤回或弱化 |
+| 4 | v2.2 spike / cross-block guard 不对称（只拒绝异常慢状态）→ 潜在选择偏差 | 在 `docs/evaluator_hardening_v0.3.md`、`docs/benchmark_audit_v0.3.md`、最终报告登记 KNOWN LIMITATION + Evaluator v2.3 TODO；注明 SFM-0001 primary streaming 记录 invalid_spikes=0 / invalid_crossblock=0（1.68× 不依赖这些过滤）；不重跑 v0.3 数据 |
+
+顺手清理：无效轮计数字段更名 `invalid_environment_rounds`（旧名 `invalid_dvfs_*`
+保留为 legacy alias）；README streaming 工作集表述改为"是否 > L2 取决于 shape，
+以 `working_set_gt_l2` 为准"（主目标 (128,4096) fp16 为 33.5 MB）。
 
 ## v0.3 完成摘要（2026-09-19）
 
@@ -18,7 +33,7 @@
 | RMSNorm 回归硬门 | **PASS**（eae07bb；最终复跑 85faeca）：CPU tests + negative 29/30+1 skip + 正确性 v4_vec_reg/baseline 76/76 + (128,4096) fp16 paired 全兼容 v0.2 结论 |
 | 正确性 / 负例 | 5 个 softmax 变体全部 72/72（容差逐变体相同，fp16 atol 2e-3/rtol 5e-3）；negative 14/14+1 skip（launch 前 TORCH_CHECK） |
 | 基准矩阵 | 36 格 × 5 变体 full5 + base/inc 各 36 格，全部 9/9 valid；主目标 (128,4096) fp16 |
-| 自主优化实验 | **4/4**（profiler→hypothesis 驱动）：SFM-0001 `softmax_vec4` **KEEP**（streaming 1.6772→1.6890 稳健复现；hot 记录值 1.2916 存在机器态漂移，final_reval 0.9865 NEUTRAL，已披露）→ **incumbent = `softmax_vec4`**；SFM-0002 online NEUTRAL（瓶颈是延迟不是带宽）；SFM-0003 vec4_ilp2 NEUTRAL（每线程 ILP 不是杠杆）；SFM-0004 hsplit2 **REJECT**（occupancy 44%→86% 但 barrier stall 5.6%→31-35%，不 occupancy-bound）。**四轴设计空间闭合，失败内核全部保留** |
+| 自主优化实验 | **4/4**（profiler→hypothesis 驱动）：SFM-0001 `softmax_vec4` **KEEP**（streaming 1.6772→1.6890 稳健复现；hot 记录值 1.2916 存在机器态漂移，final_reval 0.9865 NEUTRAL，已披露）→ **incumbent = `softmax_vec4`**；SFM-0002 online NEUTRAL（瓶颈是延迟不是带宽）；SFM-0003 vec4_ilp2 NEUTRAL（每线程 ILP 不是杠杆）；SFM-0004 hsplit2 **REJECT**（occupancy 44%→86% 但 barrier stall 5.6%→31-35%，不 occupancy-bound），v0.3.1 起 **隔离**（UNSAFE_HISTORICAL_EXPERIMENT / NOT_FOR_NORMAL_DISPATCH，见 §6）。**失败内核全部保留（历史证据）**；四个正交维度测完 ≠ 设计空间穷尽（v0.3.1 措辞更正） |
 | best.json | `experiments/softmax/best.json`（classify_cell，v0.2.1 语义）：36 格全部 **NO_UNIQUE_WINNER**（win/runner-up 比值 0.998–1.048 < 1.05）；17 格 INCUMBENT 标签（vec4 在 top-2）/ 19 NO_UNIQUE_WINNER |
 | NCU | baseline vs 4 候选（双 cache-control，v0.2.1 语义）+ incumbent 复验（<1% 漂移）；per-launch µs 与 NCU dur 的时钟/L2 语义差异已在报告说明 |
 | 独立审计 | `docs/benchmark_audit_v0.3.md`：**PASS WITH CAVEATS**（数据逐项可复现、决策与规则一致、重构忠实；caveat #1 SFM-0001 hot 漂移已在 SFM-0001.md §6 + 报告披露，caveat #3b 日期笔误已修正） |

@@ -1,0 +1,75 @@
+{
+  "ts": "2026-09-20T15:12:59+08:00",
+  "purpose": "v0.3.1 merge fix — commit 1 verification (quarantine)",
+  "variant_lists": {
+    "variants(normal)": [
+      "softmax_baseline",
+      "softmax_online",
+      "softmax_vec4",
+      "softmax_vec4_ilp2"
+    ],
+    "all_variants": [
+      "softmax_baseline",
+      "softmax_hsplit2",
+      "softmax_online",
+      "softmax_vec4",
+      "softmax_vec4_ilp2"
+    ],
+    "quarantined_variants": [
+      "softmax_hsplit2"
+    ]
+  },
+  "correctness": {
+    "softmax_baseline": {
+      "all_pass": true,
+      "saved": "/root/code/cuda/experiments/softmax/v0.3.1/correctness/softmax_baseline.json",
+      "n_total": 72,
+      "n_pass": 72,
+      "n_fail": 0,
+      "max_abs_error": 7.63e-06
+    },
+    "softmax_online": {
+      "all_pass": true,
+      "saved": "/root/code/cuda/experiments/softmax/v0.3.1/correctness/softmax_online.json",
+      "n_total": 72,
+      "n_pass": 72,
+      "n_fail": 0,
+      "max_abs_error": 7.63e-06
+    },
+    "softmax_vec4": {
+      "all_pass": true,
+      "saved": "/root/code/cuda/experiments/softmax/v0.3.1/correctness/softmax_vec4.json",
+      "n_total": 72,
+      "n_pass": 72,
+      "n_fail": 0,
+      "max_abs_error": 7.63e-06
+    },
+    "softmax_vec4_ilp2": {
+      "all_pass": true,
+      "saved": "/root/code/cuda/experiments/softmax/v0.3.1/correctness/softmax_vec4_ilp2.json",
+      "n_total": 72,
+      "n_pass": 72,
+      "n_fail": 0,
+      "max_abs_error": 7.63e-06
+    }
+  },
+  "negative": {
+    "saved": "experiments/softmax/v0.3.1/negative.json",
+    "summary": {
+      "n_total": 15,
+      "n_reject_expected": 13,
+      "n_reject_ok": 13,
+      "n_pass_expected": 1,
+      "n_pass_ok": 1,
+      "n_skipped": 1,
+      "n_passed": 14,
+      "all_pass": true
+    }
+  },
+  "audit_entry_forward": {
+    "callable": true,
+    "max_abs_diff_vs_ref": 4.76837158203125e-07
+  },
+  "all_ok": true,
+  "notes": "v0.3.1 隔离后验证：正常列表 4 变体全通过正确性（72/72 各）；negative 套件 14/14+1 skip 与 v0.3 一致；hsplit2 仅经显式 ext.forward 受控入口可调用（历史审计），输出与参考一致。"
+}

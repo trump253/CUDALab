@@ -36,7 +36,17 @@ void register_softmax_variant(const std::string& name, softmax_fn_t fn);
 
 at::Tensor softmax_forward(const std::string& name, const at::Tensor& x);
 
+// 正常（可 dispatch）变体列表：不含被隔离变体。
+// v0.3.1 起 softmax_hsplit2 被隔离（UNSAFE_HISTORICAL_EXPERIMENT /
+// REJECTED / NOT_FOR_NORMAL_DISPATCH；隔离策略见 bindings.cpp 头部
+// 注释，实验记录见 experiments/softmax/SFM-0004.md）。
 std::vector<std::string> softmax_variant_list();
+
+// 全部已注册变体（含被隔离者）；仅供显式历史审计入口使用。
+std::vector<std::string> softmax_all_variant_list();
+
+// 被隔离变体列表（仅实际已注册者）。
+std::vector<std::string> softmax_quarantined_variant_list();
 
 // ---- 共享设备端辅助函数（仅限 CUDA 翻译单元）---------------------------
 

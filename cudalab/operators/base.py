@@ -4,7 +4,13 @@ evaluator 核心（cudalab/evaluator/）不含任何算子代码；算子差异�
 通过 Operator 注入：
 
 - `build()`                          构建/加载 PyTorch CUDA 扩展
-- `variants(ext)`                    已注册内核变体列表
+- `variants(ext)`                    正常（可 dispatch）内核变体列表
+                                     （被隔离变体不在其中，见
+                                     `unsafe_variants(ext)`）
+- `unsafe_variants(ext)`             被隔离变体: UNSAFE_HISTORICAL_
+                                     EXPERIMENT / REJECTED /
+                                     NOT_FOR_NORMAL_DISPATCH（仍注册，
+                                     仅供显式历史审计入口）
 - `make_bench_pool(M,H,dtype,mode,seed,pool_size)`
                                      预分配计时张量池（BenchPool；
                                      launch(ext, variant, i) 为一次
@@ -51,7 +57,18 @@ class Operator:
         raise NotImplementedError
 
     def variants(self, ext) -> list[str]:
+        """正常（可 dispatch）变体列表。所有正常基准 / 测试 / 剖析
+        路径使用本列表；被隔离变体不在其中。"""
         return sorted(ext.variants())
+
+    def unsafe_variants(self, ext) -> list[str]:
+        """被隔离变体（NOT_FOR_NORMAL_DISPATCH）: 仍注册在扩展里，但
+        已从默认 `variants()` 列表移除；显式命名调用（如
+        `ext.forward(name, x)`）是受控的历史审计入口，不属于正常
+        dispatch。默认实现: 扩展未提供 `quarantined_variants()`
+        时返回空列表（rmsnorm 扩展无隔离变体）。"""
+        fn = getattr(ext, "quarantined_variants", None)
+        return sorted(fn()) if fn is not None else []
 
     def make_bench_pool(self, M: int, H: int, dtype: torch.dtype,
                         mode: str, seed: int, pool_size: int) -> BenchPool:

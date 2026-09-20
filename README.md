@@ -12,12 +12,28 @@ CUDALab 闭环自动化内核优化：
 
 外层 LLM 智能体（开发者的编码代理）提供优化假设与内核代码；**客观、非 LLM 的评估层** —— 正确性校验框架、配对 CUDA 事件基准框架（含 DVFS guard）、Nsight Compute 集成、以及固定的 KEEP/REJECT/NEUTRAL/UNSTABLE 判定规则 —— 提供证据。智能体不能自封胜者；只有框架的数字才算数。见 [docs/design.md](docs/design.md)。
 
-## 当前状态：v0.3（Evaluator Generalization + Softmax 自主优化）
+## 当前状态：v0.3 + v0.3.1 合并修复（Evaluator Generalization + Softmax 自主优化）
 
 v0.3 回答一个问题：**v0.2 的闭环（正确性 → 配对 bench → 统计 → 决策 →
 剖析 → 实验史）能否原样迁移到第二个算子？** 分支 `v0.3-softmax`
 （基线 main = v0.2.1 = dfe9e9b），**不 merge 回 main、不开始 v0.4**。
 最终报告：[docs/report_v0.3_result.md](docs/report_v0.3_result.md)。
+
+v0.3.1（合并修复，2026-09-19；不新增内核、不重跑全矩阵）：
+- **隔离 `softmax_hsplit2`**（UNSAFE_HISTORICAL_EXPERIMENT / REJECTED /
+  NOT_FOR_NORMAL_DISPATCH）：其跨 block spin-wait 合并依赖 CUDA 调度模型
+  不保证的并发驻留假设（liveness 风险），且 HsGlobal scratch 为进程级
+  共享状态（多 stream / 多 device race 风险）。正常 `variants()` 列表
+  移除，全部 SFM-0004 历史数据保留。见 [experiments/softmax/SFM-0004.md](experiments/softmax/SFM-0004.md) §6；
+- **统计语义澄清**：区分统计关系（FASTER/SLOWER/UNRESOLVED）与政策决策
+  （KEEP/REJECT/NEUTRAL/UNSTABLE）——"CI 排除 1.0 但 <5%" 是政策
+  NEUTRAL，不再表述为"统计平局"；移除"结构最优 / 设计空间闭合"表述；
+- **带宽表述更正**：2080 Ti 规格峰值 **616 GB/s**（此前误写 550）；
+  `algorithmic_bw_gbps` 是逻辑算法流量，不是实测 DRAM 吞吐；
+- **Evaluator v2.2 已知局限登记**：spike / cross-block guard 不对称
+  （只拒绝异常慢状态），Evaluator v2.3 TODO；
+- 无效轮计数字段更名 `invalid_environment_rounds`（旧字段名 `invalid_dvfs_*`
+  保留为 legacy alias，旧 JSON 兼容）。
 
 v0.3 交付：
 - **Evaluator 通用化**（不做大规模重写）：`cudalab/evaluator/`（bench v2.2、
@@ -31,10 +47,12 @@ v0.3 交付：
   burn（≥150 launches 且 ≥300ms）+ 逐样本 spike guard（1.5× 运行中干净
   中位数）+ 跨块一致性 guard（block 中位数 > 运行中 median×1.15 →
   INVALID_CROSSBLOCK）；
-- **新算子：row-wise Softmax**（`kernels/softmax/`，5 变体，FP32 内部，
-  输出原 dtype；FP16 主 + FP32，禁 BF16；sm_75 / CUDA 11.8）；正确性
-  5 变体 × 72/72（容差逐变体相同）+ negative 14/14+1 skip（launch 前
-  `TORCH_CHECK`）；
+- **新算子：row-wise Softmax**（`kernels/softmax/`，5 个注册变体；
+  v0.3.1: `softmax_hsplit2` 被隔离为 NOT_FOR_NORMAL_DISPATCH，正常
+  `variants()` 列表 = 4 个，见 SFM-0004.md §6；FP32 内部，输出原
+  dtype；FP16 主 + FP32，禁 BF16；sm_75 / CUDA 11.8）；正确性（v0.3
+  历史数据）5 变体 × 72/72（容差逐变体相同）+ negative 14/14+1 skip
+  （launch 前 `TORCH_CHECK`）；
 - **4 个自主优化实验**（profiler → hypothesis，v0.3 语义；失败内核全部
   保留作参考实现）：
 
@@ -43,7 +61,7 @@ v0.3 交付：
   | SFM-0001 | `softmax_vec4` | 标量小事务是瓶颈（long_scoreboard 60.6%）→ 4 宽向量化 | **KEEP** → incumbent |
   | SFM-0002 | `softmax_online` | 3 读 1 写 → 2 读 1 写（online (m,l) 单遍） | NEUTRAL（瓶颈是延迟不是带宽） |
   | SFM-0003 | `softmax_vec4_ilp2` | 每线程在飞 load 加倍隐藏延迟 | NEUTRAL（ILP 不是杠杆） |
-  | SFM-0004 | `softmax_hsplit2` | occupancy 44% → 86%（H 对半分 2 块/行） | **REJECT**（barrier stall 31–35%，不 occupancy-bound） |
+  | SFM-0004 | `softmax_hsplit2` | occupancy 44% → 86%（H 对半分 2 块/行） | **REJECT**（barrier stall 31–35%，不 occupancy-bound）；v0.3.1 **隔离**：UNSAFE_HISTORICAL_EXPERIMENT / NOT_FOR_NORMAL_DISPATCH（跨 block 并发假设 + 进程级 scratch race，见 SFM-0004.md §6） |
 
   主目标 (128,4096) fp16（v0.2.1 语义，paired v2.2）：SFM-0001 **streaming
   1.6772 [1.6568,1.6794] 9/9 → KEEP**（final_reval 1.6890 稳健复现）；
@@ -285,7 +303,20 @@ harness 位于 `cudalab/evaluator/bench.py`（`cudalab/bench_v2.py` 为兼容 sh
 | SFM-0001 | `softmax_vec4` | **KEEP**（streaming 1.6772 9/9；hot 记录 1.2916，final_reval 0.9865 NEUTRAL，hot 机器态漂移已披露） | 4 宽向量化（fp16 8B/fp32 16B），回退共享标量核；**新 incumbent** |
 | SFM-0002 | `softmax_online` | NEUTRAL（hot 0.9775 / streaming 1.0413） | online (m,l) 单遍 + block merge 恒等；docs/softmax_algorithm.md + 5 CPU 恒等测试门禁；瓶颈是内存延迟不是 DRAM 带宽 |
 | SFM-0003 | `softmax_vec4_ilp2` | NEUTRAL（hot 1.0108 8/9 / streaming 0.9815 0/9） | 2 路展开，与 vec4 逐位一致；寄存器 19→28、barrier stall 上升抵消收益；每线程 ILP 不是杠杆 |
-| SFM-0004 | `softmax_hsplit2` | **REJECT**（hot 0.6752 0/9 / streaming 0.7752 0/9） | H 对半分 2 块/行 + (m,l) 跨块合并（单 launch）；occupancy 44.5%→85.7% 达成但 barrier stall 5.6%→31–35% → **不 occupancy-bound**；四轴设计空间闭合 |
+| SFM-0004 | `softmax_hsplit2` | **REJECT**（hot 0.6752 0/9 / streaming 0.7752 0/9）；v0.3.1 起 **UNSAFE_HISTORICAL_EXPERIMENT / NOT_FOR_NORMAL_DISPATCH**（隔离，见 §6 与下文） | H 对半分 2 块/行 + (m,l) 跨块合并（单 launch）；occupancy 44.5%→85.7% 达成但 barrier stall 5.6%→31–35% → **不 occupancy-bound**；v0.3.1 更正：其"无死锁"论证依赖 CUDA 调度模型不保证的跨 block 并发驻留假设（另见进程级 scratch race 风险），四个正交维度测完 ≠ 设计空间穷尽 |
+
+**v0.3.1 隔离说明（`softmax_hsplit2`）**：SFM-0004 不仅性能 REJECT，
+后续 review 还发现其依赖未被 CUDA 调度模型保证的跨 block 并发假设
+（每行 2 个普通 thread block + 全局 scratch → atomicAdd → spin-wait，
+CUDA 不保证不同 thread block 的调度顺序或并发驻留 → 设备繁忙时存在
+死锁 / liveness 风险）；第二已知风险：HsGlobal scratch 为进程级共享
+状态，多 CUDA stream / 多 device 并发调用存在 race 风险。v0.3.1 处置：
+标记 UNSAFE_HISTORICAL_EXPERIMENT / REJECTED / NOT_FOR_NORMAL_DISPATCH，
+从默认 `ext.variants()` 正常列表移除（`bindings.cpp` quarantine 集），
+统一 CLI 与基准引擎显式请求时明确拒绝；内核源码与全部 SFM-0004 实验 /
+bench / NCU 数据原样保留（历史证据）；显式 `ext.forward("softmax_hsplit2", x)`
+为受控历史审计入口。完整记录：
+[experiments/softmax/SFM-0004.md](experiments/softmax/SFM-0004.md) §6。
 
 ### v0.1/v0.2 — RMSNorm
 
@@ -346,8 +377,12 @@ kernels/softmax/          v0.3 新算子
   softmax_vec4.cu          4 宽向量化（**incumbent**，H%4≠0/未对齐回退标量核）
   softmax_online.cu        online (m,l) 单遍 + block merge
   softmax_vec4_ilp2.cu     vec4 + 2 路展开（与 vec4 逐位一致）
-  softmax_hsplit2.cu       H 对半分 2 块/行 + (m,l) 跨块合并（REJECT，保留）
-  bindings.cpp      PyTorch 扩展入口（统一 launch 前 TORCH_CHECK + 启动后检查）
+  softmax_hsplit2.cu       H 对半分 2 块/行 + (m,l) 跨块合并
+                           （**v0.3.1 隔离**: UNSAFE_HISTORICAL_EXPERIMENT /
+                           REJECTED / NOT_FOR_NORMAL_DISPATCH；历史证据保留）
+  bindings.cpp      PyTorch 扩展入口（统一 launch 前 TORCH_CHECK + 启动后检查；
+                    v0.3.1: quarantine 集 → variants() 正常列表 / all_variants()
+                    全量 / quarantined_variants() 隔离）
 scripts/
   cudalab.py            v0.3 统一 CLI：test|benchmark|profile|optimize {rmsnorm,softmax}
   bench_v2.py / profile_v2.py / test_rmsnorm.py / …   v0.2 入口（保留）
@@ -363,6 +398,7 @@ tools/env.sh        环境变量的唯一事实来源
 experiments/rmsnorm/   EXP-*.json + correctness/ + best.json / best_v0.1.json（v0.2 冻结）
 experiments/softmax/   SFM-0001…0004（MD + result/pair JSON）+ correctness/v0.3/
                        + final_reval/ + best.json（36 格 classify_cell）
+                       + v0.3.1/（合并修复验证：4 变体正确性 + negative + 隔离验证记录）
 benchmarks/softmax/    base_*/inc_*/full5_* 36 格 × 多组 + pair_*（v0.2 路径原样保留）
 benchmarks/v0.3_regression/   RMSNorm 回归硬门记录（v2.2 协议）
 profiles/softmax/      baseline vs 4 候选 NCU 对比 + per-variant 双 cache-control + raw/
@@ -407,8 +443,9 @@ $PYTHON cudalab/build.py                  # rmsnorm 扩展
 $PYTHON -c "from cudalab.build import build; build('softmax')"   # softmax 扩展
 
 # v0.3 统一 CLI（算子无关；--help 可查全部子命令）
-$PYTHON scripts/cudalab.py test softmax            # 正确性（5 变体 × 72 例）
-$PYTHON scripts/cudalab.py test rmsnorm            # 正确性（5 变体 × 76 例）
+$PYTHON scripts/cudalab.py test softmax --variant softmax_baseline   # 单变体正确性（72 例）+ negative
+$PYTHON scripts/cudalab.py test rmsnorm --variant v4_vec_reg         # 单变体正确性（76 例）+ negative
+# 注: 隔离变体（softmax_hsplit2）在 CLI 各入口被拒绝（NOT_FOR_NORMAL_DISPATCH）
 $PYTHON scripts/cudalab.py benchmark pair softmax \
     --parent softmax_baseline --candidate softmax_vec4 \
     --M 128 --H 4096 --dtype float16 --mode streaming --rounds 9

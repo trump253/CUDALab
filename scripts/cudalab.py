@@ -55,12 +55,27 @@ def _dtype(s: str) -> torch.dtype:
     return {"float16": torch.float16, "float32": torch.float32}[s]
 
 
+def _variant_gate_error(op, ext, v: str) -> str | None:
+    """统一 CLI 的变体门禁（v0.3.1 quarantine 语义）: 正常可 dispatch
+    变体返回 None；被隔离变体返回隔离提示；未知变体返回 None（由
+    调用方按原逻辑报 "未知变体"）。"""
+    if v in op.variants(ext):
+        return None
+    if v in op.unsafe_variants(ext):
+        return (f"变体 {v!r} 已被隔离（UNSAFE_HISTORICAL_EXPERIMENT / "
+                f"REJECTED / NOT_FOR_NORMAL_DISPATCH），不能进入正常"
+                f"测试 / 基准 / 剖析路径；隔离理由见该变体的实验记录")
+    return None
+
+
 def _print_pair(rec: dict):
     print(f"[pair] {rec['parent']} vs {rec['candidate']} "
           f"M={rec['shape'][0]} H={rec['shape'][1]} "
           f"{rec['dtype']} mode={rec['cache_mode']}")
+    n_invalid = rec.get("invalid_environment_rounds",
+                        rec.get("invalid_dvfs_rounds"))
     print(f"  valid rounds: {rec['valid_rounds']}/{rec['n_rounds']} "
-          f"(invalid DVFS: {rec['invalid_dvfs_rounds']})")
+          f"(invalid env: {n_invalid})")
     print(f"  parent    median: {rec['parent_median_us']} us "
           f"  algo BW: {rec['algorithmic_bw_gbps_parent']} GB/s")
     print(f"  candidate median: {rec['candidate_median_us']} us "
@@ -85,6 +100,10 @@ def cmd_test(a) -> int:
     op = get_op(a.op)
     ext = op.build()
     avail = op.variants(ext)
+    gate = _variant_gate_error(op, ext, a.variant)
+    if gate:
+        print(gate, file=sys.stderr)
+        return 2
     if a.variant not in avail:
         print(f"未知变体 {a.variant!r}; 可用: {avail}", file=sys.stderr)
         return 2
@@ -183,6 +202,10 @@ def cmd_profile(a) -> int:
     avail = op.variants(ext)
     variants = (a.variants.split(",") if a.variants else avail)
     for v in variants:
+        gate = _variant_gate_error(op, ext, v)
+        if gate:
+            print(gate, file=sys.stderr)
+            return 2
         if v not in avail:
             print(f"未知变体 {v!r}; 可用: {avail}", file=sys.stderr)
             return 2
@@ -224,6 +247,10 @@ def cmd_optimize(a) -> int:
     ext = op.build()
     avail = op.variants(ext)
     for v in (a.parent, a.candidate):
+        gate = _variant_gate_error(op, ext, v)
+        if gate:
+            print(gate, file=sys.stderr)
+            return 2
         if v not in avail:
             print(f"未知变体 {v!r}; 可用: {avail}", file=sys.stderr)
             return 2
@@ -289,6 +316,8 @@ def cmd_optimize(a) -> int:
             "parent": a.parent, "candidate": a.candidate,
             "paired_rounds": paired["n_rounds"],
             "valid_rounds": paired["valid_rounds"],
+            "invalid_environment_rounds": paired["invalid_environment_rounds"],
+            # legacy alias（v0.2–v0.3 字段名）
             "invalid_dvfs_rounds": paired["invalid_dvfs_rounds"],
             "median_speedup_parent_over_candidate": paired["median_speedup"],
             "bootstrap_ci_95": paired["bootstrap_ci_95"],

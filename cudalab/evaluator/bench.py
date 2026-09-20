@@ -71,6 +71,29 @@ v2.2 加固（2026-09-19 同日，R6 之后）:
    决策语义（KEEP/REJECT/NEUTRAL/UNSTABLE 判据）不变；v0.2/v2.1
    冻结记录不受影响（按其各自 harness 版本解释）。
 
+v0.3.1 语义澄清（2026-09-19 合并 review 之后，无重跑）:
+9. **变体隔离（quarantine）**: 正常基准路径只接受 `op.variants(ext)`
+   （正常可 dispatch 列表）中的变体。被隔离变体（NOT_FOR_NORMAL_
+   DISPATCH，如 softmax 的 `softmax_hsplit2`）若被显式请求，引擎以
+   隔离原因明确拒绝，而不是静默跳过；显式 `ext.forward(name, ...)`
+   调用是受控的历史审计入口，不属于正常 dispatch（协议见
+   `Operator.unsafe_variants`）。
+10. **无效轮计数字段更名**: v2.2 起 round 内不再做 DVFS 采样，
+    旧字段名 `invalid_dvfs_rounds` / `invalid_dvfs_only_rounds`
+    已成陈旧命名（它们统计的是 spike / cross-block 等**环境**无效
+    轮）。新记录写 `invalid_environment_rounds`（全部无效轮）与
+    `invalid_environment_only_rounds`（非 spike 类无效轮，pair 记录）；
+    旧字段名以原值保留为 legacy alias（旧 JSON 兼容；旧记录仍按旧名
+    解释）。
+11. **KNOWN LIMITATION（guard 不对称性）**: spike guard（样本 >
+    1.5× 运行中位数）与 cross-block guard（block 中位数 > 运行中位数
+    ×1.15）都只拒绝**异常慢**的状态（ratio > 阈值），不拒绝异常快的
+    状态——理论上可能偏好性剔除慢 excursion，构成选择偏差。已登记于
+    docs/evaluator_hardening_v0.3.md（Evaluator v2.3 TODO: 对称阈值
+    或 log-latency 稳健偏差）。SFM-0001 primary streaming 记录
+    invalid_spikes_rounds=0、invalid_crossblock_rounds=0，其 1.68×
+    结论不依赖这些过滤。
+
 adapter 协议（cudalab/operators/base.py::Operator）:
 - `op.name` / `op.bench_shapes` / `op.primary_target`
 - `op.make_bench_pool(M, H, dtype, mode, seed, pool_size) -> BenchPool`
@@ -196,6 +219,21 @@ def measure_block(pool: BenchPool, ext, variant: str,
             "n_clean": len(clean), "n_spike": n_spike}
 
 
+def _require_normal_variant(op, ext, v: str) -> None:
+    """正常基准路径的变体门禁（v0.3.1 quarantine 语义，见模块 docstring
+    第 9 条）: 变体必须在 `op.variants(ext)` 正常列表中；被隔离变体
+    （NOT_FOR_NORMAL_DISPATCH）明确拒绝并说明隔离原因。"""
+    if v in op.variants(ext):
+        return
+    if v in op.unsafe_variants(ext):
+        raise ValueError(
+            f"变体 {v!r} 已被隔离（UNSAFE_HISTORICAL_EXPERIMENT / REJECTED / "
+            f"NOT_FOR_NORMAL_DISPATCH），不能进入正常基准路径；隔离理由见"
+            f"该变体的实验记录。显式 ext.forward({v!r}, ...) 调用是受控的"
+            f"历史审计入口，不属于正常 dispatch")
+    raise ValueError(f"未知变体 {v}")
+
+
 def bench_pair(op, ext, parent: str, candidate: str, M: int, H: int,
                dtype: torch.dtype = torch.float16, mode: str = "streaming",
                rounds: int = ROUNDS, warmup: int = WARMUP,
@@ -205,8 +243,7 @@ def bench_pair(op, ext, parent: str, candidate: str, M: int, H: int,
     if mode not in ("hot", "streaming"):
         raise ValueError(f"未知 cache mode: {mode}")
     for v in (parent, candidate):
-        if v not in op.variants(ext):
-            raise ValueError(f"未知变体 {v}")
+        _require_normal_variant(op, ext, v)
 
     pool = op.make_bench_pool(M, H, dtype, mode, seed=seed, pool_size=POOL_SIZE)
     algo_bytes = op.algorithmic_bytes(M, H, pool.element_size)
@@ -318,13 +355,21 @@ def bench_pair(op, ext, parent: str, candidate: str, M: int, H: int,
     parent_med = statistics.median([r["parent_us"] for r in valid]) if valid else None
     cand_med = statistics.median([r["candidate_us"] for r in valid]) if valid else None
 
+    # v0.3.1: 无效轮计数的规范字段是 invalid_environment_*（round 内
+    # 已无 DVFS 采样；无效原因只有 SPIKES / CROSSBLOCK 两类环境因素）。
+    # 旧字段名 invalid_dvfs_* 以原值保留为 legacy alias（旧 JSON 兼容）。
+    n_invalid = len(rounds_out) - len(valid)
+    n_invalid_only = sum(1 for r in rounds_out
+                         if r["invalid_reason"] != "INVALID_SPIKES"
+                         and not r["valid"])
     record.update({
         "n_rounds": len(rounds_out),
         "valid_rounds": len(valid),
-        "invalid_dvfs_rounds": len(rounds_out) - len(valid),
-        "invalid_dvfs_only_rounds":
-            sum(1 for r in rounds_out if r["invalid_reason"] != "INVALID_SPIKES"
-                and not r["valid"]),
+        "invalid_environment_rounds": n_invalid,
+        "invalid_environment_only_rounds": n_invalid_only,
+        # legacy alias（v0.2–v0.3 字段名，值不变）
+        "invalid_dvfs_rounds": n_invalid,
+        "invalid_dvfs_only_rounds": n_invalid_only,
         "invalid_spikes_rounds":
             sum(1 for r in rounds_out if r["invalid_reason"] == "INVALID_SPIKES"),
         "invalid_crossblock_rounds":
@@ -360,8 +405,7 @@ def bench_matrix(op, ext, variants: list[str], M: int, H: int,
     """全矩阵 paired round-robin: 每个 round 内所有 variant 按轮换顺序
     相邻测量（同张量池），variant 位置与时间漂移解耦。"""
     for v in variants:
-        if v not in op.variants(ext):
-            raise ValueError(f"未知变体 {v}")
+        _require_normal_variant(op, ext, v)
     pool = op.make_bench_pool(M, H, dtype, mode, seed=seed, pool_size=POOL_SIZE)
     algo_bytes = op.algorithmic_bytes(M, H, pool.element_size)
     n = len(variants)
@@ -465,6 +509,8 @@ def bench_matrix(op, ext, variants: list[str], M: int, H: int,
         "variants": variants,
         "n_rounds": len(rounds_out),
         "valid_rounds": len(valid),
+        "invalid_environment_rounds": len(rounds_out) - len(valid),
+        # legacy alias（v0.2–v0.3 字段名，值不变）
         "invalid_dvfs_rounds": len(rounds_out) - len(valid),
         "invalid_spikes_rounds":
             sum(1 for r in rounds_out if r["invalid_reason"] == "INVALID_SPIKES"),

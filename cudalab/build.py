@@ -119,6 +119,10 @@ if __name__ == "__main__":
     op = sys.argv[1] if len(sys.argv) > 1 else "rmsnorm"
     ext = build(op, force="--force" in sys.argv, verbose=True)
     print(f"[{op}] 可用变体:", ext.variants())
+    q = sorted(getattr(ext, "quarantined_variants", lambda: [])())
+    if q:
+        print(f"[{op}] 被隔离变体（NOT_FOR_NORMAL_DISPATCH，"
+              f"仅供显式历史审计）:", q)
     if op == "rmsnorm":
         x = torch.randn(4, 4096, dtype=torch.float16, device="cuda")
         w = torch.randn(4096, dtype=torch.float16, device="cuda")

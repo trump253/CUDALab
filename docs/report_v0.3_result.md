@@ -105,7 +105,7 @@ baseline 重构回归（标量核移入 `softmax_scalar.h`）72/72 逐位一致�
 |---|---|---|---|
 | SFM-0002 `softmax_online` | 3 读 1 写 → 2 读 1 写（online (m,l) 单遍 + 恒等 merge；先过 docs/softmax_algorithm.md + 5 个 CPU 恒等测试门禁） | hot 0.9775 [0.9496, 1.0004] 2/9；streaming 1.0413 [1.0377, 1.0436] 9/9 | **NEUTRAL** |
 | SFM-0003 `softmax_vec4_ilp2` | vec4 基础上 2 路展开，每线程在飞 load 加倍隐藏延迟 | hot 1.0108 [1.0035, 1.0944] 8/9；streaming 0.9815 [0.9797, 0.9831] 0/9 | **NEUTRAL** |
-| SFM-0004 `softmax_hsplit2` | occupancy 44% → 86%：H 对半分 2 块/行 + (m,l) 跨块合并（单 launch） | hot 0.6752 [0.6492, 0.7220] 0/9（5.056→7.481 µs）；streaming 0.7752 [0.7246, 0.7796] 0/9（5.979→7.706 µs） | **REJECT** |
+| SFM-0004 `softmax_hsplit2` | occupancy 44% → 86%：H 对半分 2 块/行 + (m,l) 跨块合并（单 launch） | hot 0.6752 [0.6492, 0.7220] 0/9（5.056→7.481 µs）；streaming 0.7752 [0.7246, 0.7796] 0/9（5.979→7.706 µs） | **REJECT** ＋ v0.3.1 隔离（UNSAFE，见下） |
 
 **SFM-0002（流量轴）——NEUTRAL 的教训**：减一遍读（4×→3× 算法流量）没有
 带来显著收益，因为瓶颈是内存指令/事务延迟而非 DRAM 带宽（DRAM 仍只有
@@ -125,7 +125,19 @@ NEUTRAL 正确，规则未被临时调整。
 **结论：(128,4096) fp16 的 softmax 不是 occupancy-bound**——加并发换不来
 收益，因为每块的内存延迟链没有被并发摊薄（跨块同步反而引入了新的等待）。
 
-**设计空间闭合**：宽度（KEEP）→ 流量（NEUTRAL）→ 每线程 ILP（NEUTRAL）→
+**安全补记（v0.3.1 合并 review，推翻 SFM-0004.md §2 的 liveness 论证）**：
+SFM-0004 不仅性能 REJECT，后续 review 还发现其依赖未被 CUDA 调度模型保证
+的跨 block 并发假设（线性 wave 派发 + 同 wave 共驻），存在
+deadlock/liveness 风险；HsGlobal scratch 为进程级共享状态，多 CUDA
+stream / 多 device 并发调用存在 race 风险。因此 `softmax_hsplit2` 被隔离为
+**UNSAFE_HISTORICAL_EXPERIMENT / REJECTED / NOT_FOR_NORMAL_DISPATCH**：
+移出正常 dispatch 列表（`ext.variants()` 正常列表 4 变体），CLI / engine
+路径（test / benchmark / profile / optimize）一律拒绝该名称；
+`softmax_hsplit2.cu` 与全部 SFM-0004 数据原样保留，仅保留显式
+`ext.forward("softmax_hsplit2", ...)` 受控历史审计入口（详见
+`experiments/softmax/SFM-0004.md` §6）。
+
+**设计空间闭合（v0.3 原始表述；v0.3.1 措辞更正见 §"v0.3.1 合并修复"）**：宽度（KEEP）→ 流量（NEUTRAL）→ 每线程 ILP（NEUTRAL）→
 块级并行（REJECT）。**`softmax_vec4` 是 (128,4096) fp16、单 launch/行
 结构下在 sm_75 上的结构最优**。所有失败内核（online/ilp2/hsplit2）**永久
 保留在仓库**作参考实现与实验证据（`experiments/softmax/SFM-000*.md` +
@@ -313,7 +325,7 @@ NO_UNIQUE_WINNER/REJECT 均如实记录（未为"成功故事"翻转任何判定
 
 - **分支**: `v0.3-softmax`（基线 dfe9e9b = v0.2.1 = main）；**未 merge、未 tag、未开始 v0.4**
 - **evaluator 核心**: `cudalab/evaluator/{bench,stats,decision,profiler,negative,experiment,gpu,correctness}.py` + `cudalab/operators/{base,rmsnorm,softmax}.py`
-- **kernels**: `kernels/softmax/{softmax_common.h,softmax_scalar.h,softmax_baseline.cu,softmax_vec4.cu（incumbent）,softmax_online.cu,softmax_vec4_ilp2.cu,softmax_hsplit2.cu（REJECT 保留）,bindings.cpp}`
+- **kernels**: `kernels/softmax/{softmax_common.h,softmax_scalar.h,softmax_baseline.cu,softmax_vec4.cu（incumbent）,softmax_online.cu,softmax_vec4_ilp2.cu,softmax_hsplit2.cu（REJECT ＋ v0.3.1 隔离 UNSAFE_HISTORICAL_EXPERIMENT，历史证据保留）,bindings.cpp}`
 - **实验记录**: `experiments/softmax/SFM-0001.md`…`SFM-0004.md` + 各 `SFM-000*/`（result + pair JSON）+ `correctness/v0.3/`（5 变体 × 72/72 + invalid_inputs）+ `final_reval/`（最终完整重验）+ `best.json`
 - **基准**: `benchmarks/softmax/`（base_*/inc_*/full5_* 36 格 + pair_*）；`benchmarks/v0.3_regression/`（RMSNorm 回归硬门，v2/v2.1/v2.2 多轮）
 - **剖析**: `profiles/softmax/`（baseline vs 4 候选 NCU 对比 + per-variant 双 cache-control + final re-verify + raw/）
@@ -327,7 +339,8 @@ NO_UNIQUE_WINNER/REJECT 均如实记录（未为"成功故事"翻转任何判定
 - **不 merge `v0.3-softmax` 回 main、不打 tag、不开始 v0.4**（等外部
   reviewer）。
 - 不复制任何成熟 kernel 源码（4 个候选全部从零编写）；不做 BF16；
-  不做 M>8192（hsplit2 scratch 上限，且非范围）。
+  不做 M>8192（非范围；唯一的块级并行变体 hsplit2 已于 v0.3.1 隔离，
+  不进入正常 dispatch）。
 
 ## 附录 A. 复现
 
@@ -335,7 +348,7 @@ NO_UNIQUE_WINNER/REJECT 均如实记录（未为"成功故事"翻转任何判定
 cd /root/code/cuda && source tools/env.sh
 PY=/root/miniconda3/envs/pytorch/bin/python
 $PY -c "from cudalab.build import build; build('softmax')"          # softmax 扩展
-$PY scripts/cudalab.py test softmax                                 # 5 变体 × 72 例
+$PY scripts/cudalab.py test softmax --variant softmax_vec4          # 单变体 × 72 例（v0.3.1: hsplit2 已隔离，正常列表 4 变体）
 $PY scripts/cudalab.py benchmark pair softmax \
     --parent softmax_baseline --candidate softmax_vec4 \
     --M 128 --H 4096 --dtype float16 --mode streaming --rounds 9    # SFM-0001 主 paired

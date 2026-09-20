@@ -8,6 +8,15 @@
 中间量（max / exp / sum / normalize）全部 FP32，输出与 x 同 dtype。
 **不支持 BF16**（v0.3 范围: FP16 优先，FP32 自然支持）。
 
+v0.3.1 隔离（quarantine）: `softmax_hsplit2`（SFM-0004）被标记为
+UNSAFE_HISTORICAL_EXPERIMENT / REJECTED / NOT_FOR_NORMAL_DISPATCH ——
+其跨 block spin-wait 合并依赖 CUDA 调度模型不保证的 block 并发驻留
+假设，且 HsGlobal scratch 为进程级共享状态（多 stream / 多 device
+并发 race 风险）。它不在 `variants(ext)` 正常列表中；正常基准 / 测试
+/ 剖析路径均拒绝它。内核源码与全部 SFM-0004 数据保留（历史证据）；
+显式 `ext.forward("softmax_hsplit2", x)` 仍是受控历史审计入口。详见
+experiments/softmax/SFM-0004.md 与 docs/report_v0.3_result.md。
+
 参考实现（显式、FP32 内部、与 PyTorch 版本无关）:
 
     softmax_ref(x) = torch.softmax(x.float(), dim=-1).to(x.dtype)
@@ -158,7 +167,10 @@ import torch
 from cudalab.build import build
 
 ext = build("softmax")
-assert "{variant}" in ext.variants(), ext.variants()
+# 驱动模板用全量列表断言（含隔离变体），以便显式审计脚本可直接使用;
+# 但统一 CLI 的 profile 入口仍拒绝隔离变体（NOT_FOR_NORMAL_DISPATCH，
+# 隔离理由见文件头部 v0.3.1 注释与 experiments/softmax/SFM-0004.md）
+assert "{variant}" in ext.all_variants(), ext.all_variants()
 g = torch.Generator(device="cuda"); g.manual_seed(1234)
 x = torch.randn({M}, {H}, generator=g, dtype=torch.float32, device="cuda").half().contiguous()
 out = torch.empty_like(x)
