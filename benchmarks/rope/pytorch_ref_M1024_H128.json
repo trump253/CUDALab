@@ -1,0 +1,26 @@
+{
+  "operator": "rope",
+  "purpose": "PyTorch implementation context（implementation context only, 不产生 headline, 不参与判定）",
+  "generated": "2026-09-20T18:55:36+08:00",
+  "harness_note": "time_call（evaluator.bench），warmup=100, iters=200, batch=32",
+  "api": "python reference rope_ref（torch 2.4.1 无内置 RoPE op, 非公平 fused-kernel 对比）",
+  "shape": [
+    1024,
+    128
+  ],
+  "results": [
+    {
+      "dtype": "float16",
+      "median_us": 262.128,
+      "min_us": 252.992,
+      "n_samples": 200
+    },
+    {
+      "dtype": "float32",
+      "median_us": 180.343,
+      "min_us": 167.011,
+      "n_samples": 200
+    }
+  ],
+  "note": "Python 参考路径含索引 + cos/sin 表 gather + 多次 kernel 启动, 远慢于任何 fused kernel —— 仅作实现参照记录。与 baseline（fp16 streaming 6.981 us）的量级差不是 'X 倍于 PyTorch' 的性能声明（非公平对比, 无 fused RoPE op 可对比）。"
+}

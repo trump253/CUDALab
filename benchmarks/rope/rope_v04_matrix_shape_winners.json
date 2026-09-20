@@ -1,0 +1,1050 @@
+{
+  "harness": "paired-streaming-v2.3",
+  "operator": "rope",
+  "shape_winners": [
+    {
+      "shape": [
+        1,
+        64
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "winner": "rope_baseline",
+      "runner_up": "rope_v1_2pair",
+      "winner_median_us": 6.192,
+      "runner_up_median_us": 6.208,
+      "median_ratio_runner_over_winner": 1.000161,
+      "bootstrap_ci_95": [
+        0.999516,
+        1.00765
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "rope_baseline": 6.192,
+        "rope_v1_2pair": 6.208,
+        "rope_v2_4pair": 6.313,
+        "rope_v3_half2": 6.208,
+        "rope_v4_8pair": 6.338
+      },
+      "winner_raw": "rope_baseline",
+      "raw_ratio_runner_over_winner": 1.002584,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        1,
+        64
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "winner": "rope_baseline",
+      "runner_up": "rope_v1_2pair",
+      "winner_median_us": 8.917,
+      "runner_up_median_us": 8.95,
+      "median_ratio_runner_over_winner": 1.004889,
+      "bootstrap_ci_95": [
+        1.003701,
+        1.06065
+      ],
+      "valid_rounds": 7,
+      "all_variants_median_us": {
+        "rope_baseline": 8.917,
+        "rope_v1_2pair": 8.95,
+        "rope_v2_4pair": 9.049,
+        "rope_v3_half2": 9.152,
+        "rope_v4_8pair": 9.088
+      },
+      "winner_raw": "rope_baseline",
+      "raw_ratio_runner_over_winner": 1.004149,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0004 <= 0.0953）"
+    },
+    {
+      "shape": [
+        1,
+        64
+      ],
+      "dtype": "float32",
+      "cache_mode": "hot",
+      "winner": "rope_v3_half2",
+      "runner_up": "rope_v1_2pair",
+      "winner_median_us": 6.137,
+      "runner_up_median_us": 6.139,
+      "median_ratio_runner_over_winner": 1.000978,
+      "bootstrap_ci_95": [
+        0.943736,
+        1.006553
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "rope_baseline": 6.143,
+        "rope_v1_2pair": 6.139,
+        "rope_v2_4pair": 6.182,
+        "rope_v3_half2": 6.137,
+        "rope_v4_8pair": 6.22
+      },
+      "winner_raw": "rope_v3_half2",
+      "raw_ratio_runner_over_winner": 1.000489,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0002 <= 0.0953）"
+    },
+    {
+      "shape": [
+        1,
+        64
+      ],
+      "dtype": "float32",
+      "cache_mode": "streaming",
+      "winner": "rope_v2_4pair",
+      "runner_up": "rope_baseline",
+      "winner_median_us": 6.503,
+      "runner_up_median_us": 6.703,
+      "median_ratio_runner_over_winner": 0.996527,
+      "bootstrap_ci_95": [
+        0.980184,
+        1.069462
+      ],
+      "valid_rounds": 8,
+      "all_variants_median_us": {
+        "rope_baseline": 6.703,
+        "rope_v1_2pair": 6.923,
+        "rope_v2_4pair": 6.503,
+        "rope_v3_half2": 6.853,
+        "rope_v4_8pair": 6.713
+      },
+      "winner_raw": "rope_v2_4pair",
+      "raw_ratio_runner_over_winner": 1.035676,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0048 <= 0.0953）"
+    },
+    {
+      "shape": [
+        1,
+        128
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "winner": "rope_baseline",
+      "runner_up": "rope_v1_2pair",
+      "winner_median_us": 8.554,
+      "runner_up_median_us": 8.573,
+      "median_ratio_runner_over_winner": 1.002572,
+      "bootstrap_ci_95": [
+        0.957959,
+        1.005985
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "rope_baseline": 8.554,
+        "rope_v1_2pair": 8.573,
+        "rope_v2_4pair": 8.585,
+        "rope_v3_half2": 8.638,
+        "rope_v4_8pair": 8.64
+      },
+      "winner_raw": "rope_baseline",
+      "raw_ratio_runner_over_winner": 1.002221,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        1,
+        128
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "winner": "rope_v1_2pair",
+      "runner_up": "rope_baseline",
+      "winner_median_us": 6.255,
+      "runner_up_median_us": 6.31,
+      "median_ratio_runner_over_winner": 1.003696,
+      "bootstrap_ci_95": [
+        0.998872,
+        1.071507
+      ],
+      "valid_rounds": 8,
+      "all_variants_median_us": {
+        "rope_baseline": 6.31,
+        "rope_v1_2pair": 6.255,
+        "rope_v2_4pair": 6.368,
+        "rope_v3_half2": 6.441,
+        "rope_v4_8pair": 6.456
+      },
+      "winner_raw": "rope_v1_2pair",
+      "raw_ratio_runner_over_winner": 1.008793,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        1,
+        128
+      ],
+      "dtype": "float32",
+      "cache_mode": "hot",
+      "winner": "rope_baseline",
+      "runner_up": "rope_v3_half2",
+      "winner_median_us": 6.219,
+      "runner_up_median_us": 6.268,
+      "median_ratio_runner_over_winner": 1.000968,
+      "bootstrap_ci_95": [
+        0.986288,
+        1.020182
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "rope_baseline": 6.219,
+        "rope_v1_2pair": 6.288,
+        "rope_v2_4pair": 6.272,
+        "rope_v3_half2": 6.268,
+        "rope_v4_8pair": 6.336
+      },
+      "winner_raw": "rope_baseline",
+      "raw_ratio_runner_over_winner": 1.00804,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0002 <= 0.0953）"
+    },
+    {
+      "shape": [
+        1,
+        128
+      ],
+      "dtype": "float32",
+      "cache_mode": "streaming",
+      "winner": "rope_baseline",
+      "runner_up": "rope_v3_half2",
+      "winner_median_us": 6.464,
+      "runner_up_median_us": 6.464,
+      "median_ratio_runner_over_winner": 1.00031,
+      "bootstrap_ci_95": [
+        0.957746,
+        1.08507
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "rope_baseline": 6.464,
+        "rope_v1_2pair": 6.528,
+        "rope_v2_4pair": 6.576,
+        "rope_v3_half2": 6.464,
+        "rope_v4_8pair": 6.528
+      },
+      "winner_raw": "rope_baseline",
+      "raw_ratio_runner_over_winner": 1.0,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        32,
+        64
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "winner": "rope_v1_2pair",
+      "runner_up": "rope_baseline",
+      "winner_median_us": 6.144,
+      "runner_up_median_us": 6.162,
+      "median_ratio_runner_over_winner": 1.002109,
+      "bootstrap_ci_95": [
+        0.991198,
+        1.007138
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "rope_baseline": 6.162,
+        "rope_v1_2pair": 6.144,
+        "rope_v2_4pair": 6.206,
+        "rope_v3_half2": 6.171,
+        "rope_v4_8pair": 6.324
+      },
+      "winner_raw": "rope_v1_2pair",
+      "raw_ratio_runner_over_winner": 1.00293,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        32,
+        64
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "winner": "rope_baseline",
+      "runner_up": "rope_v3_half2",
+      "winner_median_us": 6.411,
+      "runner_up_median_us": 6.423,
+      "median_ratio_runner_over_winner": 1.004061,
+      "bootstrap_ci_95": [
+        0.992981,
+        1.030987
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "rope_baseline": 6.411,
+        "rope_v1_2pair": 6.439,
+        "rope_v2_4pair": 6.459,
+        "rope_v3_half2": 6.423,
+        "rope_v4_8pair": 6.602
+      },
+      "winner_raw": "rope_baseline",
+      "raw_ratio_runner_over_winner": 1.001872,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        32,
+        64
+      ],
+      "dtype": "float32",
+      "cache_mode": "hot",
+      "winner": "rope_v3_half2",
+      "runner_up": "rope_v1_2pair",
+      "winner_median_us": 6.237,
+      "runner_up_median_us": 6.294,
+      "median_ratio_runner_over_winner": 1.01046,
+      "bootstrap_ci_95": [
+        1.001757,
+        1.015873
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "rope_baseline": 6.322,
+        "rope_v1_2pair": 6.294,
+        "rope_v2_4pair": 6.336,
+        "rope_v3_half2": 6.237,
+        "rope_v4_8pair": 6.368
+      },
+      "winner_raw": "rope_v3_half2",
+      "raw_ratio_runner_over_winner": 1.009139,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        32,
+        64
+      ],
+      "dtype": "float32",
+      "cache_mode": "streaming",
+      "winner": "rope_baseline",
+      "runner_up": "rope_v3_half2",
+      "winner_median_us": 6.464,
+      "runner_up_median_us": 6.501,
+      "median_ratio_runner_over_winner": 1.00186,
+      "bootstrap_ci_95": [
+        0.980692,
+        1.010805
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "rope_baseline": 6.464,
+        "rope_v1_2pair": 6.505,
+        "rope_v2_4pair": 6.527,
+        "rope_v3_half2": 6.501,
+        "rope_v4_8pair": 6.639
+      },
+      "winner_raw": "rope_baseline",
+      "raw_ratio_runner_over_winner": 1.005724,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        32,
+        128
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "winner": "rope_v1_2pair",
+      "runner_up": "rope_baseline",
+      "winner_median_us": 6.11,
+      "runner_up_median_us": 6.127,
+      "median_ratio_runner_over_winner": 1.002467,
+      "bootstrap_ci_95": [
+        0.999022,
+        1.016039
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "rope_baseline": 6.127,
+        "rope_v1_2pair": 6.11,
+        "rope_v2_4pair": 6.144,
+        "rope_v3_half2": 6.164,
+        "rope_v4_8pair": 6.272
+      },
+      "winner_raw": "rope_v1_2pair",
+      "raw_ratio_runner_over_winner": 1.002782,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        32,
+        128
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "winner": "rope_baseline",
+      "runner_up": "rope_v3_half2",
+      "winner_median_us": 6.378,
+      "runner_up_median_us": 6.437,
+      "median_ratio_runner_over_winner": 1.003479,
+      "bootstrap_ci_95": [
+        0.995823,
+        1.018334
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "rope_baseline": 6.378,
+        "rope_v1_2pair": 6.438,
+        "rope_v2_4pair": 6.468,
+        "rope_v3_half2": 6.437,
+        "rope_v4_8pair": 6.528
+      },
+      "winner_raw": "rope_baseline",
+      "raw_ratio_runner_over_winner": 1.009251,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        32,
+        128
+      ],
+      "dtype": "float32",
+      "cache_mode": "hot",
+      "winner": "rope_baseline",
+      "runner_up": "rope_v3_half2",
+      "winner_median_us": 6.208,
+      "runner_up_median_us": 6.216,
+      "median_ratio_runner_over_winner": 1.00226,
+      "bootstrap_ci_95": [
+        0.985608,
+        1.010091
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "rope_baseline": 6.208,
+        "rope_v1_2pair": 6.238,
+        "rope_v2_4pair": 6.272,
+        "rope_v3_half2": 6.216,
+        "rope_v4_8pair": 6.392
+      },
+      "winner_raw": "rope_baseline",
+      "raw_ratio_runner_over_winner": 1.001289,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        32,
+        128
+      ],
+      "dtype": "float32",
+      "cache_mode": "streaming",
+      "winner": "rope_baseline",
+      "runner_up": "rope_v1_2pair",
+      "winner_median_us": 6.416,
+      "runner_up_median_us": 6.416,
+      "median_ratio_runner_over_winner": 0.994111,
+      "bootstrap_ci_95": [
+        0.989124,
+        1.039422
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "rope_baseline": 6.416,
+        "rope_v1_2pair": 6.416,
+        "rope_v2_4pair": 6.482,
+        "rope_v3_half2": 6.442,
+        "rope_v4_8pair": 6.592
+      },
+      "winner_raw": "rope_baseline",
+      "raw_ratio_runner_over_winner": 1.0,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        128,
+        64
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "winner": "rope_v1_2pair",
+      "runner_up": "rope_baseline",
+      "winner_median_us": 6.119,
+      "runner_up_median_us": 6.167,
+      "median_ratio_runner_over_winner": 1.007879,
+      "bootstrap_ci_95": [
+        0.993978,
+        1.023651
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "rope_baseline": 6.167,
+        "rope_v1_2pair": 6.119,
+        "rope_v2_4pair": 6.214,
+        "rope_v3_half2": 6.171,
+        "rope_v4_8pair": 6.272
+      },
+      "winner_raw": "rope_v1_2pair",
+      "raw_ratio_runner_over_winner": 1.007844,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        128,
+        64
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "winner": "rope_baseline",
+      "runner_up": "rope_v1_2pair",
+      "winner_median_us": 6.336,
+      "runner_up_median_us": 6.365,
+      "median_ratio_runner_over_winner": 1.006063,
+      "bootstrap_ci_95": [
+        0.987531,
+        1.067314
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "rope_baseline": 6.336,
+        "rope_v1_2pair": 6.365,
+        "rope_v2_4pair": 6.4,
+        "rope_v3_half2": 6.41,
+        "rope_v4_8pair": 6.521
+      },
+      "winner_raw": "rope_baseline",
+      "raw_ratio_runner_over_winner": 1.004577,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        128,
+        64
+      ],
+      "dtype": "float32",
+      "cache_mode": "hot",
+      "winner": "rope_v2_4pair",
+      "runner_up": "rope_v1_2pair",
+      "winner_median_us": 6.14,
+      "runner_up_median_us": 6.144,
+      "median_ratio_runner_over_winner": 0.99429,
+      "bootstrap_ci_95": [
+        0.985627,
+        1.00212
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "rope_baseline": 6.195,
+        "rope_v1_2pair": 6.144,
+        "rope_v2_4pair": 6.14,
+        "rope_v3_half2": 6.262,
+        "rope_v4_8pair": 6.307
+      },
+      "winner_raw": "rope_v2_4pair",
+      "raw_ratio_runner_over_winner": 1.000651,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        128,
+        64
+      ],
+      "dtype": "float32",
+      "cache_mode": "streaming",
+      "winner": "rope_v1_2pair",
+      "runner_up": "rope_baseline",
+      "winner_median_us": 6.453,
+      "runner_up_median_us": 6.463,
+      "median_ratio_runner_over_winner": 1.006245,
+      "bootstrap_ci_95": [
+        0.990195,
+        1.016708
+      ],
+      "valid_rounds": 8,
+      "all_variants_median_us": {
+        "rope_baseline": 6.463,
+        "rope_v1_2pair": 6.453,
+        "rope_v2_4pair": 6.487,
+        "rope_v3_half2": 6.466,
+        "rope_v4_8pair": 6.616
+      },
+      "winner_raw": "rope_v1_2pair",
+      "raw_ratio_runner_over_winner": 1.00155,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        128,
+        128
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "winner": "rope_baseline",
+      "runner_up": "rope_v1_2pair",
+      "winner_median_us": 6.086,
+      "runner_up_median_us": 6.118,
+      "median_ratio_runner_over_winner": 1.002465,
+      "bootstrap_ci_95": [
+        0.897074,
+        1.01042
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "rope_baseline": 6.086,
+        "rope_v1_2pair": 6.118,
+        "rope_v2_4pair": 6.217,
+        "rope_v3_half2": 6.162,
+        "rope_v4_8pair": 6.287
+      },
+      "winner_raw": "rope_baseline",
+      "raw_ratio_runner_over_winner": 1.005258,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        128,
+        128
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "winner": "rope_baseline",
+      "runner_up": "rope_v1_2pair",
+      "winner_median_us": 6.316,
+      "runner_up_median_us": 6.369,
+      "median_ratio_runner_over_winner": 1.005225,
+      "bootstrap_ci_95": [
+        0.994293,
+        1.025769
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "rope_baseline": 6.316,
+        "rope_v1_2pair": 6.369,
+        "rope_v2_4pair": 6.46,
+        "rope_v3_half2": 6.4,
+        "rope_v4_8pair": 6.458
+      },
+      "winner_raw": "rope_baseline",
+      "raw_ratio_runner_over_winner": 1.008391,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        128,
+        128
+      ],
+      "dtype": "float32",
+      "cache_mode": "hot",
+      "winner": "rope_v1_2pair",
+      "runner_up": "rope_v3_half2",
+      "winner_median_us": 5.997,
+      "runner_up_median_us": 6.049,
+      "median_ratio_runner_over_winner": 1.013063,
+      "bootstrap_ci_95": [
+        1.001334,
+        1.121278
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "rope_baseline": 6.08,
+        "rope_v1_2pair": 5.997,
+        "rope_v2_4pair": 6.12,
+        "rope_v3_half2": 6.049,
+        "rope_v4_8pair": 6.142
+      },
+      "winner_raw": "rope_v1_2pair",
+      "raw_ratio_runner_over_winner": 1.008671,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        128,
+        128
+      ],
+      "dtype": "float32",
+      "cache_mode": "streaming",
+      "winner": "rope_v1_2pair",
+      "runner_up": "rope_v2_4pair",
+      "winner_median_us": 6.413,
+      "runner_up_median_us": 6.464,
+      "median_ratio_runner_over_winner": 1.00654,
+      "bootstrap_ci_95": [
+        0.945444,
+        1.008472
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "rope_baseline": 6.511,
+        "rope_v1_2pair": 6.413,
+        "rope_v2_4pair": 6.464,
+        "rope_v3_half2": 6.502,
+        "rope_v4_8pair": 6.545
+      },
+      "winner_raw": "rope_v1_2pair",
+      "raw_ratio_runner_over_winner": 1.007953,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        1024,
+        64
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "winner": "rope_v1_2pair",
+      "runner_up": "rope_baseline",
+      "winner_median_us": 6.225,
+      "runner_up_median_us": 6.277,
+      "median_ratio_runner_over_winner": 1.002571,
+      "bootstrap_ci_95": [
+        0.972018,
+        1.061635
+      ],
+      "valid_rounds": 8,
+      "all_variants_median_us": {
+        "rope_baseline": 6.277,
+        "rope_v1_2pair": 6.225,
+        "rope_v2_4pair": 6.33,
+        "rope_v3_half2": 6.334,
+        "rope_v4_8pair": 6.405
+      },
+      "winner_raw": "rope_v1_2pair",
+      "raw_ratio_runner_over_winner": 1.008353,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        1024,
+        64
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "winner": "rope_v1_2pair",
+      "runner_up": "rope_v3_half2",
+      "winner_median_us": 6.465,
+      "runner_up_median_us": 6.501,
+      "median_ratio_runner_over_winner": 1.004015,
+      "bootstrap_ci_95": [
+        0.988833,
+        1.020202
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "rope_baseline": 6.832,
+        "rope_v1_2pair": 6.465,
+        "rope_v2_4pair": 6.527,
+        "rope_v3_half2": 6.501,
+        "rope_v4_8pair": 6.928
+      },
+      "winner_raw": "rope_v1_2pair",
+      "raw_ratio_runner_over_winner": 1.005568,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        1024,
+        64
+      ],
+      "dtype": "float32",
+      "cache_mode": "hot",
+      "winner": "rope_v1_2pair",
+      "runner_up": "rope_v3_half2",
+      "winner_median_us": 6.208,
+      "runner_up_median_us": 6.254,
+      "median_ratio_runner_over_winner": 1.010037,
+      "bootstrap_ci_95": [
+        0.94447,
+        1.013411
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "rope_baseline": 6.269,
+        "rope_v1_2pair": 6.208,
+        "rope_v2_4pair": 6.371,
+        "rope_v3_half2": 6.254,
+        "rope_v4_8pair": 6.336
+      },
+      "winner_raw": "rope_v1_2pair",
+      "raw_ratio_runner_over_winner": 1.00741,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        1024,
+        64
+      ],
+      "dtype": "float32",
+      "cache_mode": "streaming",
+      "winner": "rope_v2_4pair",
+      "runner_up": "rope_v1_2pair",
+      "winner_median_us": 6.592,
+      "runner_up_median_us": 6.606,
+      "median_ratio_runner_over_winner": 1.002882,
+      "bootstrap_ci_95": [
+        0.990535,
+        1.109489
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "rope_baseline": 6.656,
+        "rope_v1_2pair": 6.606,
+        "rope_v2_4pair": 6.592,
+        "rope_v3_half2": 6.632,
+        "rope_v4_8pair": 6.66
+      },
+      "winner_raw": "rope_v2_4pair",
+      "raw_ratio_runner_over_winner": 1.002124,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        1024,
+        128
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "winner": "rope_v1_2pair",
+      "runner_up": "rope_baseline",
+      "winner_median_us": 6.208,
+      "runner_up_median_us": 6.214,
+      "median_ratio_runner_over_winner": 1.000966,
+      "bootstrap_ci_95": [
+        0.988997,
+        1.010309
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "rope_baseline": 6.214,
+        "rope_v1_2pair": 6.208,
+        "rope_v2_4pair": 6.405,
+        "rope_v3_half2": 6.296,
+        "rope_v4_8pair": 6.4
+      },
+      "winner_raw": "rope_v1_2pair",
+      "raw_ratio_runner_over_winner": 1.000966,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        1024,
+        128
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "winner": "rope_baseline",
+      "runner_up": "rope_v4_8pair",
+      "winner_median_us": 6.54,
+      "runner_up_median_us": 6.543,
+      "median_ratio_runner_over_winner": 0.998318,
+      "bootstrap_ci_95": [
+        0.93257,
+        1.026441
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "rope_baseline": 6.54,
+        "rope_v1_2pair": 6.88,
+        "rope_v2_4pair": 6.858,
+        "rope_v3_half2": 6.589,
+        "rope_v4_8pair": 6.543
+      },
+      "winner_raw": "rope_baseline",
+      "raw_ratio_runner_over_winner": 1.000459,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        1024,
+        128
+      ],
+      "dtype": "float32",
+      "cache_mode": "hot",
+      "winner": "rope_baseline",
+      "runner_up": "rope_v3_half2",
+      "winner_median_us": 6.291,
+      "runner_up_median_us": 6.311,
+      "median_ratio_runner_over_winner": 1.000636,
+      "bootstrap_ci_95": [
+        0.93432,
+        1.008291
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "rope_baseline": 6.291,
+        "rope_v1_2pair": 6.373,
+        "rope_v2_4pair": 6.318,
+        "rope_v3_half2": 6.311,
+        "rope_v4_8pair": 7.224
+      },
+      "winner_raw": "rope_baseline",
+      "raw_ratio_runner_over_winner": 1.003179,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        1024,
+        128
+      ],
+      "dtype": "float32",
+      "cache_mode": "streaming",
+      "winner": "rope_v1_2pair",
+      "runner_up": "rope_v2_4pair",
+      "winner_median_us": 6.528,
+      "runner_up_median_us": 6.528,
+      "median_ratio_runner_over_winner": 1.002795,
+      "bootstrap_ci_95": [
+        0.946248,
+        1.009589
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "rope_baseline": 6.91,
+        "rope_v1_2pair": 6.528,
+        "rope_v2_4pair": 6.528,
+        "rope_v3_half2": 6.584,
+        "rope_v4_8pair": 7.809
+      },
+      "winner_raw": "rope_v1_2pair",
+      "raw_ratio_runner_over_winner": 1.0,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        4096,
+        128
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "winner": "rope_baseline",
+      "runner_up": "rope_v1_2pair",
+      "winner_median_us": 6.297,
+      "runner_up_median_us": 6.359,
+      "median_ratio_runner_over_winner": 1.009052,
+      "bootstrap_ci_95": [
+        0.998419,
+        1.09375
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "rope_baseline": 6.297,
+        "rope_v1_2pair": 6.359,
+        "rope_v2_4pair": 7.348,
+        "rope_v3_half2": 6.372,
+        "rope_v4_8pair": 17.666
+      },
+      "winner_raw": "rope_baseline",
+      "raw_ratio_runner_over_winner": 1.009846,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        4096,
+        128
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "winner": "rope_v1_2pair",
+      "runner_up": "rope_v3_half2",
+      "winner_median_us": 6.528,
+      "runner_up_median_us": 6.616,
+      "median_ratio_runner_over_winner": 1.016697,
+      "bootstrap_ci_95": [
+        0.950094,
+        1.026126
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "rope_baseline": 6.691,
+        "rope_v1_2pair": 6.528,
+        "rope_v2_4pair": 8.372,
+        "rope_v3_half2": 6.616,
+        "rope_v4_8pair": 18.788
+      },
+      "winner_raw": "rope_v1_2pair",
+      "raw_ratio_runner_over_winner": 1.01348,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        4096,
+        128
+      ],
+      "dtype": "float32",
+      "cache_mode": "hot",
+      "winner": "rope_v1_2pair",
+      "runner_up": "rope_baseline",
+      "winner_median_us": 11.007,
+      "runner_up_median_us": 11.287,
+      "median_ratio_runner_over_winner": 1.026163,
+      "bootstrap_ci_95": [
+        1.023486,
+        1.029163
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "rope_baseline": 11.287,
+        "rope_v1_2pair": 11.007,
+        "rope_v2_4pair": 17.432,
+        "rope_v3_half2": 11.287,
+        "rope_v4_8pair": 22.668
+      },
+      "winner_raw": "rope_v1_2pair",
+      "raw_ratio_runner_over_winner": 1.025438,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        4096,
+        128
+      ],
+      "dtype": "float32",
+      "cache_mode": "streaming",
+      "winner": "rope_v1_2pair",
+      "runner_up": "rope_baseline",
+      "winner_median_us": 13.418,
+      "runner_up_median_us": 13.873,
+      "median_ratio_runner_over_winner": 1.033408,
+      "bootstrap_ci_95": [
+        1.032292,
+        1.034953
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "rope_baseline": 13.873,
+        "rope_v1_2pair": 13.418,
+        "rope_v2_4pair": 19.492,
+        "rope_v3_half2": 13.879,
+        "rope_v4_8pair": 23.102
+      },
+      "winner_raw": "rope_v1_2pair",
+      "raw_ratio_runner_over_winner": 1.03391,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    }
+  ]
+}

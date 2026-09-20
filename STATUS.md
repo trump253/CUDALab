@@ -1,8 +1,31 @@
 # CUDALab — 状态
 
-**日期：** 2026-09-19
-**阶段：** v0.3 + v0.3.1 合并修复（Merge Fix，4 项 review finding，无新内核）
-**状态：** 分支 `v0.3-softmax`（基线 main = v0.2.1 = dfe9e9b），**不 merge 回 main、不开始 v0.4**；v0.3.1 完成后 STOP 等最终 merge review。
+**日期：** 2026-09-20
+**阶段：** v0.4 — Evaluator v2.3 + RoPE 泛化（第三算子）
+**状态：** 分支 `v0.4-rope`（基线 main = v0.3.1 = 86bd871），**不 merge 回 main、不开始 v0.5**；Phase 0–5 完成，等待全矩阵 + 文档 + 独立 review 后 push 等外部 review。
+
+## v0.4 完成摘要（2026-09-20）
+
+核心问题：**(1) evaluator 从 v2.2 → v2.3（对称 guard + raw/filtered 双轨 +
+filter-sensitivity）**；**(2) 闭环迁移到第三算子 interleaved RoPE**。
+真实目标排序：evaluator v2.3 更可信 > 第三算子自然接入 > agent 从
+profiler 证据形成有效实验——**不追求 RoPE 一定优化成功**（baseline 近
+下限时全 NEUTRAL 是 PASS，不是失败）。最终报告：`docs/report_v0.4_result.md`
+（发布时）。
+
+| 项目 | v0.4 结果 |
+|---|---|
+| Evaluator v2.3 | `paired-streaming-v2.3`（`cudalab/evaluator/`）：对称 log 空间 guard（\|log(t/ref)\|>log(F)：spike 1.5× / cross-block 1.15×，快慢同因子，parent/candidate 完全同规则）+ raw/filtered 双轨记录（每 round raw/filtered 中位数 + raw_speedup + rejected_samples{fast,slow} + environment_guard 自描述块）+ filter-sensitivity（方向翻转或 \|log(filtered/raw)\|>log(1.10) → 敏感；KEEP/REJECT + 敏感 → `apply_filter_gate` 降级 UNSTABLE 并记录 original_decision）。guard 逻辑纯 CPU 函数（stats.apply_spike_guard/block_stats/crossblock_flag/filter_sensitive）+ tests/test_evaluator_v23_cpu.py **28/28**。详见 `docs/evaluator_v2_3.md` |
+| v2.3 回归硬门 | **PASS**（RoPE 之前，`benchmarks/v2.3_regression/`，4 条 pair + gate_summary，全部 9/9 valid）：Softmax baseline vs vec4 streaming **1.6745** [1.6727,1.6793] 9/9 更快（v2.2 参考 1.6772/1.6890 精确复现，raw=filtered，rejected 0/0）；RMSNorm v4 vs v1 streaming 1.0375 [1.0279,1.0990] → 复跑 0.9576 [0.9509,0.9623]（数分钟内方向翻转，调查定性为**环境微态漂移、非 evaluator 缺陷**：raw==filtered、对称 guard 全程可审计、Softmax 对照精确复现、idle 微态漂移有前科——四项证据见 evaluator_v2_3.md §6）；hot 0.9923 [0.9893,1.0106] 带内 |
+| RoPE 算子 | interleaved RoPE（a=x[2i], b=x[2i+1], c=cos[pos,i], s=sin[pos,i]；y[2i]=a*c−b*s, y[2i+1]=a*s+b*c；FP32 中间，输出原 dtype；base=10000，max_seq_len=4096）。`kernels/rope/` 5 变体（baseline + v1_2pair + v2_4pair + v3_half2 + v4_8pair）；`cudalab/operators/rope.py` adapter（9 形状矩阵 (1,64)…(4096,128)，主目标 (1024,128)，16 缓冲池 + 共享 cos/sin 2 MiB，NCU driver，rope_ref）；FP16 主 + FP32，禁 BF16；sm_75 / CUDA 11.8 |
+| 正确性 / 负例 | baseline + 4 候选全部 **384/384**（finiteness + double-rounding 算术界 K=2 vs fp64 精确旋转 + norm 保持；与 torch 参考 allclose **报告不门控**——fp32 大值抵消 FMA 工件已文档化）；negative **30/31**（1 例为预期 PASS 对照；launch 前 TORCH_CHECK + 启动后 C10_CUDA_KERNEL_LAUNCH_CHECK） |
+| 同步验证修复 | **首跑 baseline 28.8/29.8 µs 定位为验证路径缺陷**（positions 值域检查的同步 D2H 拷贝逐 launch 强制流同步，~25–30 µs）。修复：验证拆为 meta（host 元数据，始终）+ range（`validate` 门控，默认 true）；forward/forward_into 新增 validate 参数；benchmark pool + NCU driver 传 validate=False（池契约文档化）；正确性/negative/正常调用保持默认。修正后 baseline (1024,128) fp16：**streaming 6.981 µs / 113.8 GB/s、hot 6.637 µs / 119.7 GB/s**（9/9 × 双模式）；修正前记录保留 `*_presyncfix_archive.json`（审计痕迹，不删除） |
+| Baseline NCU | (1024,128) fp16，ccall+ccnone，--clock-control base（1755MHz）：kernel 4.0 µs、dram 23.25%、sm 11.61%、occupancy 78%、long_scoreboard 69.3% —— 稳态流内 launch 发射速率受限形态 |
+| 自主优化实验 | **4/4，全部 NEUTRAL**（paired v2.3，(1024,128) fp16 streaming，parent=rope_baseline；NCU 证据驱动设计）：ROPE-0001 `rope_v1_2pair` 1.0000 [0.9849,1.0160]（NCU 单 launch −7.6% 但稳态流内无效——kernel 时长不是瓶颈）；ROPE-0002 `rope_v2_4pair` 1.0010 [0.9331,1.0211]（NCU +25%，occupancy 21.5%，波坍缩开始）；ROPE-0003 `rope_v3_half2` 0.9974 [0.9888,1.0025]（指令数削减控制——**成功的阴性对照**）；ROPE-0004 `rope_v4_8pair` 0.9922 [0.9861,1.0055]，rejected fast=39（v2.3 快侧 spike 防护真实工作；NCU +104%，occupancy 11.9%，波坍缩灾难区）。**结论**：baseline 在 (1024,128) 已贴近稳态 launch 发射下限（~6.4 µs 流内 vs ~4.0 µs NCU 单 launch）；MLP 甜区 1–2 pairs/thread；≥4 pairs 波坍缩。NCU 诊断 vs paired 决策分工成立（v1_2pair 的 NCU −7.6% 未转化为流内 ≥5% 优势，NEUTRAL 是正确决策）。**全 NEUTRAL = PASS 结局** |
+| 全矩阵 | 36 格（9 形状 × {fp16,fp32} × {hot,streaming}）× 5 变体（全部候选保留；v2/v4 的 D%8==0 / D%16==0 约束在 9 形状上全部满足）+ shape winners（`benchmarks/rope/rope_v04_matrix_*`）。31/36 格 9/9 valid、5 格 7–8/9（拒轮透明记录，全部 ≥7）；**0 格 filter-sensitive**；**无 policy 层面唯一胜出格**（36 格 winner/runner-up 比值 0.994–1.033，全部 <1.05 KEEP 线；per-cell winner 分布 baseline 16 / v1_2pair 15 / v2 3 / v3 2 / v4 0，仅指示性）。主目标 (1024,128) fp16 矩阵值（run 内）：streaming baseline 6.540 µs / hot 6.214 µs；PyTorch 2.4.1 **无内置 fused RoPE op** → Python 参考（fp16 262.1 µs / fp32 180.3 µs，`pytorch_ref_M1024_H128.json`）仅作 implementation context，不产生 "X× faster than PyTorch" headline |
+| CPU 测试 | test_evaluator_v23_cpu 28/28、test_evaluator_cpu 18/18、test_softmax_cpu 20/20、test_dispatch 6/6（无需 GPU） |
+| git | 分支 `v0.4-rope`：a591447（eval v2.3）→ c051c96（v2.3 回归门记录 + RoPE 算子/baseline/套件）→ 76a1546（validate 拆分 + 重基准）→ 4bf5f67（evaluator_v2_3.md 回归结果）→ f30d805（ROPE-0001..0004 实验）；**不 merge main、不 push 到 main** |
+| 未做（发布前） | 3 个独立 subagent review（CUDA Correctness / Benchmark Methodology / RoPE Math）+ Lead 最终审计；最终报告 `docs/report_v0.4_result.md`；final incumbent 复跑（如需要）；working tree clean + push `v0.4-rope`（**不 merge main**） |
 
 ## v0.3.1 合并修复摘要（2026-09-19）
 
