@@ -1,6 +1,6 @@
 {
   "suite": "negative-v0.4-rope",
-  "generated": "2026-09-20T18:09:04+08:00",
+  "generated": "2026-09-20T18:33:41+08:00",
   "note": "非法输入必须在 kernel launch 前被明确异常拒绝；post_check_ok 验证拒绝未污染 CUDA 上下文。baseline 为标量访存，无对齐契约（见 valid_offset_view_control）。",
   "summary": {
     "n_total": 31,
@@ -136,7 +136,7 @@
       "expected": "reject",
       "status": "rejected",
       "exception_type": "RuntimeError",
-      "message": "未知 rope 变体 'no_such_rope_variant'。正常可用: rope_baseline ",
+      "message": "未知 rope 变体 'no_such_rope_variant'。正常可用: rope_baseline rope_v1_2pair rope_v2_4pair rope_v3_half2 rope_v4_8pair ",
       "expect_msg_contains": "未知 rope 变体",
       "msg_match": true,
       "post_check_ok": true,

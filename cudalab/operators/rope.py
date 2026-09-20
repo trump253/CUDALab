@@ -217,6 +217,15 @@ class RopeOperator(Operator):
         不轮换: positions（sequential, 主基准模式; 引擎不轮换它）。
         共享常驻: cos/sin 表（shared, 字节记录在 shared_bytes 与
         pool_extra; 表在 FP32 计算后 cast 到 dtype, 计时区外）。
+
+        validate 契约（为什么计时 launch 用 validate=False）:
+        完整验证里 positions 值域检查（0<=p<L）需要一次**同步** D2H
+        拷贝, 逐 launch 强制流同步（v0.4 首跑 baseline 28.8 us 的
+        根源）。基准池在构造期已保证: 全部张量连续/设备/dtype 正确,
+        positions = 0..M-1 必然 < MAX_SEQ_LEN=4096。因此计时 launch
+        传 validate=False（仅 host 元数据检查, 无数据访问无同步, 与
+        rmsnorm/softmax 验证开销同级）。正常/测试/negative 路径一律
+        用默认 validate=True。
         """
         dev = "cuda"
         g = torch.Generator(device=dev)
@@ -244,8 +253,12 @@ class RopeOperator(Operator):
         total_logical = working_set + shared_bytes + pos_bytes
 
         def launch(ext, variant: str, i: int):
+            # validate=False: 跳过 positions 值域 D2H 同步拷贝（池已
+            # 预验证, positions=0..M-1<L）; 仍执行全部廉价 host 元数据
+            # 检查, 与 rmsnorm/softmax 的逐 launch 验证开销同级。
             ext.forward_into(variant, xs[i], positions[i],
-                             shared["cos"], shared["sin"], outs[i])
+                             shared["cos"], shared["sin"], outs[i],
+                             validate=False)
 
         return BenchPool(xs=xs, outs=outs, pool_size=len(xs),
                          working_set_bytes=working_set, element_size=es,
@@ -282,9 +295,11 @@ x = torch.randn({M}, {D}, dtype=torch.float16, device="cuda").contiguous()
 positions = make_positions({M}, {MAX_SEQ_LEN}, pattern="sequential")
 cos_t, sin_t = make_rotary_table({MAX_SEQ_LEN}, {D}, torch.float16)
 out = torch.empty_like(x)
-# 2 次不计时的预热启动（ncu --launch-skip 2），之后 4 次被剖析
+# 2 次不计时的预热启动（ncu --launch-skip 2），之后 4 次被剖析。
+# validate=False: 跳过值域 D2H 同步, 避免 host 同步干扰 kernel 计时。
 for _ in range(6):
-    ext.forward_into("{variant}", x, positions, cos_t, sin_t, out)
+    ext.forward_into("{variant}", x, positions, cos_t, sin_t, out,
+                     validate=False)
 torch.cuda.synchronize()
 print("profile driver done")
 """

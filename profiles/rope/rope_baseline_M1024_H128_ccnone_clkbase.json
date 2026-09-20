@@ -1,0 +1,90 @@
+{
+  "variant": "rope_baseline",
+  "shape": [
+    1024,
+    128
+  ],
+  "ncu_version": "2022.3.0.0",
+  "cache_control": "none",
+  "clock_control": "base",
+  "clock_lock_warning": null,
+  "kernel_name": "void <unnamed>::rope_baseline_kernel<__half>(const T1 *, const long *, const T1 *, const T1 *, T1 *, long, long)",
+  "kernel_duration_us": 3.792,
+  "l1_hit_rate": {
+    "value": 42.09,
+    "unit": "%"
+  },
+  "l2_read_hit_rate": {
+    "value": 21.45,
+    "unit": "%"
+  },
+  "dram_throughput_pct": 25.2,
+  "sm_throughput_pct": 15.58,
+  "achieved_occupancy_pct": 73.76,
+  "registers_per_thread": 16,
+  "shared_memory_bytes": 0,
+  "warp_stalls": {
+    "long_scoreboard": {
+      "stalled_cycles_per_issue": 7.317,
+      "pct_of_stalls": 45.9
+    },
+    "wait": {
+      "stalled_cycles_per_issue": 2.5,
+      "pct_of_stalls": 15.7
+    },
+    "short_scoreboard": {
+      "stalled_cycles_per_issue": 1.04,
+      "pct_of_stalls": 6.5
+    },
+    "selected": {
+      "stalled_cycles_per_issue": 1.0,
+      "pct_of_stalls": 6.3
+    },
+    "not_selected": {
+      "stalled_cycles_per_issue": 0.995,
+      "pct_of_stalls": 6.2
+    },
+    "mio_throttle": {
+      "stalled_cycles_per_issue": 0.615,
+      "pct_of_stalls": 3.9
+    },
+    "lg_throttle": {
+      "stalled_cycles_per_issue": 0.608,
+      "pct_of_stalls": 3.8
+    },
+    "math_pipe_throttle": {
+      "stalled_cycles_per_issue": 0.51,
+      "pct_of_stalls": 3.2
+    },
+    "drain": {
+      "stalled_cycles_per_issue": 0.422,
+      "pct_of_stalls": 2.6
+    },
+    "no_instruction": {
+      "stalled_cycles_per_issue": 0.36,
+      "pct_of_stalls": 2.3
+    },
+    "dispatch_stall": {
+      "stalled_cycles_per_issue": 0.315,
+      "pct_of_stalls": 2.0
+    },
+    "branch_resolving": {
+      "stalled_cycles_per_issue": 0.26,
+      "pct_of_stalls": 1.6
+    },
+    "barrier": {
+      "stalled_cycles_per_issue": 0.0,
+      "pct_of_stalls": 0.0
+    },
+    "sleeping": {
+      "stalled_cycles_per_issue": 0.0,
+      "pct_of_stalls": 0.0
+    },
+    "membar": {
+      "stalled_cycles_per_issue": 0.0,
+      "pct_of_stalls": 0.0
+    }
+  },
+  "n_launches_profiled": 4,
+  "raw_report": "/root/code/cuda/profiles/rope/raw/rope_baseline_M1024_H128_ccnone_clkbase.ncu.txt"
+}

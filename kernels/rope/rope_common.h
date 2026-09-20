@@ -47,14 +47,10 @@ using rope_fn_t = void (*)(const at::Tensor& x,
 
 void register_rope_variant(const std::string& name, rope_fn_t fn);
 
-at::Tensor rope_forward(const std::string& name, const at::Tensor& x,
-                        const at::Tensor& positions,
-                        const at::Tensor& cos_t, const at::Tensor& sin_t);
-
-void rope_forward_into(const std::string& name, const at::Tensor& x,
-                       const at::Tensor& positions,
-                       const at::Tensor& cos_t, const at::Tensor& sin_t,
-                       at::Tensor& out);
+// 注: rope_forward / rope_forward_into 的入口声明只存在于
+// bindings.cpp（pybind 入口, 带 validate 参数）, 不在公共头里——
+// 头里的旧签名前向声明会与 bindings.cpp 的新签名构成重载, 使
+// `&rope_forward_into` 取址时模板推导失败。
 
 std::vector<std::string> rope_variant_list();
 std::vector<std::string> rope_all_variant_list();

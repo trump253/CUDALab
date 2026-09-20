@@ -8,9 +8,20 @@
 // pair（见 rope_common.h 头部）。
 //
 // 所有输入验证都在 kernel launch 之前以 TORCH_CHECK 完成（negative
-// test suite 依赖这一点）; 内核自身不含设备端断言。positions 的
-// 值域检查（0 <= p < L）需要一次小的 D2H 同步拷贝（M 个 int64），
-// 仍然发生在 launch 之前。
+// test suite 依赖这一点）; 内核自身不含设备端断言。
+//
+// validate 参数（默认 true）:
+//   validate=true  —— 完整验证, 含 positions 值域检查。值域检查
+//       （0 <= p < L）需要一次小的 D2H 同步拷贝（M 个 int64）——
+//       **同步** D2H 会强制流同步, 使逐 launch 开销 ~25-30 us,
+//       破坏基准流的 steady-state（v0.4 首跑 baseline 28.8 us 的
+//       根源, 已修正）。正常 API 调用 / 测试 / negative 套件一律
+//       用默认 true。
+//   validate=false —— 仅做 host 侧元数据检查（dim/dtype/连续/设备,
+//       不访问数据、不同步, 与 rmsnorm/softmax 的验证开销同级）,
+//       供**预验证、预分配**的基准池使用: 池构造时所有张量已验证,
+//       positions 为构造时生成的 0..M-1（必然 < L=4096）, 契约由
+//       cudalab/operators/rope.py 的 make_bench_pool 文档化。
 
 #include <torch/extension.h>
 #include <c10/cuda/CUDAGuard.h>
@@ -62,8 +73,9 @@ void validate_rope_table(const at::Tensor& t, const char* name,
                 std::string(name) + " 必须与 x 在同一 CUDA 设备上");
 }
 
-void validate_rope_positions(const at::Tensor& positions,
-                             const at::Tensor& x, const at::Tensor& cos_t) {
+// positions 的 host 元数据检查（不访问数据、不同步, 廉价, 始终执行）
+void validate_rope_positions_meta(const at::Tensor& positions,
+                                  const at::Tensor& x) {
     TORCH_CHECK(positions.dim() == 1,
                 "positions 必须是 1 维 (M,)，实际 ", positions.dim(), " 维");
     TORCH_CHECK(positions.size(0) == x.size(0),
@@ -75,7 +87,14 @@ void validate_rope_positions(const at::Tensor& positions,
     TORCH_CHECK(positions.is_cuda(), "positions 必须是 CUDA 张量");
     TORCH_CHECK(positions.device() == x.device(),
                 "positions 必须与 x 在同一 CUDA 设备上");
-    // 值域: 0 <= p < L（launch 前的小 D2H 同步拷贝, 不是设备端断言）
+}
+
+// positions 值域检查 0 <= p < L（launch 前的小 D2H 同步拷贝, 不是
+// 设备端断言）。**同步** D2H 强制流同步, 逐 launch ~25-30 us, 因此
+// 只在 validate=true 时执行; 基准池路径（validate=false）由池构造
+// 契约保证 positions = 0..M-1 < L。
+void validate_rope_positions_range(const at::Tensor& positions,
+                                   const at::Tensor& cos_t) {
     auto pos_cpu = positions.to(at::kCPU);
     const int64_t* p = pos_cpu.const_data_ptr<int64_t>();
     const int64_t M = positions.size(0);
@@ -91,14 +110,18 @@ void validate_rope_positions(const at::Tensor& positions,
 }
 
 void validate_rope_inputs(const at::Tensor& x, const at::Tensor& positions,
-                          const at::Tensor& cos_t, const at::Tensor& sin_t) {
+                          const at::Tensor& cos_t, const at::Tensor& sin_t,
+                          bool check_range) {
     validate_rope_x(x);
     validate_rope_table(cos_t, "cos", x);
     validate_rope_table(sin_t, "sin", x);
     TORCH_CHECK(cos_t.sizes().equals(sin_t.sizes()),
                 "cos 与 sin 的形状必须一致: cos=", cos_t.sizes(),
                 " sin=", sin_t.sizes());
-    validate_rope_positions(positions, x, cos_t);
+    validate_rope_positions_meta(positions, x);
+    if (check_range) {
+        validate_rope_positions_range(positions, cos_t);
+    }
 }
 
 void validate_rope_out(const at::Tensor& x, const at::Tensor& out) {
@@ -126,16 +149,18 @@ void register_rope_variant(const std::string& name, rope_fn_t fn) {
 }
 
 // 写入预分配、布局兼容的 `out`（基准测试用它把内存分配排除在
-// 计时区域之外）。与 forward 共享完整验证，launch 之后立即检查
-// 启动错误。
+// 计时区域之外）。与 forward 共享验证逻辑；validate 语义见文件头。
+// launch 之后立即检查启动错误。
 void rope_forward_into(const std::string& name, const at::Tensor& x,
                        const at::Tensor& positions,
                        const at::Tensor& cos_t, const at::Tensor& sin_t,
-                       at::Tensor& out) {
+                       at::Tensor& out, bool validate) {
     auto& r = registry();
     auto it = r.find(name);
     TORCH_CHECK(it != r.end(), "未知 rope 变体 '", name, "'");
-    validate_rope_inputs(x, positions, cos_t, sin_t);
+    // 元数据检查始终执行（廉价, 无同步）; 仅 positions 值域 D2H
+    // 受 validate 门控（见 validate_rope_inputs 与文件头）。
+    validate_rope_inputs(x, positions, cos_t, sin_t, validate);
     validate_rope_out(x, out);
     c10::cuda::CUDAGuard guard(x.device());
     it->second(x, positions, cos_t, sin_t, out);
@@ -144,7 +169,8 @@ void rope_forward_into(const std::string& name, const at::Tensor& x,
 
 at::Tensor rope_forward(const std::string& name, const at::Tensor& x,
                         const at::Tensor& positions,
-                        const at::Tensor& cos_t, const at::Tensor& sin_t) {
+                        const at::Tensor& cos_t, const at::Tensor& sin_t,
+                        bool validate) {
     auto& r = registry();
     auto it = r.find(name);
     TORCH_CHECK(it != r.end(),
@@ -154,7 +180,8 @@ at::Tensor rope_forward(const std::string& name, const at::Tensor& x,
                     for (auto& n : rope_variant_list()) s += n + " ";
                     return s;
                 }());
-    validate_rope_inputs(x, positions, cos_t, sin_t);
+    // 元数据检查始终执行; positions 值域 D2H 受 validate 门控。
+    validate_rope_inputs(x, positions, cos_t, sin_t, validate);
     at::Tensor out = at::empty_like(x);
     c10::cuda::CUDAGuard guard(x.device());
     it->second(x, positions, cos_t, sin_t, out);
@@ -176,13 +203,16 @@ std::vector<std::string> rope_all_variant_list() {
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
     m.def("forward", &rope_forward,
           "RoPE (interleaved pair): y[2i]=a*c-b*s, y[2i+1]=a*s+b*c, "
-          "FP32 中间, 输出 dtype = x dtype",
+          "FP32 中间, 输出 dtype = x dtype。validate=false 仅供预验证"
+          "基准池使用（跳过 positions 值域 D2H 检查，见文件头契约）。",
           py::arg("variant"), py::arg("x"), py::arg("positions"),
-          py::arg("cos"), py::arg("sin"));
+          py::arg("cos"), py::arg("sin"), py::arg("validate") = true);
     m.def("forward_into", &rope_forward_into,
-          "RoPE，写入预分配的输出张量（基准测试路径）",
+          "RoPE，写入预分配的输出张量（基准测试路径）。validate 语义"
+          "同 forward。",
           py::arg("variant"), py::arg("x"), py::arg("positions"),
-          py::arg("cos"), py::arg("sin"), py::arg("out"));
+          py::arg("cos"), py::arg("sin"), py::arg("out"),
+          py::arg("validate") = true);
     m.def("variants", &rope_variant_list,
           "正常（可 dispatch）的 rope 变体列表");
     m.def("all_variants", &rope_all_variant_list,
