@@ -1,4 +1,4 @@
-"""CUDALab v0.3 — 通用 paired benchmark 引擎（paired-streaming-v2，算子无关）。
+"""CUDALab 通用 paired benchmark 引擎（paired-streaming-v2.3，算子无关）。
 
 v0.2 方法论（paired-streaming-v2）原样保留，仅把算子差异（输入生成 /
 launch / 算法 IO / 记录目录）隔离到 cudalab/operators 的 adapter：
@@ -85,14 +85,53 @@ v0.3.1 语义澄清（2026-09-19 合并 review 之后，无重跑）:
     `invalid_environment_only_rounds`（非 spike 类无效轮，pair 记录）；
     旧字段名以原值保留为 legacy alias（旧 JSON 兼容；旧记录仍按旧名
     解释）。
-11. **KNOWN LIMITATION（guard 不对称性）**: spike guard（样本 >
-    1.5× 运行中位数）与 cross-block guard（block 中位数 > 运行中位数
-    ×1.15）都只拒绝**异常慢**的状态（ratio > 阈值），不拒绝异常快的
-    状态——理论上可能偏好性剔除慢 excursion，构成选择偏差。已登记于
-    docs/evaluator_hardening_v0.3.md（Evaluator v2.3 TODO: 对称阈值
-    或 log-latency 稳健偏差）。SFM-0001 primary streaming 记录
+11. **KNOWN LIMITATION（guard 不对称性，v2.3 已修复）**: spike guard
+    （样本 > 1.5× 运行中位数）与 cross-block guard（block 中位数 >
+    运行中位数 ×1.15）曾只拒绝**异常慢**的状态（ratio > 阈值），不
+    拒绝异常快的状态——理论上可能偏好性剔除慢 excursion，构成选择
+    偏差。已登记于 docs/evaluator_hardening_v0.3.md（Evaluator v2.3
+    TODO: 对称阈值或 log-latency 稳健偏差）；v2.3（下一条）实现了对称
+    判据并双轨记录 raw/filtered，本 limitation 对 v2.3 及以后记录不
+    再成立。SFM-0001 primary streaming 记录
     invalid_spikes_rounds=0、invalid_crossblock_rounds=0，其 1.68×
     结论不依赖这些过滤。
+12. **v2.3 对称 guard + raw/filtered 双轨 + FILTER_SENSITIVE**
+    （2026-09-19，v0.4；设计文档 `docs/evaluator_v2_3.md`）:
+    - **对称 guard**（修复第 11 条 limitation，判据明确/可解释/可单测/
+      固定规则，parent 与 candidate 完全同一规则、同一阈值）:
+      per-sample guard 与 cross-block guard 都改为对称判据——等价 log
+      空间 `|log(t/ref)| > log(F)`:
+      * spike: F=SPIKE_FACTOR(1.5)，ref = 最近 SPIKE_WINDOW(50) 个
+        accepted 样本中位数；t > ref×1.5 → 拒（slow），
+        t < ref/1.5 → 拒（fast，v2.3 新增）；
+      * cross-block: F=CROSSBLOCK_FACTOR(1.15)，ref = 该 variant 本
+        run 已测 block filtered 中位数的运行中位数（warmup 前
+        CROSSBLOCK_WARMUP(3) 个 block 不判）；ratio > 1.15 → 拒
+        （均匀慢块），ratio < 1/1.15 → 拒（均匀快块，v2.3 新增）。
+      guard 逻辑抽成纯 CPU 函数（apply_spike_guard / block_stats /
+      crossblock_flag），由 tests/test_evaluator_v23_cpu.py 确定性
+      单测（对称 spike / 对称 block / 无偏 swap / filter-sensitive
+      构造案例）。
+    - **raw + filtered 双轨记录**: 每个 block 同时记录 guard 前
+      （raw_median_us, n_raw）与 guard 后（median_us, n_accepted,
+      n_rejected_fast, n_rejected_slow）统计；round 级
+      parent_raw_us / candidate_raw_us / raw_speedup 落盘；pair 级
+      增加 raw_speedup 与 filtered_speedup（median of paired per-round
+      ratios）+ 各自 bootstrap CI95；矩阵记录增加每 round us_raw 与
+      per-variant raw_median_us。旧字段（invalid_environment_rounds
+      等）原样保留；历史 v2/v2.1/v2.2 记录永不被修改（按其各自
+      harness 版本解释）。
+    - **FILTER_SENSITIVE 判定**: 若 raw 与 filtered 的 speedup 方向
+      翻转（raw<1<filtered 或 filtered<1<raw），或
+      |log(filtered/raw)| > FILTER_LOG_DELTA = log(1.10)，记录标记
+      `filter_sensitive=true` 并写明原因；决策层
+      （decision.py::apply_filter_gate）随后把 KEEP/REJECT 降级为
+      UNSTABLE——不强行 KEEP/REJECT。
+    - 记录 schema 新增: `environment_guard{method, symmetric, ...}`、
+      `raw{parent_median_us, candidate_median_us, speedup,
+      bootstrap_ci_95}`、`filtered{...}`、
+      `rejected_samples{fast, slow}`、`filter_sensitive`
+      （+ `filter_sensitive_reason`）。
 
 adapter 协议（cudalab/operators/base.py::Operator）:
 - `op.name` / `op.bench_shapes` / `op.primary_target`
@@ -112,7 +151,7 @@ import torch
 from . import stats as _stats
 from .gpu import now_iso, gpu_state
 
-HARNESS_VERSION = "paired-streaming-v2.2"
+HARNESS_VERSION = "paired-streaming-v2.3"
 
 WARMUP = 150        # 每 variant 每 round 不计时预热启动（v2.1: 最小次数）
 WARMUP_MS = 300.0   # v2.1: 预热还需满足的 wall time（ms）。idle-gap 降级态
@@ -127,12 +166,19 @@ MAX_RETRIES = 3     # 无效 round（SPIKES / CROSSBLOCK）的最大重试次数
 MIN_VALID_ROUNDS = 5
 DVFS_TOL = 0.05     # v0.2 判据（v2.2 起 round 内不再采样；常量保留以
                     # 维持 stats.check_dvfs_* 的默认签名与旧记录可解释性）
-SPIKE_FACTOR = 1.5  # v2.1: 样本 > 运行中 clean 基线中位数 * 1.5 -> spike
-MIN_CLEAN_SAMPLES = 50  # v2.1: 单 block clean 样本下限，低于则 round 无效
-CROSSBLOCK_FACTOR = 1.15   # v2.2: block 中位数 > variant 运行中位数 * 1.15
-                           # -> round 无效（均匀慢块检出）
-CROSSBLOCK_WARMUP = 3      # v2.2: 每 variant 前 3 个 block 不判（吸收
-                           # 首 block 的 run 前空隙 / first-touch 态）
+MIN_CLEAN_SAMPLES = 50  # v2.1: 单 block accepted 样本下限，低于则 round 无效
+# v2.3 对称 guard 参数与纯函数在 stats.py（纯 CPU、无 torch 依赖，可单测）:
+# - SPIKE_FACTOR(1.5) / SPIKE_WINDOW(50): per-sample guard, 样本 >
+#   运行中 accepted 基线中位数 × 1.5 → 拒（慢）；< /1.5 → 拒（快）。
+#   等价 log 空间 |log(t/ref)| > log(1.5) 的对称偏差判据。
+# - CROSSBLOCK_FACTOR(1.15) / CROSSBLOCK_WARMUP(3): cross-block guard,
+#   ratio > 1.15 → 拒（均匀慢块）；ratio < 1/1.15 → 拒（均匀快块）；
+#   每 variant 前 3 个 block 不判（吸收 run 前空隙 / first-touch 态）。
+from .stats import (  # noqa: E402,F401  (re-export 兼容 from bench import ...)
+    SPIKE_FACTOR, SPIKE_WINDOW,
+    CROSSBLOCK_FACTOR, CROSSBLOCK_WARMUP,
+    apply_spike_guard, block_stats, crossblock_flag,
+)
 POOL_SIZE = 16      # streaming 模式缓冲池大小
 SEED = 1234         # 输入张量生成 seed（固定，可复现）
 L2_BYTES = 5.5 * 1024 * 1024  # RTX 2080 Ti L2（记录用；小 shape 无法
@@ -145,6 +191,17 @@ class BenchPool:
 
     `launch(ext, variant, i)` 是 adapter 提供的一次计时启动：
     hot 模式恒用 index 0；streaming 模式由引擎按 index 轮换。
+
+    v2.3 / RoPE 扩展（全部可选，旧算子 adapter 不填）:
+    - `positions`: 每池位置张量（与 xs 同长；RoPE 用；None = 无）。
+      当前引擎对 positions 不做轮换（真实 inference 中同一 batch 的
+      位置序列不随 activation 缓冲轮换而变化）。
+    - `shared`: 共享（不轮换、长期驻留）张量，如 RoPE 的 cos/sin
+      表；不进入 working_set_bytes（那是轮换池的 x/out 工作集）。
+    - `shared_bytes`: 共享张量总字节数（记录用）。
+    - `pool_extra`: 算子自定义的池信息，原样写入记录的
+      `pool.pool_extra`（如 RoPE 的 cos/sin 表字节数、总逻辑工作集、
+      positions 模式等）。
     """
     xs: list
     outs: list
@@ -153,6 +210,10 @@ class BenchPool:
     element_size: int
     mode: str
     launch: Callable = field(repr=False)
+    positions: Optional[list] = None
+    shared: dict = field(default_factory=dict, repr=False)
+    shared_bytes: int = 0
+    pool_extra: dict = field(default_factory=dict)
 
     def __post_init__(self):
         if self.mode not in ("hot", "streaming"):
@@ -162,6 +223,35 @@ class BenchPool:
                 raise ValueError("hot 模式必须有且仅有一个 x/out 缓冲")
         elif len(self.xs) != self.pool_size or len(self.outs) != self.pool_size:
             raise ValueError("streaming 模式缓冲数必须等于 pool_size")
+        if self.positions is not None:
+            n = 1 if self.mode == "hot" else self.pool_size
+            if len(self.positions) != n:
+                raise ValueError(
+                    f"positions 长度 {len(self.positions)} 与模式 "
+                    f"{self.mode} 的缓冲数 {n} 不一致")
+
+
+def _environment_guard() -> dict:
+    """v2.3 记录 schema 要求的 environment_guard 块（自描述 + 参数）。"""
+    return {
+        "method": ("symmetric deviation guard: per-sample reject iff "
+                   "|log(t/ref)| > log(spike_factor), ref = median of the "
+                   "last spike_window ACCEPTED samples; per-block reject "
+                   "iff |log(med/running_med)| > log(crossblock_factor), "
+                   "running_med = median of that variant's block filtered "
+                   "medians so far in this run (after crossblock_warmup "
+                   "blocks). Fast and slow excursions are rejected "
+                   "symmetrically; parent and candidate use the exact "
+                   "same rule and thresholds."),
+        "symmetric": True,
+        "spike_factor": SPIKE_FACTOR,
+        "spike_window": SPIKE_WINDOW,
+        "crossblock_factor": CROSSBLOCK_FACTOR,
+        "crossblock_warmup": CROSSBLOCK_WARMUP,
+        "min_accepted_samples": MIN_CLEAN_SAMPLES,
+        "filter_sensitive_log_delta": round(_stats.FILTER_LOG_DELTA, 6),
+        "raw_and_filtered_recorded": True,
+    }
 
 
 def measure_block(pool: BenchPool, ext, variant: str,
@@ -177,9 +267,14 @@ def measure_block(pool: BenchPool, ext, variant: str,
       burn）。block 之前总有一次 nvidia-smi 空闲缺口，缺口后的 GPU
       降级态衰减时间逐日漂移（实测 8–10ms 至 >150ms）；固定 150 次
       （~1ms）不够，300ms burn 实测 2/2 试次干净。
-    - per-sample spike guard: 样本 gpu_us > 运行中 clean 基线中位数
-      × spike_factor → 标记 spike，不进入 block 中位数。
-    - 返回 {"median_us", "n_clean", "n_spike"}。
+    - per-sample spike guard: 相对运行中 accepted 基线中位数超出的
+      样本标记为 spike 并剔除出 block 中位数。
+    v2.3:
+    - guard 对称化（快/慢双向拒绝，等价 log 空间对称偏差）；
+    - 返回 raw + filtered 双套统计（见 block_stats）:
+      {"median_us"(filtered), "raw_median_us", "n_raw", "n_accepted",
+       "n_rejected_fast", "n_rejected_slow", legacy n_clean/n_spike,
+       raw_samples_us, accepted_samples_us}。
     """
     if pool.mode == "hot":
         def one():
@@ -200,8 +295,7 @@ def measure_block(pool: BenchPool, ext, variant: str,
         one()
         n_warm += 1
     torch.cuda.synchronize()
-    clean: list[float] = []
-    n_spike = 0
+    raw: list[float] = []
     start = torch.cuda.Event(enable_timing=True)
     stop = torch.cuda.Event(enable_timing=True)
     for _ in range(iters):
@@ -210,13 +304,9 @@ def measure_block(pool: BenchPool, ext, variant: str,
             one()
         stop.record()
         torch.cuda.synchronize()
-        t_us = start.elapsed_time(stop) * 1e3 / batch
-        if clean and t_us > spike_factor * statistics.median(clean[-50:]):
-            n_spike += 1
-        else:
-            clean.append(t_us)
-    return {"median_us": statistics.median(clean) if clean else None,
-            "n_clean": len(clean), "n_spike": n_spike}
+        raw.append(start.elapsed_time(stop) * 1e3 / batch)
+    # guard / 统计全部走纯函数 block_stats（v2.3，CPU 可单测）
+    return block_stats(raw, spike_factor=spike_factor, window=SPIKE_WINDOW)
 
 
 def _require_normal_variant(op, ext, v: str) -> None:
@@ -260,43 +350,43 @@ def bench_pair(op, ext, parent: str, candidate: str, M: int, H: int,
         "warmup": warmup, "iters": iters, "batch": batch,
         "pool": {"pool_size": pool.pool_size,
                  "working_set_bytes": pool.working_set_bytes,
-                 "working_set_gt_l2": pool.working_set_bytes > L2_BYTES},
+                 "working_set_gt_l2": pool.working_set_bytes > L2_BYTES,
+                 # v2.3/RoPE: 共享（不轮换）张量字节 + 算子自定义池信息
+                 "shared_bytes": pool.shared_bytes,
+                 "pool_extra": pool.pool_extra},
         "clock_policy": {"sm_clock_rel_tolerance": DVFS_TOL,
                          "min_valid_rounds": MIN_VALID_ROUNDS,
                          "max_retries": max_retries,
                          "warmup_ms": WARMUP_MS,
                          "spike_factor": SPIKE_FACTOR,
+                         "spike_window": SPIKE_WINDOW,
                          "min_clean_samples": MIN_CLEAN_SAMPLES,
-                          "crossblock_factor": CROSSBLOCK_FACTOR,
-                          "crossblock_warmup": CROSSBLOCK_WARMUP,
-                         "note": "v2.2: round 内不做 nvidia-smi 采样"
-                                 "（采样本身是 idle-gap 触发源, 且采样值"
-                                 " 为缺口/空闲时钟而非负载时钟）; "
-                                 "A/B 状态漂移由跨 block 一致性 guard "
-                                 "（block 中位数 vs 该 variant 本 run "
-                                 "运行中位数）检出; run 级 gpu_state "
-                                 "before/after 快照保留"},
+                         "crossblock_factor": CROSSBLOCK_FACTOR,
+                         "crossblock_warmup": CROSSBLOCK_WARMUP,
+                         "note": "v2.3: round 内不做 nvidia-smi 采样"
+                                 "（同 v2.2: 采样本身是 idle-gap 触发源,"
+                                 " 且采样值为缺口/空闲时钟而非负载时钟）;"
+                                 " A/B 状态漂移由对称跨 block 一致性 "
+                                 "guard（block filtered 中位数 vs 该 "
+                                 "variant 本 run 运行中位数, ratio > "
+                                 "1.15 或 < 1/1.15 均判无效, 快慢对称）"
+                                 "检出; per-sample guard 同样对称"
+                                 "（|log(t/ref)| > log(1.5) 拒绝, 快/慢"
+                                 "双向）; run 级 gpu_state before/after "
+                                 "快照保留"},
         "generated": now_iso(),
     }
+    # v2.3: 环境 guard 的自描述块（判据 + 对称性 + 全部阈值参数）
+    record["environment_guard"] = _environment_guard()
     record["gpu_state_before"] = gpu_state()
 
     # v2.2 跨 block 一致性 guard 的 per-variant 历史（含重试 block）
     block_hist: dict[str, list[float]] = {parent: [], candidate: []}
 
     def _crossblock_check(variant: str, block: dict) -> dict:
-        hist = block_hist[variant]
-        med = block["median_us"]
-        info: dict = {"running_med_us": None, "ratio": None,
-                      "flagged": False}
-        if med is not None and len(hist) >= CROSSBLOCK_WARMUP:
-            running_med = statistics.median(hist)
-            ratio = med / running_med
-            info["running_med_us"] = round(running_med, 3)
-            info["ratio"] = round(ratio, 4)
-            info["flagged"] = ratio > CROSSBLOCK_FACTOR
-        if med is not None:
-            hist.append(med)
-        return info
+        # v2.3: 判据抽成纯函数 crossblock_flag（对称, CPU 可单测）;
+        # 此处只负责 per-variant 历史的持有
+        return crossblock_flag(block_hist[variant], block["median_us"])
 
     rounds_out: list[dict] = []
     for slot in range(rounds):
@@ -310,6 +400,8 @@ def bench_pair(op, ext, parent: str, candidate: str, M: int, H: int,
             first_is_parent = order[0] == parent
             t_parent = b_first["median_us"] if first_is_parent else b_second["median_us"]
             t_cand = b_second["median_us"] if first_is_parent else b_first["median_us"]
+            t_parent_raw = b_first["raw_median_us"] if first_is_parent else b_second["raw_median_us"]
+            t_cand_raw = b_second["raw_median_us"] if first_is_parent else b_first["raw_median_us"]
             b_parent = b_first if first_is_parent else b_second
             b_cand = b_second if first_is_parent else b_first
             crossblock_info = {
@@ -330,16 +422,25 @@ def bench_pair(op, ext, parent: str, candidate: str, M: int, H: int,
                 "round": slot + 1,
                 "order": order,
                 "retries": attempt,
+                # filtered（guard 后）与 raw（guard 前）双轨落盘（v2.3）
                 "parent_us": round(t_parent, 3),
                 "candidate_us": round(t_cand, 3),
                 "speedup": round(t_parent / t_cand, 6),
+                "parent_raw_us":
+                    round(t_parent_raw, 3) if t_parent_raw else None,
+                "candidate_raw_us":
+                    round(t_cand_raw, 3) if t_cand_raw else None,
+                "raw_speedup":
+                    round(t_parent_raw / t_cand_raw, 6)
+                    if t_parent_raw and t_cand_raw else None,
                 "valid": spikes_ok and cross_ok,
                 "invalid_reason": invalid_reason,
+                # v2.3: 完整 block_stats（raw/filtered 双套统计 +
+                # 全量样本审计）；n_clean/n_spike 作为 legacy alias
+                # 仍包含在内
                 "samples": {
-                    "parent": {"n_clean": b_parent["n_clean"],
-                               "n_spike": b_parent["n_spike"]},
-                    "candidate": {"n_clean": b_cand["n_clean"],
-                                  "n_spike": b_cand["n_spike"]},
+                    "parent": b_parent,
+                    "candidate": b_cand,
                 },
                 "crossblock": crossblock_info,
             }
@@ -348,12 +449,40 @@ def bench_pair(op, ext, parent: str, candidate: str, M: int, H: int,
         rounds_out.append(res)
 
     valid = [r for r in rounds_out if r["valid"]]
+    # filtered（guard 后，v2.2 主统计路径）
     speedups = _stats.paired_speedups([r["parent_us"] for r in valid],
                                       [r["candidate_us"] for r in valid])
     s = _stats.summarize(speedups)
     ci95 = _stats.bootstrap_ci(speedups)
     parent_med = statistics.median([r["parent_us"] for r in valid]) if valid else None
     cand_med = statistics.median([r["candidate_us"] for r in valid]) if valid else None
+    # v2.3: raw（guard 前）同口径 paired 统计 + filter-sensitivity 判定
+    raw_parent_meds = [r["parent_raw_us"] for r in valid
+                       if r["parent_raw_us"] is not None]
+    raw_cand_meds = [r["candidate_raw_us"] for r in valid
+                     if r["candidate_raw_us"] is not None]
+    if len(raw_parent_meds) == len(raw_cand_meds) and raw_parent_meds:
+        raw_speedups = _stats.paired_speedups(raw_parent_meds, raw_cand_meds)
+        s_raw = _stats.summarize(raw_speedups)
+        ci95_raw = _stats.bootstrap_ci(raw_speedups)
+        raw_speedup = s_raw["median"]
+    else:
+        raw_speedups = s_raw = None
+        ci95_raw = None
+        raw_speedup = None
+    raw_parent_med = (statistics.median(raw_parent_meds)
+                      if raw_parent_meds else None)
+    raw_cand_med = statistics.median(raw_cand_meds) if raw_cand_meds else None
+    filtered_speedup = s["median"]
+    filter_sensitive, filter_sensitive_reason = _stats.filter_sensitive(
+        raw_speedup, filtered_speedup)
+    # v2.3: 全部 round（含无效重试）的 rejected 样本计数合计
+    n_rejected_fast = sum(r["samples"][v]["n_rejected_fast"]
+                          for r in rounds_out
+                          for v in ("parent", "candidate"))
+    n_rejected_slow = sum(r["samples"][v]["n_rejected_slow"]
+                          for r in rounds_out
+                          for v in ("parent", "candidate"))
 
     # v0.3.1: 无效轮计数的规范字段是 invalid_environment_*（round 内
     # 已无 DVFS 采样；无效原因只有 SPIKES / CROSSBLOCK 两类环境因素）。
@@ -386,6 +515,27 @@ def bench_pair(op, ext, parent: str, candidate: str, M: int, H: int,
         "bootstrap": {"n_boot": 10000, "seed": 20260919, "statistic": "median"},
         "parent_median_us": round(parent_med, 3) if parent_med else None,
         "candidate_median_us": round(cand_med, 3) if cand_med else None,
+        # v2.3: raw / filtered 双轨 pair 级统计 + filter-sensitivity
+        "raw_speedup": raw_speedup,
+        "filtered_speedup": filtered_speedup,
+        "filter_sensitive": filter_sensitive,
+        "filter_sensitive_reason": filter_sensitive_reason,
+        "raw": {
+            "parent_median_us": round(raw_parent_med, 3)
+                if raw_parent_med else None,
+            "candidate_median_us": round(raw_cand_med, 3)
+                if raw_cand_med else None,
+            "speedup": raw_speedup,
+            "bootstrap_ci_95": ci95_raw,
+        },
+        "filtered": {
+            "parent_median_us": round(parent_med, 3) if parent_med else None,
+            "candidate_median_us": round(cand_med, 3) if cand_med else None,
+            "speedup": filtered_speedup,
+            "bootstrap_ci_95": ci95,
+        },
+        "rejected_samples": {"fast": n_rejected_fast,
+                             "slow": n_rejected_slow},
         "algorithmic_bw_gbps_parent":
             round(algo_bytes / (parent_med * 1e-6) / 1e9, 1) if parent_med else None,
         "algorithmic_bw_gbps_candidate":
@@ -420,43 +570,43 @@ def bench_matrix(op, ext, variants: list[str], M: int, H: int,
         "warmup": warmup, "iters": iters, "batch": batch,
         "pool": {"pool_size": pool.pool_size,
                  "working_set_bytes": pool.working_set_bytes,
-                 "working_set_gt_l2": pool.working_set_bytes > L2_BYTES},
+                 "working_set_gt_l2": pool.working_set_bytes > L2_BYTES,
+                 # v2.3/RoPE: 共享（不轮换）张量字节 + 算子自定义池信息
+                 "shared_bytes": pool.shared_bytes,
+                 "pool_extra": pool.pool_extra},
         "clock_policy": {"sm_clock_rel_tolerance": DVFS_TOL,
                          "min_valid_rounds": MIN_VALID_ROUNDS,
                          "max_retries": max_retries,
                          "warmup_ms": WARMUP_MS,
                          "spike_factor": SPIKE_FACTOR,
+                         "spike_window": SPIKE_WINDOW,
                          "min_clean_samples": MIN_CLEAN_SAMPLES,
-                          "crossblock_factor": CROSSBLOCK_FACTOR,
-                          "crossblock_warmup": CROSSBLOCK_WARMUP,
-                         "note": "v2.2: round 内不做 nvidia-smi 采样"
-                                 "（采样本身是 idle-gap 触发源, 且采样值"
-                                 " 为缺口/空闲时钟而非负载时钟）; "
-                                 "A/B 状态漂移由跨 block 一致性 guard "
-                                 "（block 中位数 vs 该 variant 本 run "
-                                 "运行中位数）检出; run 级 gpu_state "
-                                 "before/after 快照保留"},
+                         "crossblock_factor": CROSSBLOCK_FACTOR,
+                         "crossblock_warmup": CROSSBLOCK_WARMUP,
+                         "note": "v2.3: round 内不做 nvidia-smi 采样"
+                                 "（同 v2.2: 采样本身是 idle-gap 触发源,"
+                                 " 且采样值为缺口/空闲时钟而非负载时钟）;"
+                                 " A/B 状态漂移由对称跨 block 一致性 "
+                                 "guard（block filtered 中位数 vs 该 "
+                                 "variant 本 run 运行中位数, ratio > "
+                                 "1.15 或 < 1/1.15 均判无效, 快慢对称）"
+                                 "检出; per-sample guard 同样对称"
+                                 "（|log(t/ref)| > log(1.5) 拒绝, 快/慢"
+                                 "双向）; run 级 gpu_state before/after "
+                                 "快照保留"},
         "generated": now_iso(),
     }
+    # v2.3: 环境 guard 的自描述块（判据 + 对称性 + 全部阈值参数）
+    record["environment_guard"] = _environment_guard()
     record["gpu_state_before"] = gpu_state()
 
     # v2.2 跨 block 一致性 guard 的 per-variant 历史（含重试 block）
     block_hist: dict[str, list[float]] = {v: [] for v in variants}
 
     def _crossblock_check(variant: str, block: dict) -> dict:
-        hist = block_hist[variant]
-        med = block["median_us"]
-        info: dict = {"running_med_us": None, "ratio": None,
-                      "flagged": False}
-        if med is not None and len(hist) >= CROSSBLOCK_WARMUP:
-            running_med = statistics.median(hist)
-            ratio = med / running_med
-            info["running_med_us"] = round(running_med, 3)
-            info["ratio"] = round(ratio, 4)
-            info["flagged"] = ratio > CROSSBLOCK_FACTOR
-        if med is not None:
-            hist.append(med)
-        return info
+        # v2.3: 判据抽成纯函数 crossblock_flag（对称, CPU 可单测）;
+        # 此处只负责 per-variant 历史的持有
+        return crossblock_flag(block_hist[variant], block["median_us"])
 
     rounds_out: list[dict] = []
     for slot in range(rounds):
@@ -484,9 +634,13 @@ def bench_matrix(op, ext, variants: list[str], M: int, H: int,
                 "retries": attempt,
                 "valid": spikes_ok and cross_ok,
                 "invalid_reason": invalid_reason,
+                # v2.3: filtered（us）+ raw（us_raw）双轨
                 "us": {v: round(per[v]["median_us"], 3) for v in order},
-                "samples": {v: {"n_clean": per[v]["n_clean"],
-                                "n_spike": per[v]["n_spike"]} for v in order},
+                "us_raw": {v: round(per[v]["raw_median_us"], 3)
+                           if per[v]["raw_median_us"] else None
+                           for v in order},
+                # v2.3: 完整 block_stats（含 legacy n_clean/n_spike）
+                "samples": {v: per[v] for v in order},
                 "crossblock": crossblock_info,
             }
             if spikes_ok and cross_ok:
@@ -498,13 +652,56 @@ def bench_matrix(op, ext, variants: list[str], M: int, H: int,
     for v in variants:
         meds = [r["us"][v] for r in valid]
         med = statistics.median(meds) if meds else None
+        # v2.3: raw 中位数同口径（guard 前样本的 per-round 中位数再取中位）
+        raw_meds = [r["us_raw"][v] for r in valid
+                    if r["us_raw"].get(v) is not None]
+        raw_med = statistics.median(raw_meds) if raw_meds else None
         per_variant[v] = {
             "round_medians_us": [r["us"][v] for r in valid],
             "median_us": round(med, 3) if med else None,
+            "round_raw_medians_us": [r["us_raw"][v] for r in valid],
+            "raw_median_us": round(raw_med, 3) if raw_med else None,
             "algorithmic_bw_gbps":
                 round(algo_bytes / (med * 1e-6) / 1e9, 1) if med else None,
             "n_valid_rounds": len(meds),
         }
+    # v2.3: 记录级 raw vs filtered。矩阵上下文中"runner/winner 比值"
+    # 在各自排序内恒 >1，方向翻转表现为 **winner 不同**；显式判
+    # （1）raw winner ≠ filtered winner（winner flip，即 guard 改变了
+    # 结论）；（2）否则用共同 top-2（filtered winner W / runner R）的
+    # raw 比值 vs filtered 比值走 stats.filter_sensitive（10% 差判据）。
+    # v2.2 及更早记录没有 raw 数据 → 未评估（不假装可信）。
+    has_raw = all(pv.get("raw_median_us") is not None
+                  for pv in per_variant.values())
+    filter_sensitive = False
+    filter_sensitive_reason = "无 raw 数据（v2.3 之前 harness）"
+    winner_raw = None
+    if has_raw and valid:
+        ranked_f = sorted((v for v in variants
+                           if per_variant[v]["median_us"] is not None),
+                          key=lambda v: per_variant[v]["median_us"])
+        ranked_r = sorted((v for v in variants
+                           if per_variant[v]["raw_median_us"] is not None),
+                          key=lambda v: per_variant[v]["raw_median_us"])
+        if len(ranked_f) >= 2 and len(ranked_r) >= 2:
+            winner_raw = ranked_r[0]
+            wf, rf = ranked_f[0], ranked_f[1]
+            if winner_raw != wf:
+                filter_sensitive = True
+                filter_sensitive_reason = (
+                    f"winner flip: raw winner {winner_raw!r} != filtered "
+                    f"winner {wf!r}（guard 改变了结论）")
+            else:
+                f_speedup = (per_variant[rf]["median_us"]
+                             / per_variant[wf]["median_us"])
+                r_speedup = (per_variant[rf]["raw_median_us"]
+                             / per_variant[wf]["raw_median_us"])
+                filter_sensitive, filter_sensitive_reason = \
+                    _stats.filter_sensitive(r_speedup, f_speedup)
+    n_rejected_fast = sum(r["samples"][v]["n_rejected_fast"]
+                          for r in rounds_out for v in r["samples"])
+    n_rejected_slow = sum(r["samples"][v]["n_rejected_slow"]
+                          for r in rounds_out for v in r["samples"])
     record.update({
         "variants": variants,
         "n_rounds": len(rounds_out),
@@ -517,6 +714,12 @@ def bench_matrix(op, ext, variants: list[str], M: int, H: int,
         "invalid_crossblock_rounds":
             sum(1 for r in rounds_out
                 if r["invalid_reason"] == "INVALID_CROSSBLOCK"),
+        # v2.3: raw 轨 winner + filter-sensitivity + rejected 合计
+        "winner_raw": winner_raw,
+        "filter_sensitive": filter_sensitive,
+        "filter_sensitive_reason": filter_sensitive_reason,
+        "rejected_samples": {"fast": n_rejected_fast,
+                             "slow": n_rejected_slow},
         "rounds": rounds_out,
         "per_variant": per_variant,
     })
@@ -549,6 +752,30 @@ def analyze_shape_winners(records: list[dict]) -> list[dict]:
             if r["valid"] and winner in r["us"] and runner in r["us"]:
                 ratios.append(r["us"][runner] / r["us"][winner])
         s = _stats.summarize(ratios)
+        # v2.3: raw 轨 winner + filter-sensitivity（判据同 bench_matrix:
+        # winner flip 显式判；否则共同 top-2 比值差 >10% 判敏感）。
+        # 旧 v2.2 记录无 raw_median_us → 未评估，不假装可信。
+        has_raw = all(pv[v].get("raw_median_us") is not None for v in pv)
+        if has_raw:
+            ranked_r = sorted((v for v in pv
+                               if pv[v]["raw_median_us"] is not None),
+                              key=lambda v: pv[v]["raw_median_us"])
+            winner_raw = ranked_r[0]
+            if winner_raw != winner:
+                fs, fs_reason = True, (
+                    f"winner flip: raw winner {winner_raw!r} != filtered "
+                    f"winner {winner!r}（guard 改变了结论）")
+                raw_speedup = None
+            else:
+                raw_speedup = (pv[runner]["raw_median_us"]
+                               / pv[winner]["raw_median_us"])
+                f_speedup = pv[runner]["median_us"] / pv[winner]["median_us"]
+                fs, fs_reason = _stats.filter_sensitive(raw_speedup,
+                                                        f_speedup)
+        else:
+            raw_speedup = None
+            fs, fs_reason, winner_raw = (
+                False, "无 raw 数据（v2.3 之前 harness）", None)
         out.append({
             "shape": rec["shape"],
             "dtype": rec["dtype"],
@@ -562,6 +789,12 @@ def analyze_shape_winners(records: list[dict]) -> list[dict]:
             "valid_rounds": rec["valid_rounds"],
             "all_variants_median_us": {v: pv[v]["median_us"]
                                        for v in rec["variants"]},
+            # v2.3: raw 轨（guard 前）winner 与 filter-sensitivity
+            "winner_raw": winner_raw,
+            "raw_ratio_runner_over_winner":
+                round(raw_speedup, 6) if raw_speedup else None,
+            "filter_sensitive": fs,
+            "filter_sensitive_reason": fs_reason,
         })
     return out
 

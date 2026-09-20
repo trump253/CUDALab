@@ -45,8 +45,11 @@ import torch  # noqa: E402
 from cudalab.operators import get as get_op  # noqa: E402
 from cudalab.evaluator.bench import (  # noqa: E402
     bench_pair, bench_matrix, analyze_shape_winners, save_record,
+    HARNESS_VERSION,
 )
-from cudalab.evaluator.decision import decide_v2  # noqa: E402
+from cudalab.evaluator.decision import (  # noqa: E402
+    decide_v2, apply_filter_gate,
+)
 from cudalab.evaluator.experiment import save_experiment  # noqa: E402
 from cudalab.evaluator import profiler as ncu  # noqa: E402
 
@@ -82,6 +85,17 @@ def _print_pair(rec: dict):
           f"  algo BW: {rec['algorithmic_bw_gbps_candidate']} GB/s")
     print(f"  median speedup (parent/cand): {rec['median_speedup']}  "
           f"CI95: {rec['bootstrap_ci_95']}  faster rounds: {rec['faster_rounds']}")
+    # v2.3: raw / filtered 双轨 + filter-sensitivity
+    if "filtered_speedup" in rec:
+        print(f"  raw_speedup:     {rec['raw_speedup']}  "
+              f"(parent {rec['raw']['parent_median_us']} us / "
+              f"candidate {rec['raw']['candidate_median_us']} us)  "
+              f"CI95: {rec['raw']['bootstrap_ci_95']}")
+        print(f"  filtered_speedup: {rec['filtered_speedup']}  "
+              f"CI95: {rec['filtered']['bootstrap_ci_95']}")
+        print(f"  filter_sensitive: {rec['filter_sensitive']} — "
+              f"{rec['filter_sensitive_reason']}")
+        print(f"  rejected_samples: {rec['rejected_samples']}")
 
 
 def _print_matrix(rec: dict):
@@ -166,7 +180,7 @@ def cmd_bench_full(a) -> int:
                 _print_matrix(rec)
                 records.append(rec)
     winners = analyze_shape_winners(records)
-    wp = save_record({"harness": "paired-streaming-v2", "operator": op.name,
+    wp = save_record({"harness": HARNESS_VERSION, "operator": op.name,
                       "shape_winners": winners}, op.bench_dir,
                      f"{a.tag}_shape_winners")
     print(f"shape winners -> {wp}")
@@ -278,6 +292,12 @@ def cmd_optimize(a) -> int:
         corr["all_pass"] and neg_sum["all_pass"],
         paired["valid_rounds"], paired["speedups"],
         paired["bootstrap_ci_95"])
+    # v2.3 filter-sensitivity gate: raw 与 filtered 方向翻转或差 >10%
+    # 时, KEEP/REJECT 降级 UNSTABLE（不强行 KEEP/REJECT）
+    decision, detail = apply_filter_gate(
+        decision, detail,
+        paired.get("filter_sensitive", False),
+        paired.get("filter_sensitive_reason", "未评估（v2.2 或更早记录）"))
     print(f"== [{a.id}] decision: {decision} ==")
     print(f"   {detail.get('rule')}")
 
@@ -312,6 +332,7 @@ def cmd_optimize(a) -> int:
         "negative": neg_sum,
         "paired_benchmark": {
             "file": str(bp),
+            "harness": paired["harness"],
             "shape": [a.M, a.H], "dtype": a.dtype, "cache_mode": a.mode,
             "parent": a.parent, "candidate": a.candidate,
             "paired_rounds": paired["n_rounds"],
@@ -324,6 +345,12 @@ def cmd_optimize(a) -> int:
             "faster_rounds_candidate": paired["faster_rounds"],
             "parent_median_us": paired["parent_median_us"],
             "candidate_median_us": paired["candidate_median_us"],
+            # v2.3: raw / filtered 双轨 + filter-sensitivity
+            "raw_speedup": paired.get("raw_speedup"),
+            "filtered_speedup": paired.get("filtered_speedup"),
+            "filter_sensitive": paired.get("filter_sensitive"),
+            "filter_sensitive_reason": paired.get("filter_sensitive_reason"),
+            "rejected_samples": paired.get("rejected_samples"),
         },
         "profile_observation": profile_obs,
         "decision": detail,

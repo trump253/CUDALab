@@ -18,12 +18,22 @@ v0.3: 原样移入通用 evaluator 核心（cudalab/evaluator/decision.py），
 4. REJECT: median <= 0.95 且 candidate 更快的 round 占比 <= 30%
            且 CI 上界 < 1.00（CI 缺失时该条件不满足）
 5. 其余                      -> NEUTRAL
+
+v2.3 追加（harness paired-streaming-v2.3，纯 CPU 可单测）:
+6. FILTER_SENSITIVE gate（在 decide_v2 之后应用，见
+   apply_filter_gate）: 记录被标记 filter_sensitive（raw 与 filtered
+   speedup 方向翻转，或 |log(filtered/raw)| > log(1.10)，判据见
+   stats.filter_sensitive）时，KEEP/REJECT 降级为 UNSTABLE——
+   "guard 改变了结论"的记录不强行 KEEP/REJECT；NEUTRAL/UNSTABLE 不受
+   影响，只记录标记。
 """
 from __future__ import annotations
 
 from . import stats as _stats
 
 KEEP, REJECT, NEUTRAL, UNSTABLE = "KEEP", "REJECT", "NEUTRAL", "UNSTABLE"
+# v2.3: 记录级标记（不是决策值本身；决策层见到它会把 KEEP/REJECT 降级）
+FILTER_SENSITIVE = "FILTER_SENSITIVE"
 
 MIN_VALID_ROUNDS = 5      # 少于该数量的 DVFS 稳定 round -> UNSTABLE
 KEEP_MEDIAN = 1.05        # median paired speedup >= 1.05
@@ -90,3 +100,27 @@ def decide_v2(correctness_pass: bool,
         f"median {s['median']:.4f} within ({REJECT_MEDIAN}, {KEEP_MEDIAN}) "
         f"or mixed rounds ({s['faster_count']}/{s['n']} faster) or CI not "
         f"excluded 1.00 (CI95={ci95}) -> NEUTRAL")
+
+
+def apply_filter_gate(decision: str, detail: dict,
+                      filter_sensitive: bool,
+                      reason: str) -> tuple[str, dict]:
+    """v2.3 filter-sensitivity gate（纯 CPU，可单测）。
+
+    在 decide_v2 之后应用：记录被标记 filter_sensitive（raw 与
+    filtered speedup 方向翻转，或 |log(filtered/raw)| > log(1.10)）且
+    决策是 KEEP 或 REJECT 时，降级为 UNSTABLE——"guard 改变了结论"
+    的记录不强行 KEEP/REJECT。NEUTRAL/UNSTABLE 不受影响，只记录标记。
+    detail 增加 filter_sensitive / filter_sensitive_reason；降级时
+    额外记录 original_decision 与新 rule。输入 detail 不被修改。
+    """
+    detail = dict(detail)
+    detail["filter_sensitive"] = bool(filter_sensitive)
+    detail["filter_sensitive_reason"] = reason
+    if filter_sensitive and decision in (KEEP, REJECT):
+        detail["original_decision"] = decision
+        detail["rule"] = (
+            f"FILTER_SENSITIVE: {reason} — 原决策 {decision} 降级为 "
+            "UNSTABLE（不强行 KEEP/REJECT）")
+        return UNSTABLE, detail
+    return decision, detail

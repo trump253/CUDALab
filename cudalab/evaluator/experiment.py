@@ -116,12 +116,50 @@ def classify_cell(variants: list[str], rounds: list[dict],
     s = _stats.summarize(ratios)
     ci95 = _stats.bootstrap_ci(ratios)
     dec, detail = _decision.decide_v2(True, len(ratios), ratios, ci95)
+
+    # v2.3: raw 轨（bench_matrix v2.3 round 含 us_raw；v2.2 及更早无）。
+    # 判据与 bench_matrix 记录级一致: winner flip 显式判；否则共同
+    # top-2（filtered winner/runner）的 raw 比值 vs filtered 比值差
+    # >10% 判敏感。filter_sensitive 且决策 KEEP/REJECT → UNSTABLE。
+    has_raw = all("us_raw" in r and winner in r["us_raw"]
+                  and runner in r["us_raw"]
+                  and r["us_raw"][winner] is not None
+                  and r["us_raw"][runner] is not None
+                  for r in valid)
+    if has_raw:
+        raw_medians = {
+            v: round(statistics.median(
+                [r["us_raw"][v] for r in valid
+                 if v in r.get("us_raw", {})
+                 and r["us_raw"][v] is not None]), 3)
+            for v in variants
+            if any(r["us_raw"][v] is not None
+                   for r in valid if v in r.get("us_raw", {}))
+        }
+        ranked_raw = sorted(raw_medians, key=raw_medians.get)
+        out["all_variants_raw_median_us"] = raw_medians
+        out["winner_raw"] = ranked_raw[0] if ranked_raw else None
+        if ranked_raw and ranked_raw[0] != winner:
+            fs, fs_reason = True, (
+                f"winner flip: raw winner {ranked_raw[0]!r} != filtered "
+                f"winner {winner!r}（guard 改变了结论）")
+        else:
+            raw_ratio = raw_medians[runner] / raw_medians[winner]
+            fs, fs_reason = _stats.filter_sensitive(raw_ratio, s["median"])
+    else:
+        out["all_variants_raw_median_us"] = None
+        out["winner_raw"] = None
+        fs, fs_reason = False, "无 raw 数据（v2.3 之前 harness）"
+
+    dec, detail = _decision.apply_filter_gate(dec, detail, fs, fs_reason)
     out.update({
         "median_ratio": s["median"],
         "bootstrap_ci_95": ci95,
         "faster_rounds": f"{s['faster_count']}/{s['n']}",
         "decision": dec,
         "decision_rule": detail.get("rule"),
+        "filter_sensitive": detail.get("filter_sensitive", False),
+        "filter_sensitive_reason": detail.get("filter_sensitive_reason"),
         "status": _STATUS_BY_DECISION[dec],
     })
     return out
