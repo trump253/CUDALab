@@ -1,0 +1,165 @@
+{
+  "id": "ROPE-0002",
+  "operator": "rope",
+  "parent": "rope_baseline",
+  "candidate": "rope_v2_4pair",
+  "hypothesis": "MLP 扫描续: 每线程 4 个 pair, 12 个 load 在途 (6B→24B), 16384 线程≈0.267 wave。假设: 延迟收益继续但递减, 占用损失 (0.267 vs 1.07 wave) 开始部分抵消; 与 ROPE-0001 比较确定 2 vs 4 pairs/thread 谁更优。",
+  "changes": "新增 kernels/rope/rope_v2_4pair.cu: kPairs=4, grid=M*(D/8), block=128, 12 个 load hoist; 标量访存; 要求 D%8==0 (D=64/128 满足, launcher launch 前 TORCH_CHECK)。",
+  "correctness": {
+    "all_pass": true,
+    "summary": {
+      "n_total": 384,
+      "n_pass": 384,
+      "n_fail": 0,
+      "all_pass": true,
+      "max_abs_error": 0.00048828,
+      "max_rel_error": 0.00490644,
+      "failed": [],
+      "max_arith_max_ratio": 0.48309729,
+      "max_norm_rel_error": 0.00176141,
+      "max_ref_norm_rel_error": 0.00176141,
+      "ok_close_vs_ref_all": false
+    },
+    "saved": "/root/code/cuda/experiments/rope/correctness/v0.4/rope_v2_4pair.json"
+  },
+  "negative": {
+    "n_total": 31,
+    "n_reject_expected": 28,
+    "n_reject_ok": 28,
+    "n_pass_expected": 2,
+    "n_pass_ok": 2,
+    "n_skipped": 1,
+    "n_passed": 30,
+    "all_pass": true
+  },
+  "paired_benchmark": {
+    "file": "/root/code/cuda/benchmarks/rope/ROPE-0002_pair_rope_baseline_vs_rope_v2_4pair_M1024_H128_float16_streaming.json",
+    "harness": "paired-streaming-v2.3",
+    "shape": [
+      1024,
+      128
+    ],
+    "dtype": "float16",
+    "cache_mode": "streaming",
+    "parent": "rope_baseline",
+    "candidate": "rope_v2_4pair",
+    "paired_rounds": 9,
+    "valid_rounds": 9,
+    "invalid_environment_rounds": 0,
+    "invalid_dvfs_rounds": 0,
+    "median_speedup_parent_over_candidate": 1.000985,
+    "bootstrap_ci_95": [
+      0.933102,
+      1.021143
+    ],
+    "faster_rounds_candidate": "5/9",
+    "parent_median_us": 7.04,
+    "candidate_median_us": 7.075,
+    "raw_speedup": 1.000985,
+    "filtered_speedup": 1.000985,
+    "filter_sensitive": false,
+    "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）",
+    "rejected_samples": {
+      "fast": 0,
+      "slow": 0
+    }
+  },
+  "profile_observation": {
+    "file": "/root/code/cuda/profiles/rope/rope_v2_4pair_M1024_H128_ccall_clkbase.json",
+    "kernel_duration_us": 5.008,
+    "dram_throughput_pct": 17.38,
+    "l2_read_hit_rate": {
+      "value": 6.79,
+      "unit": "%"
+    },
+    "l1_hit_rate": {
+      "value": 84.89,
+      "unit": "%"
+    },
+    "registers_per_thread": 24,
+    "warp_stalls": {
+      "long_scoreboard": {
+        "stalled_cycles_per_issue": 9.955,
+        "pct_of_stalls": 49.2
+      },
+      "lg_throttle": {
+        "stalled_cycles_per_issue": 3.975,
+        "pct_of_stalls": 19.7
+      },
+      "wait": {
+        "stalled_cycles_per_issue": 2.395,
+        "pct_of_stalls": 11.8
+      },
+      "drain": {
+        "stalled_cycles_per_issue": 1.815,
+        "pct_of_stalls": 9.0
+      },
+      "selected": {
+        "stalled_cycles_per_issue": 1.0,
+        "pct_of_stalls": 4.9
+      },
+      "short_scoreboard": {
+        "stalled_cycles_per_issue": 0.42,
+        "pct_of_stalls": 2.1
+      },
+      "no_instruction": {
+        "stalled_cycles_per_issue": 0.22,
+        "pct_of_stalls": 1.1
+      },
+      "branch_resolving": {
+        "stalled_cycles_per_issue": 0.14,
+        "pct_of_stalls": 0.7
+      },
+      "not_selected": {
+        "stalled_cycles_per_issue": 0.12,
+        "pct_of_stalls": 0.6
+      },
+      "math_pipe_throttle": {
+        "stalled_cycles_per_issue": 0.073,
+        "pct_of_stalls": 0.4
+      },
+      "dispatch_stall": {
+        "stalled_cycles_per_issue": 0.073,
+        "pct_of_stalls": 0.4
+      },
+      "mio_throttle": {
+        "stalled_cycles_per_issue": 0.043,
+        "pct_of_stalls": 0.2
+      },
+      "barrier": {
+        "stalled_cycles_per_issue": 0.0,
+        "pct_of_stalls": 0.0
+      },
+      "sleeping": {
+        "stalled_cycles_per_issue": 0.0,
+        "pct_of_stalls": 0.0
+      },
+      "membar": {
+        "stalled_cycles_per_issue": 0.0,
+        "pct_of_stalls": 0.0
+      }
+    }
+  },
+  "decision": {
+    "correctness_pass": true,
+    "valid_rounds": 9,
+    "min_valid_rounds": 5,
+    "speedups": {
+      "n": 9,
+      "median": 1.000985,
+      "mean": 0.990582,
+      "min": 0.897612,
+      "max": 1.038479,
+      "faster_count": 5,
+      "faster_fraction": 0.5556
+    },
+    "ci95": [
+      0.933102,
+      1.021143
+    ],
+    "rule": "median 1.0010 within (0.95, 1.05) or mixed rounds (5/9 faster) or CI not excluded 1.00 (CI95=[0.933102, 1.021143]) -> NEUTRAL",
+    "decision": "NEUTRAL",
+    "filter_sensitive": false,
+    "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+  }
+}
