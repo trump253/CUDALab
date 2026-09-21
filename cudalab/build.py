@@ -150,6 +150,19 @@ if __name__ == "__main__":
                                warmup=50, n_windows=3,
                                launches_per_window=16)
         print("native_timing(gemv_baseline) median_us =", nt["median_us"])
+    elif op == "qgemv":
+        from cudalab.operators.qgemv import make_w_q, make_x_q
+        W_q, scale, _W = make_w_q(4, 4096, seed=0)
+        x = make_x_q(4096, seed=1)
+        out = torch.empty(4, dtype=torch.float16, device="cuda")
+        for name in ext.variants():
+            y = ext.forward(name, W_q, scale, x)
+            ext.forward_into(name, W_q, scale, x, out)
+            print(name, "ok", y.shape, y.dtype)
+        nt = ext.native_timing("qgemv_baseline", W_q, scale, x, out,
+                               warmup=50, n_windows=3,
+                               launches_per_window=16)
+        print("native_timing(qgemv_baseline) median_us =", nt["median_us"])
     else:
         x = torch.randn(4, 4096, dtype=torch.float16, device="cuda")
         for name in ext.variants():
