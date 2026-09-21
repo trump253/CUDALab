@@ -11,6 +11,12 @@
   预启动 validation 文本（expect_msg_contains），而非运行时错误。
 - 时间戳由程序生成（ISO 8601，带时区），不手填历史日期。
 
+本套件是 **per-variant** 的（negative_suite_scope = "per-variant"）:
+套件主体按 variant 参数化（build_cases / _post_check_ok 全部走
+`ext.forward(variant, ...)`）, operator 层对每个受测变体运行全套 37
+例 —— 默认变体存规范 `invalid_inputs.json`, 其余变体存
+`invalid_inputs_<variant>.json`。
+
 说明: baseline 是标量访存（每 thread 一个 pair, 非向量化），因此
 **没有**对齐契约；`valid_offset_view_control` 用例记录这一事实：
 storage offset 视图（连续但未 16B 对齐）对 baseline 是合法输入，
@@ -312,6 +318,7 @@ def run_negative_suite(ext, out_path: Path | None = None,
     summary = summarize_cases(results)
     doc = {
         "suite": SUITE_VERSION,
+        "negative_suite_scope": "per-variant",
         "generated": _now_iso(),
         "note": "非法输入必须在 kernel launch 前被明确异常拒绝；"
                 "post_check_ok 验证拒绝未污染 CUDA 上下文。"

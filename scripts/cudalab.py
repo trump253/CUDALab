@@ -130,7 +130,8 @@ def cmd_test(a) -> int:
     if "table_check_all_pass" in res:  # rope v0.4 review: 独立表值核对
         print(f"  table_check_all_pass={res['table_check_all_pass']}")
     print(f"  -> {res['saved']}")
-    neg = op.run_negative(ext, a.variant)
+    neg = op.run_negative(ext, a.variant,
+                          out_dir=Path(a.neg_out_dir) if a.neg_out_dir else None)
     s = neg["summary"]
     print(f"[negative] all_pass={s['all_pass']} "
           f"n_passed={s['n_passed']}/{s['n_total']} "
@@ -379,6 +380,9 @@ def main() -> int:
     p.add_argument("--variant", required=True)
     p.add_argument("--out-dir", default=None,
                    help="correctness 输出目录（默认按算子约定）")
+    p.add_argument("--neg-out-dir", default=None,
+                   help="negative suite 输出目录（默认按算子约定; "
+                        "append-only 约定, 不覆盖历史已发布记录）")
     p.set_defaults(fn=cmd_test)
 
     pb = sub.add_parser("benchmark", help="paired benchmark 引擎")

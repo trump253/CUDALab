@@ -34,7 +34,8 @@ negative 路径不接受该变体）, 两个错位用例退化为"不得拒绝 +
 有限"的 control, 仅 K=13 用例保留 bit-identical 断言（那才是
 splitk4 的 K%4 契约回退）。
 
-per-variant 运行（v0.5 独立审查 MAJOR-1 修复）: 本套件自 75c1ccd 起
+per-variant 运行（negative_suite_scope = "per-variant"; v0.5 独立
+审查 MAJOR-1 修复）: 本套件自 75c1ccd 起
 即完全按 variant 参数化（build_cases / _post_check_ok / 三个回退
 回归用例全部走 `ext.forward(variant, ...)`）, 但统一 CLI 此前只以
 默认 gemv_baseline 调用, 4 个向量化变体的契约/回退证据从未归档。
@@ -338,6 +339,7 @@ def run_negative_suite(ext, out_path: Path | None = None,
         _note = ("illegal inputs must be rejected with an explicit exception before kernel launch; post_check_ok verifies the CUDA context is not polluted. Alignment contract (GEMV-0001.. vectorized variants): base pointers 16B-aligned + K a multiple of the 16B element count; unmet inputs MUST fall back to gemv_scalar_kernel (same source as gemv_baseline, so the fallback output is bit-identical -- pinned by the three per-variant regression cases fallback_W_misaligned / fallback_x_misaligned / fallback_K_not_mult8, same pattern as v0.4.1 rope_v3_half2); alignment is NOT a contract of the scalar variants (gemv_baseline, and quarantined gemv_splitk4 -- whose only contract is K%4==0); legal inputs (incl. offset views) must never be rejected")
     doc = {
         "suite": SUITE_VERSION,
+        "negative_suite_scope": "per-variant",
         "generated": _now_iso(),
         "note": _note,
         "summary": summary,

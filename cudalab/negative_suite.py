@@ -9,12 +9,22 @@
   确认拒绝没有污染后续运行。
 - 对每个用例记录异常类型与消息；对关键用例（非法 H、对齐契约）额外
   断言消息来自我们自己的预启动 validation 文本，而非运行时错误。
-- 结构化结果保存至 experiments/rmsnorm/correctness/v0.2/。
+- 结构化结果保存至 operator 指定的 out_path（v0.5 起默认
+  experiments/regression/v0.5/rmsnorm/; append-only 约定, 不覆盖
+  main 已发布的 v0.2 / v0.3 记录）。
 - 时间戳由程序生成（ISO 8601，带时区），不手填历史日期。
 
 v0.3: 用例执行 / 汇总机制移至 cudalab/evaluator/negative.py
 （run_case / summarize_cases）；本模块保留 RMSNorm 用例表与结果
 schema（与 v0.2 完全一致）。
+
+本套件是 **cross-variant** 的（negative_suite_scope =
+"cross-variant", v0.5 merge review 2026-09-21 显式标记）: 单跑设计,
+同一组用例覆盖全部变体（每个用例自带 variant 字段, 如 Finding A
+回归集对 v2_reg / v4_vec_reg 逐一钉死）—— 它验证的是算子级共享
+契约, **不描述为 per-variant**; run_negative 的 variant 参数被忽略,
+一次运行即产出覆盖全部变体的完整证据（GEMV / Softmax / RoPE 的
+套件才是 per-variant, 逐变体运行并归档）。
 """
 from __future__ import annotations
 
@@ -219,9 +229,12 @@ def run_negative_suite(ext, out_path: Path | None = None) -> dict:
     summary = summarize_cases(results)
     doc = {
         "suite": SUITE_VERSION,
+        "negative_suite_scope": "cross-variant",
         "generated": _now_iso(),
         "note": "非法输入必须在 kernel launch 前被明确异常拒绝；"
-                "post_check_ok 验证拒绝未污染 CUDA 上下文。",
+                "post_check_ok 验证拒绝未污染 CUDA 上下文。"
+                "cross-variant: 单跑设计, 同一组用例覆盖全部变体"
+                "（用例自带 variant 字段）, 不描述为 per-variant。",
         "summary": summary,
         "cases": results,
     }

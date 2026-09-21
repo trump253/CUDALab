@@ -94,14 +94,25 @@ class Operator:
         """单变体完整正确性套件。返回 {all_pass, summary, saved}。"""
         raise NotImplementedError
 
-    def run_negative(self, ext, variant: str | None = None) -> dict:
+    def run_negative(self, ext, variant: str | None = None,
+                     out_dir: Path | None = None) -> dict:
         """negative suite。返回保存的 doc（含 summary）。
 
-        variant（v0.5 独立审查 MAJOR-1）: GEMV 的 negative 套件是
-        per-variant 参数化的（每个向量化候选的对齐契约 / 标量回退
-        回归必须对该候选自身运行并归档）。统一 CLI 传入受测变体:
-        baseline 存规范 `invalid_inputs.json`, 其余变体存
-        `invalid_inputs_<variant>.json`。其余算子（rmsnorm/softmax/
-        rope）的套件是单跑设计, 忽略该参数。
+        套件范围语义（v0.5 merge review 2026-09-21 统一, 以 doc 的
+        `negative_suite_scope` 字段为权威标记）:
+        - **per-variant**（GEMV / Softmax / RoPE）: 套件本体按
+          variant 参数化, 统一 CLI 传入受测变体, 实际测试 CLI 指定的
+          候选（每个向量化候选的对齐契约 / 标量回退回归必须对该候选
+          自身运行并归档）。默认变体存规范 `invalid_inputs.json`,
+          其余变体存 `invalid_inputs_<variant>.json`。
+        - **cross-variant**（RMSNorm）: 单跑设计, 同一组用例覆盖全部
+          变体（用例自带 variant 字段）, variant 参数被忽略 —— 验证
+          算子级共享契约, 不描述为 per-variant。
+
+        out_dir（append-only 约定）: 显式指定时结果存到该目录（自动
+        创建）; 默认按算子约定。历史 experiment artifact（main 已发布
+        的记录, 如 experiments/{rmsnorm,softmax,rope}/correctness/
+        下的 v0.2/v0.3/v0.4 目录）**不可变**, 新验证只追加到
+        `experiments/regression/<版本>/`。
         """
         raise NotImplementedError

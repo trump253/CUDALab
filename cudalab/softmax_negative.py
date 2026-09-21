@@ -11,10 +11,18 @@
   预启动 validation 文本（expect_msg_contains），而非运行时错误。
 - 时间戳由程序生成（ISO 8601，带时区），不手填历史日期。
 
-说明: baseline 是标量访存（无向量化），因此当前**没有**对齐契约；
-`align_offset_view_control` 用例记录这一事实：storage offset 视图
-（连续但未 16B 对齐）对 baseline 是合法输入，必须成功。若后续引入
-向量化变体，必须为其添加对应的对齐拒绝用例（策略 1: 显式报错）。
+说明（v0.5 merge review 2026-09-21 刷新）:
+- 本套件是 **per-variant** 的（negative_suite_scope = "per-variant"）:
+  套件主体按 variant 参数化（build_cases / _post_check_ok 全部走
+  `ext.forward(variant, ...)`）, operator 层对每个受测变体运行全套
+  15 例 —— 默认变体存规范 `invalid_inputs.json`, 其余变体存
+  `invalid_inputs_<variant>.json`。
+- 对齐语义因变体而异: baseline 是标量访存（无向量化）, **没有**对齐
+  契约 —— `align_offset_view_control` 用例钉死：storage offset 视图
+  （连续但未 16B 对齐）是合法输入，必须成功。vec4 类向量化变体有
+  对齐契约（H%4==0 ∧ x/out 基址按向量宽度对齐）, 不满足时回退标量
+  路径（与 baseline 同源, 不得拒绝）—— 同一 control 用例对它们同样
+  必须成功（走回退）。
 """
 from __future__ import annotations
 
@@ -29,7 +37,7 @@ from .evaluator.negative import run_case as _run_case_core, summarize_cases
 ROOT = Path(__file__).resolve().parent.parent
 
 SUITE_VERSION = "negative-v0.3-softmax"
-V = "softmax_baseline"  # 当前唯一变体
+V = "softmax_baseline"  # 默认（套件主体）变体；套件按 variant 参数化
 
 
 def _post_check_ok(ext, variant: str = V) -> bool:
@@ -162,10 +170,14 @@ def run_negative_suite(ext, out_path: Path | None = None,
     summary = summarize_cases(results)
     doc = {
         "suite": SUITE_VERSION,
+        "negative_suite_scope": "per-variant",
         "generated": _now_iso(),
         "note": "非法输入必须在 kernel launch 前被明确异常拒绝；"
                 "post_check_ok 验证拒绝未污染 CUDA 上下文。"
-                "baseline 为标量访存，无对齐契约（见 align_offset_view_control）。",
+                "baseline 为标量访存，无对齐契约（见 align_offset_view_control）；"
+                "vec4 类向量化变体有对齐契约（H%4==0 ∧ 基址按向量宽度对齐），"
+                "不满足时回退与 baseline 同源的标量内核，不得拒绝"
+                "（同一 control 用例对其同样必须成功）。",
         "summary": summary,
         "cases": results,
     }
