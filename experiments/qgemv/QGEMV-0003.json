@@ -1,0 +1,176 @@
+{
+  "id": "QGEMV-0003",
+  "operator": "qgemv",
+  "parent": "qgemv_vec16_row",
+  "candidate": "qgemv_warp_vec16",
+  "hypothesis": "vec16_row NCU: dram 86.0%, long_scoreboard 51.4% of stalls (7.76 cyc/iss), barrier 7.3%, occ 82.6%, sm 39.9%; vec16_scale (QGEMV-0002, NEUTRAL 0.990x) 证明计算指令削减不是杠杆 (occ 掉到 68.4%, dram 反降 82.7%) -> 剩余瓶颈 = 每线程在途字节太少 (K=4096, 256 threads/block: 每线程恰好 1 个 W 向量) + 归约 barrier。结构变化: warp-per-row (8 warps/block, 每 warp 1 行, row=blockIdx*8+warp_id), 每 lane 步长 32 向量 + ILP=2 双累加器 (i 路与 i+32 路独立在途, K=4096 下每 lane 8 个 W 向量, 在途 16B load 字节 x~8), 纯 warp shuffle 归约 (5 步) 无 shared memory 无 __syncthreads (barrier stall 8.6% 整体消除); 合并性不变 (warp 内 32x16B=512B/迭代); x 被 8 warp 重读 (8KB L1 缓存, 算法流量口径不变)。目标: DRAM 86% -> >90%, 逼近 27.3us 算法下界",
+  "changes": "新文件 kernels/qgemv/qgemv_warp_vec16.cu: grid=ceil(N/8) blocks x 256 threads (8 warps), 每 warp 1 行 (row>=N 尾部退出), 每 lane for(i=lane; i<nvec; i+=64) 双累加器 (acc0: 向量 i, acc1: 向量 i+32, 均匀分支除尾部外 warp 一致, 每向量恰好一次 -- 路径 A 覆盖 [64t,64t+32), 路径 B 覆盖 [64t+32,64t+64)), qgemv_vec_acc_dequant 逐元素语义与 vec16_row 相同 (每 term q→fp32 x scale x x), acc0+acc1 后 5 步 warp shuffle, lane0 写 out; 无 __shared__ 无 __syncthreads; 对齐契约与回退同 vec16_row (qgemv_vec_contract_ok, 不满足 bit-identical 回退 qgemv_scalar_kernel); 固定 arith 界原样适用不放宽",
+  "correctness": {
+    "all_pass": true,
+    "summary": {
+      "n_total": 50,
+      "n_pass": 50,
+      "n_fail": 0,
+      "all_pass": true,
+      "max_abs_error": 4.0,
+      "max_rel_error": 0.066666670144,
+      "failed": [],
+      "max_arith_max_ratio": 0.249935006664,
+      "ok_close_vs_ref_all": false
+    },
+    "saved": "/root/code/cuda/experiments/qgemv/correctness/v0.6/qgemv_warp_vec16.json",
+    "quantization_fidelity": {
+      "saved": "/root/code/cuda/experiments/qgemv/correctness/v0.6/quantization_fidelity.json",
+      "summary": {
+        "n_cases": 25,
+        "max_fid_max_abs": 369.186767578125,
+        "max_fid_rmse": 96.46525573730469,
+        "min_cosine": 0.9998970268657201,
+        "max_dequant_step_err": 0.5000019073486328,
+        "max_abs_q": 127
+      }
+    }
+  },
+  "negative": {
+    "n_total": 29,
+    "n_reject_expected": 23,
+    "n_reject_ok": 23,
+    "n_pass_expected": 6,
+    "n_pass_ok": 6,
+    "n_skipped": 0,
+    "n_passed": 29,
+    "all_pass": true
+  },
+  "paired_benchmark": {
+    "file": "/root/code/cuda/benchmarks/qgemv/QGEMV-0003_pair_qgemv_vec16_row_vs_qgemv_warp_vec16_M4096_H4096_float16_streaming.json",
+    "harness": "paired-streaming-v2.3",
+    "shape": [
+      4096,
+      4096
+    ],
+    "dtype": "float16",
+    "cache_mode": "streaming",
+    "parent": "qgemv_vec16_row",
+    "candidate": "qgemv_warp_vec16",
+    "paired_rounds": 9,
+    "valid_rounds": 9,
+    "invalid_environment_rounds": 0,
+    "invalid_dvfs_rounds": 0,
+    "median_speedup_parent_over_candidate": 1.010651,
+    "bootstrap_ci_95": [
+      1.009891,
+      1.010848
+    ],
+    "faster_rounds_candidate": "9/9",
+    "parent_median_us": 31.88,
+    "candidate_median_us": 31.552,
+    "raw_speedup": 1.010651,
+    "filtered_speedup": 1.010651,
+    "filter_sensitive": false,
+    "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）",
+    "rejected_samples": {
+      "fast": 0,
+      "slow": 0
+    }
+  },
+  "profile_observation": {
+    "file": "/root/code/cuda/profiles/qgemv/qgemv_warp_vec16_M4096_H4096_ccall_clkbase.json",
+    "kernel_duration_us": 36.16,
+    "dram_throughput_pct": 87.24,
+    "l2_read_hit_rate": {
+      "value": 3.41,
+      "unit": "%"
+    },
+    "l1_hit_rate": {
+      "value": 79.37,
+      "unit": "%"
+    },
+    "registers_per_thread": 41,
+    "warp_stalls": {
+      "long_scoreboard": {
+        "stalled_cycles_per_issue": 18.53,
+        "pct_of_stalls": 84.1
+      },
+      "selected": {
+        "stalled_cycles_per_issue": 1.0,
+        "pct_of_stalls": 4.5
+      },
+      "wait": {
+        "stalled_cycles_per_issue": 0.81,
+        "pct_of_stalls": 3.7
+      },
+      "not_selected": {
+        "stalled_cycles_per_issue": 0.47,
+        "pct_of_stalls": 2.1
+      },
+      "mio_throttle": {
+        "stalled_cycles_per_issue": 0.34,
+        "pct_of_stalls": 1.5
+      },
+      "short_scoreboard": {
+        "stalled_cycles_per_issue": 0.318,
+        "pct_of_stalls": 1.4
+      },
+      "math_pipe_throttle": {
+        "stalled_cycles_per_issue": 0.17,
+        "pct_of_stalls": 0.8
+      },
+      "dispatch_stall": {
+        "stalled_cycles_per_issue": 0.15,
+        "pct_of_stalls": 0.7
+      },
+      "lg_throttle": {
+        "stalled_cycles_per_issue": 0.085,
+        "pct_of_stalls": 0.4
+      },
+      "branch_resolving": {
+        "stalled_cycles_per_issue": 0.08,
+        "pct_of_stalls": 0.4
+      },
+      "no_instruction": {
+        "stalled_cycles_per_issue": 0.05,
+        "pct_of_stalls": 0.2
+      },
+      "drain": {
+        "stalled_cycles_per_issue": 0.04,
+        "pct_of_stalls": 0.2
+      },
+      "barrier": {
+        "stalled_cycles_per_issue": 0.0,
+        "pct_of_stalls": 0.0
+      },
+      "sleeping": {
+        "stalled_cycles_per_issue": 0.0,
+        "pct_of_stalls": 0.0
+      },
+      "membar": {
+        "stalled_cycles_per_issue": 0.0,
+        "pct_of_stalls": 0.0
+      }
+    }
+  },
+  "decision": {
+    "correctness_pass": true,
+    "valid_rounds": 9,
+    "min_valid_rounds": 5,
+    "speedups": {
+      "n": 9,
+      "median": 1.010651,
+      "mean": 1.010286,
+      "min": 1.007565,
+      "max": 1.011436,
+      "faster_count": 9,
+      "faster_fraction": 1.0
+    },
+    "ci95": [
+      1.009891,
+      1.010848
+    ],
+    "rule": "median 1.0107 within (0.95, 1.05) or mixed rounds (9/9 faster) or CI not excluded 1.00 (CI95=[1.009891, 1.010848]) -> NEUTRAL",
+    "decision": "NEUTRAL",
+    "filter_sensitive": false,
+    "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）",
+    "statistical_relation": "FASTER",
+    "policy_decision": "NEUTRAL"
+  }
+}
