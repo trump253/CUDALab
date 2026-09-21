@@ -19,7 +19,8 @@ review 发现已全部处置（代码修复 + 文档更正 + 记录重录），�
   spec, and every recorded decision is fully reproducible"*（§17）。
 - 第三算子 **RoPE（interleaved 约定）** 完整接入：baseline + 4 个候选变体、
   正确性 384/384 × 5 变体 + 独立表值核对（review 新增门）、负例
-  33/34（1 项跳过、2 项预期 PASS、31 项必须拒绝，review 后扩至 34 例）、
+  36/37 执行 all_pass（1 项跳过、5 项预期 PASS、31 项必须拒绝；review
+  后扩至 34 例 + v0.4.1 新增 3 例 half2 对齐回归 = 37）、
   baseline bench（含一次真实缺陷的发现与修复）、NCU、4 个自主优化实验
   （全部 NEUTRAL）、36 格全矩阵 + shape winners、PyTorch context。
 - 诚实结论：**(1024,128) 主目标上 baseline 已贴近稳态流内 launch 发射下限，
@@ -481,7 +482,7 @@ done
 
 # RoPE 正确性 / 负例（需 GPU）
 $PY scripts/cudalab.py test rope --variant rope_baseline     # 384 项
-$PY scripts/cudalab.py negative rope                         # 34 例（31 基础 + 3 per-variant 整除性）
+$PY scripts/cudalab.py negative rope                         # 37 例（31 基础 + 3 per-variant 整除性 + 3 v0.4.1 对齐回归）
 
 # Baseline bench（paired streaming v2.3，9 rounds）
 $PY scripts/cudalab.py benchmark pair rope \

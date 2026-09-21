@@ -49,8 +49,9 @@ v0.4 交付：
   double-rounding 算术界 K=2 vs fp64 精确旋转 + norm 保持；与 torch
   参考 allclose 报告不门控；review 后新增独立表值核对门：表 vs
   θ(pos,i)=pos·10000^(−2i/D) 的 fp64 独立求值全网格核对 + 固定误差界，
-  5 变体共享、折叠进 all_pass）+ negative 33/34 执行、all_pass=true
-  （34 例 = 31 基础 + 3 per-variant 整除性；2 预期 PASS 对照 + 1 跳过）。
+  5 变体共享、折叠进 all_pass）+ negative 36/37 执行、all_pass=true
+  （37 例 = 31 基础 + 3 per-variant 整除性 + 3 v0.4.1 half2 对齐
+  回归；5 预期 PASS + 1 跳过）。
 - **同步验证修复（v0.4 最重要的工程发现之一）**：首跑 baseline
   28.8/29.8 µs 被定位为验证路径缺陷——positions 值域检查（0≤p<L）
   的**同步** D2H 拷贝逐 launch 强制流同步（~25–30 µs）。修复：
@@ -522,7 +523,8 @@ cudalab/
   softmax_correctness.py / softmax_negative.py   Softmax 正确性(72 例)/负例(15 例)套件
   rope_correctness.py   RoPE 正确性(384 例：finiteness + double-rounding 算术界
                         K=2 vs fp64 精确旋转 + norm 保持；allclose 报告不门控)
-  rope_negative.py      RoPE 负例(34 例，launch 前 TORCH_CHECK + 启动后检查)
+  rope_negative.py      RoPE 负例(37 例 = 34 review 版 + 3 v0.4.1 对齐回归，
+                        launch 前 TORCH_CHECK + 启动后检查)
   dispatch.py           RMSNorm 形状/dtype 分发表（v0.2.1 证据政策，v0.4 未改）
   benchmark.py          v0.1 批量 cuda-event 框架（保留，历史对照）
   stats.py / decision.py / profiler.py / bench_v2.py / …   v0.2 导入路径兼容 shim
@@ -576,7 +578,7 @@ experiments/softmax/   SFM-0001…0004（MD + result/pair JSON）+ correctness/v
                        + final_reval/ + best.json（36 格 classify_cell）
                        + v0.3.1/（合并修复验证：4 变体正确性 + negative + 隔离验证记录）
 experiments/rope/      ROPE-0001…0004（result/pair JSON）+ correctness/v0.4/
-                       （baseline + 4 候选 384/384 + 表核对 + invalid_inputs 33/34）
+                       （baseline + 4 候选 384/384 + 表核对 + invalid_inputs 36/37）
 benchmarks/softmax/    base_*/inc_*/full5_* 36 格 × 多组 + pair_*（v0.2 路径原样保留）
 benchmarks/v0.3_regression/   RMSNorm/Softmax 回归硬门记录（v2.2 协议）
 benchmarks/v2.3_regression/   v2.3 回归硬门记录（gate_summary + 4 pair + repeat）
@@ -632,7 +634,7 @@ $PYTHON -c "from cudalab.build import build; build('rope')"      # rope 扩展
 # 统一 CLI（算子无关；--help 可查全部子命令）
 $PYTHON scripts/cudalab.py test softmax --variant softmax_baseline   # 单变体正确性（72 例）+ negative
 $PYTHON scripts/cudalab.py test rmsnorm --variant v4_vec_reg         # 单变体正确性（76 例）+ negative
-$PYTHON scripts/cudalab.py test rope --variant rope_baseline         # 单变体正确性（384 例 + 表核对）+ negative（34 例）
+$PYTHON scripts/cudalab.py test rope --variant rope_baseline         # 单变体正确性（384 例 + 表核对）+ negative（37 例）
 # 注: 隔离变体（softmax_hsplit2）在 CLI 各入口被拒绝（NOT_FOR_NORMAL_DISPATCH）
 $PYTHON scripts/cudalab.py benchmark pair softmax \
     --parent softmax_baseline --candidate softmax_vec4 \

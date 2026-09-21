@@ -11,10 +11,15 @@
   预启动 validation 文本（expect_msg_contains），而非运行时错误。
 - 时间戳由程序生成（ISO 8601，带时区），不手填历史日期。
 
-说明: baseline 是标量访存（每 thread 一个 pair, 非向量化），因此当前
+说明: baseline 是标量访存（每 thread 一个 pair, 非向量化），因此
 **没有**对齐契约；`valid_offset_view_control` 用例记录这一事实：
 storage offset 视图（连续但未 16B 对齐）对 baseline 是合法输入，
-必须成功。若后续引入向量化变体，必须为其添加对应的对齐拒绝用例。
+必须成功。v3_half2 的 fp16 路径做 4B `__half2` load/store，对 **x 与
+out 的基指针** 有 4B 对齐契约（`is_contiguous()==true` 不保证 —— 奇
+数元素 storage offset 的连续视图基指针偏移 2B）；未对齐时 host 侧
+launch 前回退标量 fp16 路径（baseline 兼容数学，位级一致），合法输入
+不得被拒 —— `v3_half2_x_*` / `v3_half2_out_*` 三个回归用例钉死该
+契约（v0.4.1 新增）。
 """
 from __future__ import annotations
 
@@ -237,6 +242,54 @@ def build_cases(ext, variant: str = V) -> list[dict]:
         "均不得拒绝此合法输入（向量化变体须走其回退/可用路径）: 必须成功",
         lambda: fwd(xo, pos, cos_t, sin_t), expected="pass")
 
+    # ---- v3_half2 对齐契约（v0.4.1）: fp16 路径做 4B __half2
+    #      load/store, x/out 基指针未 4B 对齐时 host 侧 launch 前回退
+    #      标量 fp16 路径（baseline 兼容数学, 位级一致）。合法输入
+    #      不得被拒, 也不得进入 unsafe half2 路径。----
+    def _v3_fwd_bitmatch(xa):
+        y3 = ext.forward("rope_v3_half2", xa, pos, cos_t, sin_t)
+        yb = ext.forward("rope_baseline", xa, pos, cos_t, sin_t)
+        if not torch.equal(y3, yb):
+            raise AssertionError(
+                "v3_half2 结果必须与 baseline 位级一致")
+        return y3
+
+    big_x1 = torch.randn(M * D + 1, dtype=torch.float16, device=dev)
+    x_mis2b = big_x1[1:1 + M * D].view(M, D)
+    add("v3_half2_x_misaligned_2b",
+        "v0.4.1 对齐回归: x 基指针偏移 1 个 half（2B, 未 4B 对齐）, "
+        "is_contiguous()==True: v3_half2 fp16 路径必须回退标量路径"
+        "（不得进入 unsafe half2 路径）, 且结果与 baseline 位级一致: "
+        "必须成功",
+        lambda: _v3_fwd_bitmatch(x_mis2b),
+        expected="pass", variant_="rope_v3_half2")
+    big_x2 = torch.randn(M * D + 2, dtype=torch.float16, device=dev)
+    x_ok4b = big_x2[2:2 + M * D].view(M, D)
+    add("v3_half2_x_aligned_4b",
+        "v0.4.1 对齐回归: x 基指针偏移 2 个 half（4B, 已对齐）: "
+        "v3_half2 fp16 路径走 __half2 打包 load/store, 且结果与 "
+        "baseline 位级一致: 必须成功",
+        lambda: _v3_fwd_bitmatch(x_ok4b),
+        expected="pass", variant_="rope_v3_half2")
+    big_o = torch.randn(M * D + 1, dtype=torch.float16, device=dev)
+    o_mis2b = big_o[1:1 + M * D].view(M, D)
+
+    def _v3_into_bitmatch():
+        # forward_into 为 void（就地写入 out）, 比较的是被写入的 o_mis2b
+        ext.forward_into("rope_v3_half2", x, pos, cos_t, sin_t, o_mis2b)
+        yb = ext.forward("rope_baseline", x, pos, cos_t, sin_t)
+        if not torch.equal(o_mis2b, yb):
+            raise AssertionError(
+                "v3_half2 结果必须与 baseline 位级一致")
+        return o_mis2b
+
+    add("v3_half2_out_misaligned_2b",
+        "v0.4.1 对齐回归: forward_into 的 out 基指针偏移 1 个 half"
+        "（2B, 未 4B 对齐）: v3_half2 必须回退（或明确拒绝）—— 本实现"
+        "回退标量路径, 且结果与 baseline 位级一致: 必须成功",
+        _v3_into_bitmatch,
+        expected="pass", variant_="rope_v3_half2")
+
     return cases
 
 
@@ -263,7 +316,10 @@ def run_negative_suite(ext, out_path: Path | None = None,
         "note": "非法输入必须在 kernel launch 前被明确异常拒绝；"
                 "post_check_ok 验证拒绝未污染 CUDA 上下文。"
                 "baseline 为标量访存，无对齐契约"
-                "（见 valid_offset_view_control）。",
+                "（见 valid_offset_view_control）；v3_half2 fp16 路径"
+                "对 x/out 基指针有 4B 对齐契约，未对齐时 host 侧回退"
+                "标量路径（v0.4.1 回归用例 v3_half2_x_misaligned_2b / "
+                "v3_half2_x_aligned_4b / v3_half2_out_misaligned_2b）。",
         "summary": summary,
         "cases": results,
     }
