@@ -1,0 +1,295 @@
+{
+  "operator": "qgemv",
+  "shape_winners": [
+    {
+      "shape": [
+        1024,
+        4096
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "winner": "qgemv_warp_vec16",
+      "runner_up": "qgemv_warp_vec16_ilp4",
+      "winner_median_us": 6.516,
+      "runner_up_median_us": 6.592,
+      "median_ratio_runner_over_winner": 1.010989,
+      "bootstrap_ci_95": [
+        1.003791,
+        1.017031
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "qgemv_baseline": 14.529,
+        "qgemv_vec16_row": 7.375,
+        "qgemv_vec16_scale": 7.523,
+        "qgemv_warp_vec16": 6.516,
+        "qgemv_warp_vec16_ilp4": 6.592
+      },
+      "winner_raw": "qgemv_warp_vec16",
+      "raw_ratio_runner_over_winner": 1.011664,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "\u5728\u9608\u503c\u5185\uff08|log \u5dee| 0.0000 <= 0.0953\uff09"
+    },
+    {
+      "shape": [
+        1024,
+        4096
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "winner": "qgemv_warp_vec16",
+      "runner_up": "qgemv_warp_vec16_ilp4",
+      "winner_median_us": 6.656,
+      "runner_up_median_us": 6.677,
+      "median_ratio_runner_over_winner": 1.006522,
+      "bootstrap_ci_95": [
+        0.994035,
+        1.015433
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "qgemv_baseline": 14.783,
+        "qgemv_vec16_row": 7.501,
+        "qgemv_vec16_scale": 7.554,
+        "qgemv_warp_vec16": 6.656,
+        "qgemv_warp_vec16_ilp4": 6.677
+      },
+      "winner_raw": "qgemv_warp_vec16",
+      "raw_ratio_runner_over_winner": 1.003155,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "\u5728\u9608\u503c\u5185\uff08|log \u5dee| 0.0000 <= 0.0953\uff09"
+    },
+    {
+      "shape": [
+        11008,
+        4096
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "winner": "qgemv_vec16_row",
+      "runner_up": "qgemv_vec16_scale",
+      "winner_median_us": 80.504,
+      "runner_up_median_us": 80.826,
+      "median_ratio_runner_over_winner": 1.004124,
+      "bootstrap_ci_95": [
+        1.003962,
+        1.004373
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "qgemv_baseline": 227.072,
+        "qgemv_vec16_row": 80.504,
+        "qgemv_vec16_scale": 80.826,
+        "qgemv_warp_vec16": 81.498,
+        "qgemv_warp_vec16_ilp4": 81.577
+      },
+      "winner_raw": "qgemv_vec16_row",
+      "raw_ratio_runner_over_winner": 1.004,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "\u5728\u9608\u503c\u5185\uff08|log \u5dee| 0.0000 <= 0.0953\uff09"
+    },
+    {
+      "shape": [
+        11008,
+        4096
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "winner": "qgemv_vec16_row",
+      "runner_up": "qgemv_vec16_scale",
+      "winner_median_us": 80.576,
+      "runner_up_median_us": 80.96,
+      "median_ratio_runner_over_winner": 1.004766,
+      "bootstrap_ci_95": [
+        1.004641,
+        1.005337
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "qgemv_baseline": 227.2,
+        "qgemv_vec16_row": 80.576,
+        "qgemv_vec16_scale": 80.96,
+        "qgemv_warp_vec16": 81.557,
+        "qgemv_warp_vec16_ilp4": 81.656
+      },
+      "winner_raw": "qgemv_vec16_row",
+      "raw_ratio_runner_over_winner": 1.004766,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "\u5728\u9608\u503c\u5185\uff08|log \u5dee| 0.0000 <= 0.0953\uff09"
+    },
+    {
+      "shape": [
+        4096,
+        1024
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "winner": "qgemv_warp_vec16",
+      "runner_up": "qgemv_warp_vec16_ilp4",
+      "winner_median_us": 6.639,
+      "runner_up_median_us": 6.784,
+      "median_ratio_runner_over_winner": 1.021841,
+      "bootstrap_ci_95": [
+        1.011028,
+        1.034304
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "qgemv_baseline": 19.392,
+        "qgemv_vec16_row": 13.312,
+        "qgemv_vec16_scale": 14.872,
+        "qgemv_warp_vec16": 6.639,
+        "qgemv_warp_vec16_ilp4": 6.784
+      },
+      "winner_raw": "qgemv_warp_vec16",
+      "raw_ratio_runner_over_winner": 1.021841,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "\u5728\u9608\u503c\u5185\uff08|log \u5dee| 0.0000 <= 0.0953\uff09"
+    },
+    {
+      "shape": [
+        4096,
+        1024
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "winner": "qgemv_warp_vec16_ilp4",
+      "runner_up": "qgemv_warp_vec16",
+      "winner_median_us": 7.355,
+      "runner_up_median_us": 7.377,
+      "median_ratio_runner_over_winner": 0.992116,
+      "bootstrap_ci_95": [
+        0.981744,
+        1.016393
+      ],
+      "valid_rounds": 8,
+      "all_variants_median_us": {
+        "qgemv_baseline": 19.581,
+        "qgemv_vec16_row": 13.492,
+        "qgemv_vec16_scale": 15.067,
+        "qgemv_warp_vec16": 7.377,
+        "qgemv_warp_vec16_ilp4": 7.355
+      },
+      "winner_raw": "qgemv_warp_vec16_ilp4",
+      "raw_ratio_runner_over_winner": 1.002991,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "\u5728\u9608\u503c\u5185\uff08|log \u5dee| 0.0000 <= 0.0953\uff09"
+    },
+    {
+      "shape": [
+        4096,
+        11008
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "winner": "qgemv_vec16_row",
+      "runner_up": "qgemv_warp_vec16",
+      "winner_median_us": 80.357,
+      "runner_up_median_us": 80.775,
+      "median_ratio_runner_over_winner": 1.005265,
+      "bootstrap_ci_95": [
+        1.00499,
+        1.005864
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "qgemv_baseline": 226.883,
+        "qgemv_vec16_row": 80.357,
+        "qgemv_vec16_scale": 81.059,
+        "qgemv_warp_vec16": 80.775,
+        "qgemv_warp_vec16_ilp4": 80.866
+      },
+      "winner_raw": "qgemv_vec16_row",
+      "raw_ratio_runner_over_winner": 1.005202,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "\u5728\u9608\u503c\u5185\uff08|log \u5dee| 0.0000 <= 0.0953\uff09"
+    },
+    {
+      "shape": [
+        4096,
+        11008
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "winner": "qgemv_vec16_row",
+      "runner_up": "qgemv_vec16_scale",
+      "winner_median_us": 80.315,
+      "runner_up_median_us": 80.821,
+      "median_ratio_runner_over_winner": 1.006238,
+      "bootstrap_ci_95": [
+        1.005964,
+        1.006926
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "qgemv_baseline": 227.968,
+        "qgemv_vec16_row": 80.315,
+        "qgemv_vec16_scale": 80.821,
+        "qgemv_warp_vec16": 80.859,
+        "qgemv_warp_vec16_ilp4": 80.954
+      },
+      "winner_raw": "qgemv_vec16_row",
+      "raw_ratio_runner_over_winner": 1.0063,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "\u5728\u9608\u503c\u5185\uff08|log \u5dee| 0.0000 <= 0.0953\uff09"
+    },
+    {
+      "shape": [
+        4096,
+        4096
+      ],
+      "dtype": "float16",
+      "cache_mode": "hot",
+      "winner": "qgemv_warp_vec16",
+      "runner_up": "qgemv_warp_vec16_ilp4",
+      "winner_median_us": 31.879,
+      "runner_up_median_us": 31.946,
+      "median_ratio_runner_over_winner": 1.001976,
+      "bootstrap_ci_95": [
+        1.001347,
+        1.002102
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "qgemv_baseline": 86.994,
+        "qgemv_vec16_row": 32.037,
+        "qgemv_vec16_scale": 32.337,
+        "qgemv_warp_vec16": 31.879,
+        "qgemv_warp_vec16_ilp4": 31.946
+      },
+      "winner_raw": "qgemv_warp_vec16",
+      "raw_ratio_runner_over_winner": 1.002102,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "\u5728\u9608\u503c\u5185\uff08|log \u5dee| 0.0000 <= 0.0953\uff09"
+    },
+    {
+      "shape": [
+        4096,
+        4096
+      ],
+      "dtype": "float16",
+      "cache_mode": "streaming",
+      "winner": "qgemv_warp_vec16",
+      "runner_up": "qgemv_warp_vec16_ilp4",
+      "winner_median_us": 31.809,
+      "runner_up_median_us": 31.872,
+      "median_ratio_runner_over_winner": 1.001949,
+      "bootstrap_ci_95": [
+        1.000629,
+        1.002264
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "qgemv_baseline": 87.21,
+        "qgemv_vec16_row": 32.064,
+        "qgemv_vec16_scale": 32.318,
+        "qgemv_warp_vec16": 31.809,
+        "qgemv_warp_vec16_ilp4": 31.872
+      },
+      "winner_raw": "qgemv_warp_vec16",
+      "raw_ratio_runner_over_winner": 1.001981,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "\u5728\u9608\u503c\u5185\uff08|log \u5dee| 0.0000 <= 0.0953\uff09"
+    }
+  ]
+}
