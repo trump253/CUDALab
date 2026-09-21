@@ -1,0 +1,267 @@
+{
+  "harness": "paired-streaming-v2.3",
+  "operator": "gemv",
+  "dtype": "float32",
+  "shape_winners": [
+    {
+      "shape": [
+        1024,
+        4096
+      ],
+      "dtype": "float32",
+      "cache_mode": "hot",
+      "winner": "gemv_vec4_row",
+      "runner_up": "gemv_baseline",
+      "winner_median_us": 31.208,
+      "runner_up_median_us": 34.628,
+      "median_ratio_runner_over_winner": 1.110224,
+      "bootstrap_ci_95": [
+        1.108567,
+        1.110428
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "gemv_baseline": 34.628,
+        "gemv_vec4_row": 31.208
+      },
+      "winner_raw": "gemv_vec4_row",
+      "raw_ratio_runner_over_winner": 1.109587,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        1024,
+        4096
+      ],
+      "dtype": "float32",
+      "cache_mode": "streaming",
+      "winner": "gemv_vec4_row",
+      "runner_up": "gemv_baseline",
+      "winner_median_us": 31.232,
+      "runner_up_median_us": 34.212,
+      "median_ratio_runner_over_winner": 1.095374,
+      "bootstrap_ci_95": [
+        1.094647,
+        1.095767
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "gemv_baseline": 34.212,
+        "gemv_vec4_row": 31.232
+      },
+      "winner_raw": "gemv_vec4_row",
+      "raw_ratio_runner_over_winner": 1.095415,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        4096,
+        1024
+      ],
+      "dtype": "float32",
+      "cache_mode": "hot",
+      "winner": "gemv_vec4_row",
+      "runner_up": "gemv_baseline",
+      "winner_median_us": 31.228,
+      "runner_up_median_us": 33.408,
+      "median_ratio_runner_over_winner": 1.069839,
+      "bootstrap_ci_95": [
+        1.068628,
+        1.072168
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "gemv_baseline": 33.408,
+        "gemv_vec4_row": 31.228
+      },
+      "winner_raw": "gemv_vec4_row",
+      "raw_ratio_runner_over_winner": 1.069809,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        4096,
+        1024
+      ],
+      "dtype": "float32",
+      "cache_mode": "streaming",
+      "winner": "gemv_vec4_row",
+      "runner_up": "gemv_baseline",
+      "winner_median_us": 31.257,
+      "runner_up_median_us": 33.461,
+      "median_ratio_runner_over_winner": 1.071198,
+      "bootstrap_ci_95": [
+        1.069028,
+        1.073152
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "gemv_baseline": 33.461,
+        "gemv_vec4_row": 31.257
+      },
+      "winner_raw": "gemv_vec4_row",
+      "raw_ratio_runner_over_winner": 1.070512,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        4096,
+        4096
+      ],
+      "dtype": "float32",
+      "cache_mode": "hot",
+      "winner": "gemv_vec4_row",
+      "runner_up": "gemv_baseline",
+      "winner_median_us": 117.184,
+      "runner_up_median_us": 125.312,
+      "median_ratio_runner_over_winner": 1.069388,
+      "bootstrap_ci_95": [
+        1.069148,
+        1.070522
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "gemv_baseline": 125.312,
+        "gemv_vec4_row": 117.184
+      },
+      "winner_raw": "gemv_vec4_row",
+      "raw_ratio_runner_over_winner": 1.069361,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        4096,
+        4096
+      ],
+      "dtype": "float32",
+      "cache_mode": "streaming",
+      "winner": "gemv_vec4_row",
+      "runner_up": "gemv_baseline",
+      "winner_median_us": 117.248,
+      "runner_up_median_us": 125.31,
+      "median_ratio_runner_over_winner": 1.068766,
+      "bootstrap_ci_95": [
+        1.068581,
+        1.06924
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "gemv_baseline": 125.31,
+        "gemv_vec4_row": 117.248
+      },
+      "winner_raw": "gemv_vec4_row",
+      "raw_ratio_runner_over_winner": 1.06876,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        11008,
+        4096
+      ],
+      "dtype": "float32",
+      "cache_mode": "hot",
+      "winner": "gemv_vec4_row",
+      "runner_up": "gemv_baseline",
+      "winner_median_us": 310.391,
+      "runner_up_median_us": 329.468,
+      "median_ratio_runner_over_winner": 1.061395,
+      "bootstrap_ci_95": [
+        1.061131,
+        1.06155
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "gemv_baseline": 329.468,
+        "gemv_vec4_row": 310.391
+      },
+      "winner_raw": "gemv_vec4_row",
+      "raw_ratio_runner_over_winner": 1.061461,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        11008,
+        4096
+      ],
+      "dtype": "float32",
+      "cache_mode": "streaming",
+      "winner": "gemv_vec4_row",
+      "runner_up": "gemv_baseline",
+      "winner_median_us": 310.412,
+      "runner_up_median_us": 329.152,
+      "median_ratio_runner_over_winner": 1.060329,
+      "bootstrap_ci_95": [
+        1.060106,
+        1.060421
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "gemv_baseline": 329.152,
+        "gemv_vec4_row": 310.412
+      },
+      "winner_raw": "gemv_vec4_row",
+      "raw_ratio_runner_over_winner": 1.060371,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        4096,
+        11008
+      ],
+      "dtype": "float32",
+      "cache_mode": "hot",
+      "winner": "gemv_vec4_row",
+      "runner_up": "gemv_baseline",
+      "winner_median_us": 312.111,
+      "runner_up_median_us": 342.758,
+      "median_ratio_runner_over_winner": 1.098193,
+      "bootstrap_ci_95": [
+        1.097949,
+        1.098268
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "gemv_baseline": 342.758,
+        "gemv_vec4_row": 312.111
+      },
+      "winner_raw": "gemv_vec4_row",
+      "raw_ratio_runner_over_winner": 1.098193,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    },
+    {
+      "shape": [
+        4096,
+        11008
+      ],
+      "dtype": "float32",
+      "cache_mode": "streaming",
+      "winner": "gemv_vec4_row",
+      "runner_up": "gemv_baseline",
+      "winner_median_us": 312.279,
+      "runner_up_median_us": 342.783,
+      "median_ratio_runner_over_winner": 1.097624,
+      "bootstrap_ci_95": [
+        1.097511,
+        1.097685
+      ],
+      "valid_rounds": 9,
+      "all_variants_median_us": {
+        "gemv_baseline": 342.783,
+        "gemv_vec4_row": 312.279
+      },
+      "winner_raw": "gemv_vec4_row",
+      "raw_ratio_runner_over_winner": 1.097682,
+      "filter_sensitive": false,
+      "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）"
+    }
+  ]
+}
