@@ -37,8 +37,9 @@ v0.4 交付：
   把最终 policy_decision 一律降级 UNSTABLE——v0.4.1 起 KEEP/REJECT/
   NEUTRAL 均降级，记录 original_decision）。guard 逻辑抽为纯 CPU
   函数（stats.apply_spike_guard/block_stats/crossblock_flag），
-  tests/test_evaluator_v23_cpu.py 31/31（review 后 +1：raw 侧聚合
-  约定钉死；v0.4.1 +2：NEUTRAL+敏感 → UNSTABLE 双向必测）。
+  tests/test_evaluator_v23_cpu.py 36/36（review 后 +1：raw 侧聚合
+  约定钉死；v0.4.1 +7：gate 收紧 2（NEUTRAL+敏感 → UNSTABLE 双向
+  必测）+ statistical_relation/policy_decision 形式分离 5）。
 - **v2.3 回归硬门 PASS**（RoPE 之前，`benchmarks/v2.3_regression/`）：
   Softmax baseline vs vec4 streaming **1.6745** [1.6727,1.6793] 9/9
   （v2.2 参考 1.6772/1.6890 精确复现，raw=filtered，rejected 0/0）；
@@ -72,13 +73,18 @@ v0.4 交付：
   | ROPE-0003 | `rope_v3_half2` | 发射侧非瓶颈 → 指令数削减控制（fp16 `__half2` 打包） | NEUTRAL（0.9974 [0.9888,1.0025]）—— 成功的阴性对照 |
   | ROPE-0004 | `rope_v4_8pair` | MLP 边界（D%16==0） | NEUTRAL（0.9922 [0.9861,1.0055]，rejected fast=39 = r1 锚定偏差计数，见报告 §9）；NCU +104%，波坍缩灾难区 |
 
-  结论：baseline 在 (1024,128) 已贴近稳态 launch 发射下限（~6.4 µs
-  流内 vs ~4.0 µs NCU 单 launch）；MLP 甜区 1–2 pairs/thread；
-  ≥4 pairs 波坍缩。**"不要追求 RoPE 一定优化成功"**——真实目标是
-  evaluator 更可信 + 第三算子自然接入 + 从 profiler 证据形成有效
-  实验；baseline 已近下限时全 NEUTRAL 是 PASS，不是失败。NCU 用于
-  诊断、paired bench 用于决策（v1_2pair 的 NCU −7.6% 未转化为流内
-  ≥5% 优势，NEUTRAL 是正确决策）。
+  结论（v0.4.1 限定范围）：在当前 Python → pybind → PyTorch C++
+  extension → CUDA launch 的 benchmark submission path 下，主目标
+  (1024,128) 表现出明显 launch/host-issuance sensitivity——paired
+  API-path: baseline ≈ 6.4 µs vs v1 ≈ 6.4 µs；NCU kernel-only:
+  baseline ≈ 4.00 µs, v1 ≈ 3.70 µs（−7.6%）。因此不能直接推断:
+  未来原生 C++ CUDALM 中 v1 也无收益（submission path 会变）。MLP
+  甜区 1–2 pairs/thread；≥4 pairs 波坍缩。**"不要追求 RoPE 一定
+  优化成功"**——真实目标是 evaluator 更可信 + 第三算子自然接入 +
+  从 profiler 证据形成有效实验；该 submission path 下 baseline 已
+  近下限时全 NEUTRAL 是 PASS，不是失败。NCU 用于诊断、paired bench
+  用于决策（v1_2pair 的 NCU −7.6% 未转化为流内 ≥5% 优势，NEUTRAL
+  是正确决策）。
 - **全矩阵**：36 格（9 形状 × 2 dtype × hot/streaming）× 5 变体
   全部保留（`benchmarks/rope/rope_v04_matrix_*` + `rope_v04_matrix_shape_winners.json`）。
   质量：31/36 格 9/9 valid、4 格 8/9、1 格 7/9（spike/cross-block 拒轮透明
@@ -348,9 +354,10 @@ EXP-0007 DVFS 混频、v0.3 hot 机器态漂移、v0.3.1 登记的 guard 不对�
   `apply_filter_gate` 把最终 policy_decision 一律降级 UNSTABLE，
   记录 original_decision——v0.4.1 起 KEEP/REJECT/NEUTRAL 均降级）。
   guard 逻辑为纯 CPU 函数（`stats.apply_spike_guard/block_stats/
-  crossblock_flag`），31 个确定性 CPU 单测钉死
-  （`tests/test_evaluator_v23_cpu.py`；v0.4.1 新增 2 个：
-  NEUTRAL+敏感 → UNSTABLE 双向必测）。
+  crossblock_flag`），36 个确定性 CPU 单测钉死
+  （`tests/test_evaluator_v23_cpu.py`；v0.4.1 新增 7 个：2 个
+  NEUTRAL+敏感 → UNSTABLE 双向必测 + 5 个 statistical_relation /
+  policy_decision 形式分离）。
   详见 [docs/evaluator_v2_3.md](docs/evaluator_v2_3.md)（含 v2.3 回归门
   结果与 RMSNorm 方向翻转调查）。
 
@@ -442,9 +449,13 @@ harness 位于 `cudalab/evaluator/bench.py`（`cudalab/bench_v2.py` 为兼容 sh
 | ROPE-0004 | `rope_v4_8pair` | NEUTRAL（0.9922 [0.9861,1.0055]，3/9；rejected fast=39） | 8 pairs/thread（D%16==0）；NCU **+104%**（8.176 µs，occupancy 11.9%）——波坍缩灾难区；rejected fast=39 = r1 锚定偏差计数（环境恢复后合法样本被拒，pair 判定稳健，报告 §9）；v2.3 快侧 guard 的真实行为展示 = 矩阵 11 个 cross-block flag（§11） |
 
 四个候选 384/384 正确性全部通过。**全部 NEUTRAL 是 PASS 结局**（"不要
-追求 RoPE 一定优化成功"）：baseline 在 (1024,128) 已贴近稳态 launch 发射
-下限（~6.4 µs/launch 流内 vs ~4.0 µs NCU 单 launch，dram 23.25% /
-long_sb 69.3%），MLP 杠杆甜区在 1–2 pairs/thread，≥4 pairs 进入波坍缩；
+追求 RoPE 一定优化成功"）：在当前 Python → pybind → PyTorch C++
+extension → CUDA launch 的 benchmark submission path 下，主目标表现出
+明显 launch/host-issuance sensitivity（paired API-path: baseline
+≈ 6.4 µs vs v1 ≈ 6.4 µs；NCU kernel-only: baseline ≈ 4.00 µs,
+v1 ≈ 3.70 µs；dram 23.25% / long_sb 69.3%），因此不能直接推断:
+未来原生 C++ CUDALM 中 v1 也无收益；MLP 杠杆甜区在 1–2 pairs/thread，
+≥4 pairs 进入波坍缩；
 没有候选达到 ≥5% 替换门槛，incumbent 保持 `rope_baseline`。完整记录：
 `experiments/rope/ROPE-000{1..4}.json`（paired v2.3 pair 记录在
 `benchmarks/rope/`，NCU 在 `profiles/rope/`）。
@@ -509,8 +520,10 @@ cudalab/
     stats.py            round-level paired 统计 + bootstrap CI + v2.3 纯 CPU guard
                         函数（apply_spike_guard / block_stats / crossblock_flag /
                         filter_sensitive，对称化；round 统计部分不变）
-    decision.py         KEEP/REJECT/NEUTRAL/UNSTABLE + classify_cell +
-                        apply_filter_gate（敏感 + KEEP/REJECT → UNSTABLE，
+    decision.py         KEEP/REJECT/NEUTRAL/UNSTABLE + statistical_relation
+                        （FASTER/SLOWER/UNRESOLVED，v0.4.1）+ classify_cell +
+                        apply_filter_gate（敏感 → 最终 policy_decision
+                        一律 UNSTABLE，v0.4.1 起含 NEUTRAL；
                         记录 original_decision）
     profiler.py         通用 NCU --csv 集成（driver_src/kernel_regex 由 adapter 提供）
     negative.py         通用负例运行器
@@ -568,7 +581,8 @@ scripts/
 tests/
   test_evaluator_cpu.py     stats/decision 纯 CPU 单元测试（v0.3 全过）
   test_evaluator_v23_cpu.py v2.3 对称 guard / raw-filtered / filter-sensitive
-                            确定性单测（29/29）
+                            + v0.4.1 gate 收紧 / relation-policy 分离
+                            确定性单测（36/36）
   test_softmax_cpu.py       Softmax 数值 + online (m,l) merge 恒等测试（20/20）
   test_invalid_inputs.py / test_dispatch.py
 docs/
@@ -683,7 +697,7 @@ $PYTHON scripts/profile_v2.py
 
 # CPU 单元测试（无需 GPU）
 $PYTHON tests/test_evaluator_cpu.py
-$PYTHON tests/test_evaluator_v23_cpu.py  # v0.4: 29/29（对称 guard / raw-filtered / filter-sensitive / raw 侧约定）
+$PYTHON tests/test_evaluator_v23_cpu.py  # v0.4.1: 36/36（对称 guard / raw-filtered / filter-sensitive / raw 侧约定 / gate 收紧 / relation-policy 分离）
 $PYTHON tests/test_dispatch.py
 $PYTHON tests/test_softmax_cpu.py        # v0.3: 20/20（数值 + online merge 恒等）
 ```

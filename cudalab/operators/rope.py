@@ -76,8 +76,9 @@ BENCH_MATRIX_ROPE = [
 ]
 # 主目标 (M, D) = (1024, 128), FP16。理由:
 # (1) 吞吐观测: M=1024, D=128 -> 65536 个 RoPE pair = 65536 线程
-#     （30 SM × 2048 线程/SM 的 ~1%, 单 wave 内, 足以让 kernel 进入
-#     稳定的内存/发射节奏而非 launch-bound 极值）;
+#     （65536 / (30 SM × 2048 线程/SM) ≈ 1.07 theoretical-residency
+#     waves ≈ 107%, 即略超一个完整 wave, 足以让 kernel 进入稳定的
+#     内存/发射节奏而非 launch-bound 极值）;
 # (2) D=128 是常见 LLM head_dim（如 7B/13B 级模型的 GQA head dim）,
 #     该形状代表真实推理中每 token 每 head 的 RoPE 单元。
 PRIMARY_TARGET = (1024, 128)

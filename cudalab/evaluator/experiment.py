@@ -13,11 +13,22 @@
   - winner vs runner-up 的 round-level paired 比值套用 v0.2 固定决策
     规则（decision.decide_v2，correctness 恒 True —— 正确性在实验层
     单独把关）：
-      KEEP      -> SIGNIFICANT_WINNER（winner 统计显著优于 runner-up）
-      NEUTRAL   -> NO_UNIQUE_WINNER（顶部变体间无统计显著差异）
+      KEEP      -> SIGNIFICANT_WINNER（policy 5% 阈值下 winner 显著快于
+                   runner-up 且 CI 排除 1.00）
+      NEUTRAL   -> NO_UNIQUE_WINNER（policy 5% 替换阈值未达或 CI 含 1.00
+                   —— 不等于"无统计显著差异"的统计陈述；统计陈述看
+                   statistical_relation）
       REJECT    -> NO_UNIQUE_WINNER（中位数第一但 paired 证据不足，
                    如实记录）
-      UNSTABLE  -> UNSTABLE（valid rounds 不足）
+      UNSTABLE  -> UNSTABLE（valid rounds 不足，或 v0.4.1 filter gate
+                    降级）
+- v0.4.1: 形式分离 statistical_relation / policy_decision。classify_cell
+  输出分别记录:
+  - `statistical_relation`: FASTER/SLOWER/UNRESOLVED（只基于 CI95，
+    与 5% 政策阈值无关，见 decision.statistical_relation）;
+  - `policy_decision`: KEEP/REJECT/NEUTRAL/UNSTABLE（acceptance
+    policy，即 filter gate 之后的 decision）。
+  两者可背离（例如 CI [1.001, 1.04] → 统计 FASTER 但 policy NEUTRAL）。
 """
 from __future__ import annotations
 
@@ -70,7 +81,13 @@ def classify_cell(variants: list[str], rounds: list[dict],
 
     rounds: bench_matrix 记录的 "rounds" 列表（{valid, us: {v: us}}）。
     返回 {status, winner, runner_up, medians, median_ratio, ci95,
-    faster_rounds, decision, decision_rule, valid_rounds}。
+    faster_rounds, decision, decision_rule, valid_rounds,
+    statistical_relation, policy_decision}。v0.4.1 起
+    statistical_relation（FASTER/SLOWER/UNRESOLVED，只基于 CI95）与
+    policy_decision（KEEP/REJECT/NEUTRAL/UNSTABLE，filter gate 之后）
+    分别记录；早退路径（可比较 variant 不足 / valid rounds 不足）无
+    CI、无 policy 判定 → statistical_relation=UNRESOLVED、
+    policy_decision=None。
     """
     valid = [r for r in rounds if r["valid"]]
     per = {v: [r["us"][v] for r in valid if v in r["us"]] for v in variants}
@@ -91,6 +108,8 @@ def classify_cell(variants: list[str], rounds: list[dict],
         "faster_rounds": None,
         "decision": None,
         "decision_rule": None,
+        "statistical_relation": _decision.UNRESOLVED,  # CI 缺失
+        "policy_decision": None,
         "status": None,
     }
     if len(ranked) < 2:
@@ -120,7 +139,9 @@ def classify_cell(variants: list[str], rounds: list[dict],
     # v2.3: raw 轨（bench_matrix v2.3 round 含 us_raw；v2.2 及更早无）。
     # 判据与 bench_matrix 记录级一致: winner flip 显式判；否则共同
     # top-2（filtered winner/runner）的 raw 比值 vs filtered 比值差
-    # >10% 判敏感。filter_sensitive 且决策 KEEP/REJECT → UNSTABLE。
+    # >10% 判敏感。filter_sensitive → 最终 policy_decision 一律
+    # UNSTABLE（v0.4.1 起 KEEP/REJECT/NEUTRAL 均降级，见
+    # decision.apply_filter_gate）。
     # v0.4 review 更正: raw 侧与 filtered 侧必须用**同一聚合约定**
     # （per-round runner/winner 比值的中位数, 与 s["median"] 一致）;
     # 旧版 raw 侧误用跨 round 中位数之比, 在 round 双峰格会与
@@ -170,6 +191,10 @@ def classify_cell(variants: list[str], rounds: list[dict],
         "decision_rule": detail.get("rule"),
         "filter_sensitive": detail.get("filter_sensitive", False),
         "filter_sensitive_reason": detail.get("filter_sensitive_reason"),
+        # v0.4.1: 形式分离 — statistical_relation 只基于 CI95（与 policy
+        # 的 5% 阈值无关）; policy_decision = filter gate 之后的 decision。
+        "statistical_relation": _decision.statistical_relation(ci95),
+        "policy_decision": dec,
         "status": _STATUS_BY_DECISION[dec],
     })
     return out

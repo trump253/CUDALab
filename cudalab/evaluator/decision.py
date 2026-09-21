@@ -29,6 +29,16 @@ v2.3 追加（harness paired-streaming-v2.3，纯 CPU 可单测）:
    original_decision。仅原决策已是 UNSTABLE 时保持不变（只记录
    标记）。
 
+v0.4.1 追加（形式分离 statistical_relation / policy_decision）:
+7. `statistical_relation(ci95)`（纯函数，只基于 CI95，与 5% 政策
+   阈值无关）: CI95 下界 > 1.00 → FASTER；CI95 上界 < 1.00 →
+   SLOWER；否则（CI 含 1.00 或 CI 缺失）→ UNRESOLVED。
+   policy_decision（KEEP/REJECT/NEUTRAL/UNSTABLE，即 decide_v2 +
+   filter gate 的结果）是 acceptance policy 判定，受 5% 替换阈值、
+   faster-round 占比、有效轮数与 filter gate 约束。两者可背离：
+   例如 CI [1.001, 1.04] → 统计 FASTER，但 median 1.01 < 1.05 →
+   policy NEUTRAL。实验 schema（cmd_optimize 的 decision 块与
+   classify_cell 输出）从 v0.4.1 起分别记录这两个字段。
 """
 from __future__ import annotations
 
@@ -38,6 +48,12 @@ KEEP, REJECT, NEUTRAL, UNSTABLE = "KEEP", "REJECT", "NEUTRAL", "UNSTABLE"
 # v2.3: 记录级标记（不是决策值本身；v0.4.1 起决策层见到它会把
 # KEEP/REJECT/NEUTRAL 一律降级 UNSTABLE）
 FILTER_SENSITIVE = "FILTER_SENSITIVE"
+
+# v0.4.1: statistical_relation 取值（纯统计陈述，基于 CI95；与
+# policy_decision 的 5% 阈值等政策约束无关，见模块 docstring 第 7 条）。
+FASTER = "FASTER"
+SLOWER = "SLOWER"
+UNRESOLVED = "UNRESOLVED"
 
 MIN_VALID_ROUNDS = 5      # 少于该数量的 DVFS 稳定 round -> UNSTABLE
 KEEP_MEDIAN = 1.05        # median paired speedup >= 1.05
@@ -134,3 +150,30 @@ def apply_filter_gate(decision: str, detail: dict,
         return UNSTABLE, detail
     return decision, detail
 
+
+def statistical_relation(ci95: list[float] | None) -> str:
+    """v0.4.1 统计关系（纯 CPU，只基于 CI95；5% 政策阈值不参与）。
+
+    规则（与 decide_v2 的 speedup 约定一致: parent/candidate，>1 =
+    candidate 更快）:
+    - CI95 下界 > 1.00        -> FASTER（整个 CI 在 1.00 之上，candidate
+      显著更快）
+    - CI95 上界 < 1.00        -> SLOWER（整个 CI 在 1.00 之下，candidate
+      显著更慢）
+    - 其余（CI 含 1.00，含恰好触到 1.00 的边界；或 CI 缺失/None）
+                             -> UNRESOLVED
+
+    该陈述与 policy_decision 形式分离: policy 的 5% 替换阈值、
+    faster-round 占比、有效轮数、filter gate 只影响
+    policy_decision（KEEP/REJECT/NEUTRAL/UNSTABLE），不影响
+    statistical_relation。两者可背离（见模块 docstring 第 7 条的
+    例子: CI [1.001, 1.04] → FASTER 但 median < 1.05 → policy NEUTRAL）。
+    """
+    if ci95:
+        lo = float(ci95[0])
+        hi = float(ci95[1])
+        if lo > 1.00:
+            return FASTER
+        if hi < 1.00:
+            return SLOWER
+    return UNRESOLVED

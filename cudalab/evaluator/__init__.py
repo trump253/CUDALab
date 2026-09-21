@@ -26,6 +26,7 @@ from .stats import (  # noqa: F401
 )
 from .decision import (  # noqa: F401
     KEEP, REJECT, NEUTRAL, UNSTABLE, decide_v2, MIN_VALID_ROUNDS,
+    FASTER, SLOWER, UNRESOLVED, statistical_relation,
 )
 
 __all__ = [
@@ -34,4 +35,5 @@ __all__ = [
     "paired_speedups", "summarize", "bootstrap_ci",
     "check_dvfs_pair", "check_dvfs_matrix",
     "KEEP", "REJECT", "NEUTRAL", "UNSTABLE", "decide_v2", "MIN_VALID_ROUNDS",
+    "FASTER", "SLOWER", "UNRESOLVED", "statistical_relation",
 ]

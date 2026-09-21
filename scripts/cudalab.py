@@ -48,7 +48,7 @@ from cudalab.evaluator.bench import (  # noqa: E402
     HARNESS_VERSION,
 )
 from cudalab.evaluator.decision import (  # noqa: E402
-    decide_v2, apply_filter_gate,
+    decide_v2, apply_filter_gate, statistical_relation,
 )
 from cudalab.evaluator.experiment import save_experiment  # noqa: E402
 from cudalab.evaluator import profiler as ncu  # noqa: E402
@@ -300,8 +300,16 @@ def cmd_optimize(a) -> int:
         decision, detail,
         paired.get("filter_sensitive", False),
         paired.get("filter_sensitive_reason", "未评估（v2.2 或更早记录）"))
+    # v0.4.1: 形式分离 — statistical_relation 只基于 CI95（与 5% 政策
+    # 阈值无关）; policy_decision = filter gate 之后的 decision。两者
+    # 分别写入实验记录的 decision 块。
+    rel = statistical_relation(paired["bootstrap_ci_95"])
+    detail["statistical_relation"] = rel
+    detail["policy_decision"] = decision
     print(f"== [{a.id}] decision: {decision} ==")
     print(f"   {detail.get('rule')}")
+    print(f"   statistical_relation: {rel}（只基于 CI95，与 5% 政策阈值无关）")
+    print(f"   policy_decision: {decision}（acceptance policy，filter gate 之后）")
 
     profile_obs = None
     if a.profile:

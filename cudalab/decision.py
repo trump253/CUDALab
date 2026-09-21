@@ -15,4 +15,8 @@ from .evaluator.decision import (  # noqa: F401
     KEEP_FASTER_FRAC,
     REJECT_FASTER_FRAC,
     decide_v2,
+    FASTER,
+    SLOWER,
+    UNRESOLVED,
+    statistical_relation,
 )

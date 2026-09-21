@@ -23,10 +23,15 @@ review 发现已全部处置（代码修复 + 文档更正 + 记录重录），�
   后扩至 34 例 + v0.4.1 新增 3 例 half2 对齐回归 = 37）、
   baseline bench（含一次真实缺陷的发现与修复）、NCU、4 个自主优化实验
   （全部 NEUTRAL）、36 格全矩阵 + shape winners、PyTorch context。
-- 诚实结论：**(1024,128) 主目标上 baseline 已贴近稳态流内 launch 发射下限，
-  四个候选全部 NEUTRAL —— 按预设判据这是 PASS 结局，不是失败。**
-  NCU 单 launch 上 v1_2pair 快 7.6%，但没有转化为流内 ≥5% 优势，
-  评估器正确判为 NEUTRAL。没有为项目故事挑选好看的数字。
+- 诚实结论（v0.4.1 限定范围）：**在当前 Python → pybind → PyTorch C++
+  extension → CUDA launch 的 benchmark submission path 下，主目标
+  (1024,128) 表现出明显 launch/host-issuance sensitivity（paired
+  API-path: baseline ≈ 6.4 µs vs v1 ≈ 6.4 µs；NCU kernel-only:
+  baseline ≈ 4.00 µs, v1 ≈ 3.70 µs），四个候选全部 NEUTRAL —— 按预设
+  判据这是 PASS 结局，不是失败。** NCU 单 launch 上 v1_2pair 快 7.6%，
+  但没有转化为流内 ≥5% 优势，评估器正确判为 NEUTRAL。因此不能直接
+  推断: 未来原生 C++ CUDALM 中 v1 也无收益（submission path 会变）。
+  没有为项目故事挑选好看的数字。
 
 ## 2. v0.3.1 Release
 
@@ -373,8 +378,11 @@ fp16 median 262.128 µs / fp32 180.343 µs（n=200）—— 仅作实现参考
    6.98 µs 的 kernel 基准整体抬到 28.8 µs（×4.1），且**首跑不查就发现不了**
    —— 基准数字必须能与独立参考（NCU 单 launch 4 µs）交叉核对。
    "池契约 + validate 门控"是后续算子（GEMV）复用 bench pool 时应固化的模式。
-5. **全 NEUTRAL 也是 PASS**：baseline 已贴近流内发射下限时，没有 KEEP
-   是正确的科学结论；为项目故事硬造一个"赢"的变体才是事故。
+5. **全 NEUTRAL 也是 PASS**：在 v0.4.1 的限定范围（当前 benchmark
+   submission path 下主目标表现出 launch/host-issuance sensitivity；
+   NCU kernel-only baseline ≈ 4.00 µs / v1 ≈ 3.70 µs，paired API-path
+   ≈ 6.4 µs vs ≈ 6.4 µs；不能外推到未来原生 C++ CUDALM）内，没有
+   KEEP 是正确的科学结论；为项目故事硬造一个"赢"的变体才是事故。
 
 ## 13. Evaluator Generalization Verdict
 
@@ -629,6 +637,50 @@ review 未要求重跑任何记录（数字与代码自洽；代码审查 + 已�
 专项（v0.3 遗留的"正确性-性能"权衡），或 v2.3 的**跨 run 稳定性协议**
 （把"±5% 噪声带内的对"形式化为 policy：连续 N 次 paired 同向才可
 KEEP/REJECT —— 这是 RMSNorm 方向翻转事件的长期解）。
+
+## 19. v0.4.1 Merge Fix（postscript，2026-09-21）
+
+> 本 postscript 只追加、不改写上述历史正文（§3/§13/§17 的 gate 与
+> 负例计数保持 review 当时的记录）。四项修复：
+
+1. **`rope_v3_half2` 对齐加固**：fp16 路径的
+   `reinterpret_cast<const __half2*>` 需要 4B 对齐，而
+   `is_contiguous()` 不保证 4B 对齐（view 奇数 half 存储偏移即可
+   触发）。v0.4.1 在 fp16 前向入口显式检查 x / out 基指针 4B 对齐，
+   未对齐时回退到与 baseline 逐语句同数学的标量 fp16 kernel
+   （`el_to_float → FP32 旋转 → el_from_float` 每值 RN，与 baseline
+   位级一致），fp32 路径无需检查。负例套件新增 3 例对齐回归
+   （x 2B 未对齐 → 回退且位级一致；x 4B 对齐 → half2 路径且位级
+   一致；out 2B 未对齐经 `forward_into` → 回退且位级一致），37 例
+   执行 36/37 all_pass。
+2. **FILTER_SENSITIVE gate 收紧**：`filter_sensitive == true` 时最终
+   `policy_decision` 一律 UNSTABLE（无论原决策 KEEP / REJECT /
+   NEUTRAL）；原决策与敏感原因照旧记录。v0.4 全部记录
+   filter_sensitive=false，故历史决策零影响。
+3. **statistical_relation / policy_decision 形式分离**：schema 分别
+   记录 `statistical_relation`（FASTER / SLOWER / UNRESOLVED，只基于
+   CI95：下界 > 1 → FASTER，上界 < 1 → SLOWER，否则 UNRESOLVED）与
+   `policy_decision`（KEEP / REJECT / NEUTRAL / UNSTABLE，5% 阈值只
+   作用于后者）。ROPE-0001..0004 仅追加这两个元数据字段（由已存
+   CI95 推导：全部 UNRESOLVED / NEUTRAL），原始 benchmark / profile
+   数字未修改、未重新 benchmark。
+4. **文档范围限定**：launch-bound 结论不再泛化为"RoPE 已达到 kernel
+   launch 下限"，改为限定在当前 benchmark submission path
+   （Python → pybind → PyTorch C++ extension → CUDA launch）下主目标
+   表现出明显 launch/host-issuance sensitivity，并附 NCU kernel-only
+   vs paired API-path 双口径数字与"不能外推到未来原生 C++ CUDALM"
+   的明确保留；`operators/rope.py` 的 wave 计数笔误更正
+   （65536 / (30×2048) ≈ 1.07 theoretical-residency waves ≈ 107%，
+   原文 "~1%, 单 wave 内" 错误）。
+
+验证（2026-09-21）：v3 正确性 384/384 all_pass + 表核对 True（重录
+`experiments/rope/correctness/v0.4/rope_v3_half2.json`）；负例 36/37
+all_pass（重录 `invalid_inputs.json`）；代表性 baseline/v3 smoke
+pair（(1024,128) fp16 streaming，harness 完整性检查，非 ROPE-0003
+重跑）9/9 valid、0.969977 [0.959281, 0.977719]、raw==filtered、
+filter_sensitive=false（`benchmarks/rope/v041_smoke_v3_pair_*`）；
+CPU 套件 36/36（v2.3）+ 18/18 + 20/20 + 6/6。full 36-cell matrix
+**未重跑**；历史 benchmark / profile JSON 逐字节未改。
 
 ---
 

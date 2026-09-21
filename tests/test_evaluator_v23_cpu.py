@@ -8,7 +8,10 @@
    行为对称）;
 4. filter-sensitive 构造（raw 看 candidate 慢、filtered 看 candidate
    快 → 必须 FILTER_SENSITIVE / UNSTABLE，不得强行 KEEP/REJECT）;
-5. v0.4.1: filter gate 收紧（NEUTRAL + filter_sensitive → 最终
+5. v0.4.1: statistical_relation / policy_decision 形式分离
+   （CI 边界与严格不等式、5% 阈值独立性、classify_cell 双字段与
+   早退路径 UNRESOLVED/None）;
+6. v0.4.1: filter gate 收紧（NEUTRAL + filter_sensitive → 最终
    policy_decision 一律 UNSTABLE, 双向必测）。
 
 运行:
@@ -387,6 +390,77 @@ def test_matrix_raw_convention_median_of_round_ratios():
     assert out["winner_raw"] == "w"
     # 审计字段（per-variant raw 中位数）仍照常记录
     assert out["all_variants_raw_median_us"] == {"w": 10.0, "r": 11.7}
+
+
+# ---- v0.4.1: statistical_relation / policy_decision 形式分离 --------------------
+
+def test_statistical_relation_faster():
+    # CI95 下界 > 1.00 → FASTER（整个 CI 在 1.00 之上, candidate 显著快）
+    assert D.statistical_relation([1.01, 1.20]) == D.FASTER
+    assert D.statistical_relation([1.001, 1.04]) == D.FASTER
+
+
+def test_statistical_relation_slower():
+    # CI95 上界 < 1.00 → SLOWER（整个 CI 在 1.00 之下, candidate 显著慢）
+    assert D.statistical_relation([0.80, 0.99]) == D.SLOWER
+    assert D.statistical_relation([0.95, 0.999]) == D.SLOWER
+
+
+def test_statistical_relation_unresolved():
+    # CI 含 1.00 → UNRESOLVED
+    assert D.statistical_relation([0.98, 1.02]) == D.UNRESOLVED
+    # 严格不等式: 恰好触到 1.00 的边界也是 UNRESOLVED（下界 > 1 / 上界 < 1）
+    assert D.statistical_relation([1.00, 1.20]) == D.UNRESOLVED
+    assert D.statistical_relation([0.80, 1.00]) == D.UNRESOLVED
+    # CI 缺失 → UNRESOLVED
+    assert D.statistical_relation(None) == D.UNRESOLVED
+
+
+def test_statistical_relation_independent_of_policy_threshold():
+    """v0.4.1 核心: 5% 阈值只影响 policy_decision, 不影响
+    statistical_relation。CI [1.001, 1.04] → 统计 FASTER, 但
+    median 1.01 < 1.05 → policy NEUTRAL —— 两者可背离。"""
+    rel = D.statistical_relation([1.001, 1.04])
+    dec, _ = D.decide_v2(True, 9, [1.01] * 9, [1.001, 1.04])
+    assert rel == D.FASTER, "CI 下界 > 1 必须是统计 FASTER（与 5% 无关）"
+    assert dec == D.NEUTRAL, "median < 1.05 必须是 policy NEUTRAL"
+
+
+def test_classify_cell_emits_relation_and_policy():
+    """v0.4.1: classify_cell 输出分别记录 statistical_relation 与
+    policy_decision; 早退路径（无 CI、无 policy 判定）为
+    UNRESOLVED / None。"""
+    # (a) KEEP 格: 与 raw-convention 测试同构的数据 → FASTER + KEEP
+    raws = [(10.0, 10.6), (10.0, 10.6), (10.0, 10.6), (10.0, 11.7),
+            (50.0, 50.0), (50.0, 50.0), (50.0, 50.0)]
+    rounds = [{"valid": True,
+               "us": {"w": 10.0, "r": 10.6},
+               "us_raw": {"w": w, "r": r}} for w, r in raws]
+    out = E.classify_cell(["w", "r"], rounds)
+    assert out["decision"] == D.KEEP
+    assert out["statistical_relation"] == D.FASTER
+    assert out["policy_decision"] == D.KEEP
+
+    # (b) 背离格: per-round 比值恒 1.01（CI [1.01, 1.01]）→ 统计
+    # FASTER, 但 median < 1.05 → policy NEUTRAL
+    rounds_b = [{"valid": True, "us": {"w": 10.0, "r": 10.1}}
+                for _ in range(9)]
+    out_b = E.classify_cell(["w", "r"], rounds_b)
+    assert out_b["statistical_relation"] == D.FASTER
+    assert out_b["policy_decision"] == D.NEUTRAL
+    assert out_b["decision"] == D.NEUTRAL
+    assert out_b["status"] == E.NO_UNIQUE_WINNER
+
+    # (c) 早退格: 可比较 variant 不足 → UNRESOLVED / None
+    out_c = E.classify_cell(["w"], [{"valid": True, "us": {"w": 10.0}}] * 9)
+    assert out_c["statistical_relation"] == D.UNRESOLVED
+    assert out_c["policy_decision"] is None
+
+    # (d) 早退格: valid rounds 不足（全部 invalid）→ UNRESOLVED / None
+    out_d = E.classify_cell(
+        ["w", "r"], [{"valid": False, "us": {}}] * 3)
+    assert out_d["statistical_relation"] == D.UNRESOLVED
+    assert out_d["policy_decision"] is None
 
 
 # ---- runner --------------------------------------------------------------------

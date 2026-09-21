@@ -2,8 +2,9 @@
 
 日期: 2026-09-19（v0.4-rope 分支）
 前序: v2.2（环境稳定化, 见 `evaluator_hardening_v0.3.md` 第 8 条）
-状态: 已实现，CPU 单测 31/31 通过（v2.3 初始 28 + v0.4 review 约定
-钉死 1 + v0.4.1 gate 收紧 2），GPU 回归门（Phase 5）**PASS**
+状态: 已实现，CPU 单测 36/36 通过（v2.3 初始 28 + v0.4 review 约定
+钉死 1 + v0.4.1 gate 收紧 2 + v0.4.1 statistical_relation/policy_decision
+形式分离 5），GPU 回归门（Phase 5）**PASS**
 （见 §6 与 `benchmarks/v2.3_regression/gate_summary.json`）
 
 ## 1. 动机：v2.2 的不对称 guard
@@ -173,6 +174,12 @@ NEUTRAL，最终 policy_decision 一律 UNSTABLE**——raw/filtered 已分歧
    original_decision；**v0.4.1 收紧**：NEUTRAL+敏感 → UNSTABLE，
    双向必测（raw 明显更快 + filtered NEUTRAL → 敏感 → UNSTABLE；
    raw 明显更慢 + filtered NEUTRAL → 敏感 → UNSTABLE）。
+7. **v0.4.1 statistical_relation / policy_decision 形式分离**:
+   CI 边界（下界 > 1 → FASTER；上界 < 1 → SLOWER；含 1.00 —— 含
+   恰好触到 1.00 的边界 —— 或缺失 → UNRESOLVED，严格不等式）+ 5%
+   阈值独立性（CI [1.001, 1.04] → 统计 FASTER，但 median 1.01 < 1.05
+   → policy NEUTRAL，两者可背离）+ `classify_cell` 双字段（KEEP 格
+   FASTER+KEEP；背离格 FASTER+NEUTRAL；早退路径 UNRESOLVED/None）。
 
 ## 6. 回归门（Phase 5，RoPE 之前）— **PASS**（2026-09-20）
 

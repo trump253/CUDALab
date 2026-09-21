@@ -364,11 +364,14 @@ dram 23.25%、sm 11.61%、occupancy 78%、long_scoreboard 69.3% —— 稳态
 | ROPE-0003 | `rope_v3_half2` | NCU 显示发射侧非瓶颈 → 指令数削减控制（fp16 `__half2` 打包 load/store + FP32 旋转，数学与 baseline 位级一致） | NEUTRAL（0.9974 [0.9888,1.0025]，2/9）—— **成功的阴性对照**，验证评估器拒绝灵敏度 |
 | ROPE-0004 | `rope_v4_8pair` | MLP 杠杆边界（需 D%16==0） | NEUTRAL（0.9922 [0.9861,1.0055]，3/9；rejected fast=39 —— v2.3 快侧 spike 防护真实工作）；NCU +104%（8.176 µs，occupancy 11.9%）—— 波坍缩灾难区 |
 
-四个候选 384/384 全部通过。结论：baseline 在 (1024,128) 已贴近稳态
-launch 发射下限（~6.4 µs/launch 流内 vs ~4.0 µs NCU 单 launch）；MLP
-杠杆甜区在 1–2 pairs/thread；≥4 pairs 波坍缩。NCU 用于诊断、paired
-bench 用于决策 —— 正是本 lab 方法论的价值体现（v1_2pair 的 NCU −7.6%
-没有转化为流内 ≥5% 优势，NEUTRAL 是正确决策）。
+四个候选 384/384 全部通过。结论（v0.4.1 限定范围）：在当前 Python →
+pybind → PyTorch C++ extension → CUDA launch 的 benchmark submission
+path 下，主目标表现出明显 launch/host-issuance sensitivity（paired
+API-path: ≈ 6.4 µs vs ≈ 6.4 µs；NCU kernel-only: baseline ≈ 4.00 µs,
+v1 ≈ 3.70 µs）；因此不能直接推断: 未来原生 C++ CUDALM 中 v1 也无
+收益。MLP 杠杆甜区在 1–2 pairs/thread；≥4 pairs 波坍缩。NCU 用于诊断、
+paired bench 用于决策 —— 正是本 lab 方法论的价值体现（v1_2pair 的
+NCU −7.6% 没有转化为流内 ≥5% 优势，NEUTRAL 是正确决策）。
 
 ### Phase 6 — 全矩阵 + PyTorch context ✅
 36 格矩阵（9 形状 × {fp16,fp32} × {hot,streaming}）× 5 变体（全部候选
@@ -384,6 +387,34 @@ headline。
   v1→v2→v2.2→v2.3 + "持续修正的系统" 定位）/ STATUS / PROJECT_PLAN 更新；
 - 最终报告 `docs/report_v0.4_result.md`（# CUDALab v0.4 Result）；
 - 分小 commit、working tree clean、push `v0.4-rope`（**不 merge main**）。
+
+## v0.4.1 Merge Fix（2026-09-21，外部 review 后）
+
+只修 4 项 finding：不加 RoPE variant、不做新优化、不开始 GEMV、不重跑
+full 36-cell matrix。
+
+1. **`rope_v3_half2` 对齐加固**：fp16 路径 `reinterpret_cast<const
+   __half2*>` 的 4B 基指针对齐契约显式化（`is_contiguous()` 不保证
+   4B）；x/out 任一未 4B 对齐 → 回退到与 baseline 逐语句同数学的标量
+   fp16 kernel（位级一致），不拒绝调用。负例 +3 例对齐回归（37 例，
+   36/37 all_pass）。
+2. **FILTER_SENSITIVE gate 收紧**：filter_sensitive → 最终
+   policy_decision 一律 UNSTABLE（KEEP/REJECT/NEUTRAL 均降级，原决策
+   记 original_decision）。v0.4 记录 0 敏感，历史零影响。
+3. **statistical_relation / policy_decision 形式分离**：CI95 判定的
+   统计陈述（FASTER/SLOWER/UNRESOLVED）与 5% 阈值的 acceptance policy
+   （KEEP/REJECT/NEUTRAL/UNSTABLE）分别入 schema（decision 纯函数 +
+   classify_cell + CLI + ROPE-0001..0004 元数据，由已存 CI 推导，
+   原始数字未动）；experiment.py 错误措辞更正。
+4. **文档范围限定**：launch-bound 结论限定在当前 benchmark submission
+   path（NCU kernel-only vs paired API-path 双口径 + 不外推到未来
+   原生 C++ CUDALM）；`operators/rope.py` wave 计数笔误更正
+   （≈ 1.07 theoretical-residency waves ≈ 107%）。
+
+验证：v3 正确性 384/384 + 表核对、负例 36/37、baseline/v3 smoke pair
+9/9（0.969977，harness 完整性检查）、CPU 36/36+18/18+20/20+6/6。
+3 commit + push `v0.4-rope`（**不 merge main**，等待外部最终 merge
+review）。
 
 ## 不可妥协的规则
 - 不伪造任何数字；每个报告的指标都来自真实执行。

@@ -160,6 +160,8 @@
     "rule": "median 0.9922 within (0.95, 1.05) or mixed rounds (3/9 faster) or CI not excluded 1.00 (CI95=[0.986084, 1.005505]) -> NEUTRAL",
     "decision": "NEUTRAL",
     "filter_sensitive": false,
-    "filter_sensitive_reason": "在阈值内（|log 差| 0.0011 <= 0.0953）"
+    "filter_sensitive_reason": "在阈值内（|log 差| 0.0011 <= 0.0953）",
+    "statistical_relation": "UNRESOLVED",
+    "policy_decision": "NEUTRAL"
   }
 }
