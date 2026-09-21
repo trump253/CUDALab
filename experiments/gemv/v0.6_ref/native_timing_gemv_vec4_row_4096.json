@@ -1,0 +1,58 @@
+{
+ "variant": "gemv_vec4_row",
+ "shape": [
+  4096,
+  4096
+ ],
+ "purpose": "v0.6 \u00a76 \u5bf9\u6bd4\u8868: FP16 GEMV \u53c2\u8003\u5b9e\u73b0\uff08\u975e\u51b3\u7b56\u8f93\u5165, \u4ec5\u4e0a\u4e0b\u6587\uff09; v0.5 incumbent \u672c session \u590d\u6d4b",
+ "harness": "native kernel-loop: C++ continuous raw launches, CUDA events / 64, 10 windows",
+ "windows": 10,
+ "launches_per_window": 64,
+ "data_seed": "W=101234, x=1234 (bench engine SEED=1234 + W \u504f\u79fb 100000, \u4e0e QGEMV paired bench \u540c seed \u7ea6\u5b9a)",
+ "w200": {
+  "variant": "gemv_vec4_row",
+  "warmup": 200,
+  "n_windows": 10,
+  "launches_per_window": 64,
+  "window_median_us": [
+   60.460999608039856,
+   60.41250005364418,
+   60.428500175476074,
+   60.44499948620796,
+   60.398999601602554,
+   60.3955015540123,
+   60.37849932909012,
+   60.42350083589554,
+   60.41799858212471,
+   60.40950119495392
+  ],
+  "median_us": 60.415249317884445,
+  "min_us": 60.37849932909012,
+  "max_us": 60.460999608039856,
+  "mean_us": 60.41710004210472,
+  "note": "\u539f\u751f kernel-loop \u53e3\u5f84: C++ \u5185\u8fde\u7eed launch, CUDA events / N; \u4e0d\u542b Python \u8fb9\u754c\u5f00\u9500\uff08\u533a\u522b\u4e8e bench \u5f15\u64ce API \u8def\u5f84\u53e3\u5f84\u4e0e NCU kernel duration\uff09"
+ },
+ "w5000": {
+  "variant": "gemv_vec4_row",
+  "warmup": 5000,
+  "n_windows": 10,
+  "launches_per_window": 64,
+  "window_median_us": [
+   59.65549871325493,
+   59.647999703884125,
+   59.647999703884125,
+   59.66600030660629,
+   59.672001749277115,
+   59.72500145435333,
+   59.694498777389526,
+   59.69100072979927,
+   59.70200151205063,
+   59.70500037074089
+  ],
+  "median_us": 59.68150123953819,
+  "min_us": 59.647999703884125,
+  "max_us": 59.72500145435333,
+  "mean_us": 59.68070030212402,
+  "note": "\u539f\u751f kernel-loop \u53e3\u5f84: C++ \u5185\u8fde\u7eed launch, CUDA events / N; \u4e0d\u542b Python \u8fb9\u754c\u5f00\u9500\uff08\u533a\u522b\u4e8e bench \u5f15\u64ce API \u8def\u5f84\u53e3\u5f84\u4e0e NCU kernel duration\uff09"
+ }
+}

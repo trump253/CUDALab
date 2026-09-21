@@ -1,0 +1,19 @@
+{
+ "qgemv": {
+  "available": true,
+  "api": "torch.mv(W_fp16, x_fp16)（cuBLAS Gemv; 未量化 FP16 GEMV —— framework context, 与 v0.5 相同 口径; PyTorch 无 INT8 weight-only GEMV op）",
+  "median_us": 62.297,
+  "min_us": 60.995,
+  "n_samples": 200,
+  "note": "PyTorch framework context（带宽参照, 不作决策依据）"
+ },
+ "gemv": {
+  "available": true,
+  "api": "torch.mv(W, x)（cuBLAS Gemv; fp16 输入 FP32 compute —— 成熟库实现, 非本项目的候选 kernel）",
+  "median_us": 61.235,
+  "min_us": 60.984,
+  "n_samples": 200,
+  "note": "PyTorch framework context（带宽参照, 不作决策依据）"
+ },
+ "note": "PyTorch 无 INT8 weight-only GEMV; qgemv 上下文 = torch.mv(反量化 fp16 W, x)（framework 参考, 非决策输入）"
+}
