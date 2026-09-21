@@ -1,0 +1,58 @@
+{
+ "variant": "qgemv_warp_vec16",
+ "shape": [
+  4096,
+  4096
+ ],
+ "harness": "native kernel-loop: C++ continuous raw launches, CUDA events / 64, 10 windows",
+ "windows": 10,
+ "launches_per_window": 64,
+ "data_seed": "W=101234, x=1234 (bench engine SEED=1234 + W \u504f\u79fb 100000, \u4e0e paired bench \u540c\u6570\u636e)",
+ "final_incumbent_decision": "\u4e24\u6b21 fresh head-to-head (QGEMV-0003 \u8f6e + final_incumbent \u8f6e) CI95 \u5747\u6392\u9664 1.0 \u4e14\u65b9\u5411\u4e00\u81f4: warp_vec16 \u66f4\u5feb (1.0107x / 1.0094x, \u5747\u5728 5% \u653f\u7b56\u5e26\u5185); \u6309\u6700\u7ec8\u88c1\u51b3\u89c4\u5219 (CI95 \u663e\u8457\u6027\u4f18\u5148\u4e8e\u653f\u7b56\u5e26) \u9009 warp_vec16 \u4e3a\u6700\u7ec8 incumbent",
+ "w200": {
+  "variant": "qgemv_warp_vec16",
+  "warmup": 200,
+  "n_windows": 10,
+  "launches_per_window": 64,
+  "window_median_us": [
+   32.2440005838871,
+   32.16850012540817,
+   32.17750042676926,
+   32.17649832367897,
+   32.18900039792061,
+   32.21850097179413,
+   32.18049928545952,
+   32.1820005774498,
+   32.188501209020615,
+   32.21749886870384
+  ],
+  "median_us": 32.18525089323521,
+  "min_us": 32.16850012540817,
+  "max_us": 32.2440005838871,
+  "mean_us": 32.1942500770092,
+  "note": "\u539f\u751f kernel-loop \u53e3\u5f84: C++ \u5185\u8fde\u7eed launch, CUDA events / N; \u4e0d\u542b Python \u8fb9\u754c\u5f00\u9500\uff08\u533a\u522b\u4e8e bench \u5f15\u64ce API \u8def\u5f84\u53e3\u5f84\u4e0e NCU kernel duration\uff09"
+ },
+ "w5000": {
+  "variant": "qgemv_warp_vec16",
+  "warmup": 5000,
+  "n_windows": 10,
+  "launches_per_window": 64,
+  "window_median_us": [
+   32.14450180530548,
+   32.09599852561951,
+   32.094500958919525,
+   32.124001532793045,
+   32.129500061273575,
+   32.08550065755844,
+   32.087501138448715,
+   32.10999816656113,
+   32.085999846458435,
+   32.1200005710125
+  ],
+  "median_us": 32.10299834609032,
+  "min_us": 32.08550065755844,
+  "max_us": 32.14450180530548,
+  "mean_us": 32.107750326395035,
+  "note": "\u539f\u751f kernel-loop \u53e3\u5f84: C++ \u5185\u8fde\u7eed launch, CUDA events / N; \u4e0d\u542b Python \u8fb9\u754c\u5f00\u9500\uff08\u533a\u522b\u4e8e bench \u5f15\u64ce API \u8def\u5f84\u53e3\u5f84\u4e0e NCU kernel duration\uff09"
+ }
+}
