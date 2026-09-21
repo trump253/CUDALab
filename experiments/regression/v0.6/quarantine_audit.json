@@ -1,0 +1,128 @@
+{
+ "suite": "regression-v0.6",
+ "date": "2026-09-21",
+ "purpose": "v0.6 回归: 旧算子 (gemv/rmsnorm/softmax/rope) + 新算子 (qgemv) 全正常变体正确性+负例重跑; quarantine 审计 (gemv_splitk4 / softmax_hsplit2 不得出现在正常变体列表; qgemv quarantine 集为空); append-only, 不覆盖任何历史目录",
+ "all_pass": true,
+ "operators": {
+  "gemv": {
+   "normal_variants": [
+    "gemv_baseline",
+    "gemv_vec4_row",
+    "gemv_warp_vec4_b256",
+    "gemv_warp_vec4_b512"
+   ],
+   "all_variants": [
+    "gemv_baseline",
+    "gemv_splitk4",
+    "gemv_vec4_row",
+    "gemv_warp_vec4_b256",
+    "gemv_warp_vec4_b512"
+   ],
+   "all_variants_binding_present": true,
+   "quarantined_variants_binding": [
+    "gemv_splitk4"
+   ],
+   "quarantine_expected": [
+    "gemv_splitk4"
+   ],
+   "quarantine_leaked_into_normal": [],
+   "quarantine_present_in_all": {
+    "gemv_splitk4": true
+   },
+   "all_pass": true
+  },
+  "rmsnorm": {
+   "normal_variants": [
+    "baseline",
+    "v1_vec",
+    "v2_reg",
+    "v3_wideblock",
+    "v4_vec_reg"
+   ],
+   "all_variants": [
+    "baseline",
+    "v1_vec",
+    "v2_reg",
+    "v3_wideblock",
+    "v4_vec_reg"
+   ],
+   "all_variants_binding_present": false,
+   "quarantined_variants_binding": null,
+   "quarantine_expected": [],
+   "quarantine_leaked_into_normal": [],
+   "quarantine_present_in_all": {},
+   "all_pass": true
+  },
+  "softmax": {
+   "normal_variants": [
+    "softmax_baseline",
+    "softmax_online",
+    "softmax_vec4",
+    "softmax_vec4_ilp2"
+   ],
+   "all_variants": [
+    "softmax_baseline",
+    "softmax_hsplit2",
+    "softmax_online",
+    "softmax_vec4",
+    "softmax_vec4_ilp2"
+   ],
+   "all_variants_binding_present": true,
+   "quarantined_variants_binding": [
+    "softmax_hsplit2"
+   ],
+   "quarantine_expected": [
+    "softmax_hsplit2"
+   ],
+   "quarantine_leaked_into_normal": [],
+   "quarantine_present_in_all": {
+    "softmax_hsplit2": true
+   },
+   "all_pass": true
+  },
+  "rope": {
+   "normal_variants": [
+    "rope_baseline",
+    "rope_v1_2pair",
+    "rope_v2_4pair",
+    "rope_v3_half2",
+    "rope_v4_8pair"
+   ],
+   "all_variants": [
+    "rope_baseline",
+    "rope_v1_2pair",
+    "rope_v2_4pair",
+    "rope_v3_half2",
+    "rope_v4_8pair"
+   ],
+   "all_variants_binding_present": true,
+   "quarantined_variants_binding": null,
+   "quarantine_expected": [],
+   "quarantine_leaked_into_normal": [],
+   "quarantine_present_in_all": {},
+   "all_pass": true
+  },
+  "qgemv": {
+   "normal_variants": [
+    "qgemv_baseline",
+    "qgemv_vec16_row",
+    "qgemv_vec16_scale",
+    "qgemv_warp_vec16",
+    "qgemv_warp_vec16_ilp4"
+   ],
+   "all_variants": [
+    "qgemv_baseline",
+    "qgemv_vec16_row",
+    "qgemv_vec16_scale",
+    "qgemv_warp_vec16",
+    "qgemv_warp_vec16_ilp4"
+   ],
+   "all_variants_binding_present": true,
+   "quarantined_variants_binding": [],
+   "quarantine_expected": [],
+   "quarantine_leaked_into_normal": [],
+   "quarantine_present_in_all": {},
+   "all_pass": true
+  }
+ }
+}

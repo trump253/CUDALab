@@ -1,0 +1,502 @@
+{
+  "operator": "qgemv",
+  "suite": "qgemv-quantization-fidelity-v0.6",
+  "generated": "2026-09-21T18:17:02+08:00",
+  "layer": "(b) 量化保真度（只报告, 不判定; 量化误差 ≠ kernel bug, 与第 (a) 层容差分离, 用户 §2）",
+  "quantization": "对称 per-row INT8, zero_point=0, scale = max|W|/127, q = clamp(round-half-to-even(W/scale), -127, 127), scale=0 行 q≡0",
+  "reference": "y_orig = W_fp16.float() @ x.float(); y_quant = (W_q.float()*scale[:,None]) @ x.float()（均 FP32 累加, torch.mv）",
+  "metrics": "max_abs / max_rel（分母 clamp 1e-3）/ RMSE / cosine similarity（零向量 → null）+ 量化器自检（max_dequant_abs_err / max_dequant_step_err ≤ 0.5 构造性上界 / n_zero_scale_rows / max_abs_q）",
+  "seed_w": 0,
+  "seed_x": 1,
+  "matrix": {
+    "shapes_NxK": [
+      [
+        1024,
+        4096
+      ],
+      [
+        4096,
+        1024
+      ],
+      [
+        4096,
+        4096
+      ],
+      [
+        11008,
+        4096
+      ],
+      [
+        4096,
+        11008
+      ]
+    ],
+    "input_modes": [
+      "normal",
+      "zeros",
+      "tiny",
+      "large",
+      "mixed_sign"
+    ]
+  },
+  "summary": {
+    "n_cases": 25,
+    "max_fid_max_abs": 369.186767578125,
+    "max_fid_rmse": 96.46525573730469,
+    "min_cosine": 0.9998970268657201,
+    "max_dequant_step_err": 0.5000019073486328,
+    "max_abs_q": 127
+  },
+  "cases": [
+    {
+      "shape": [
+        1024,
+        4096
+      ],
+      "mode": "normal",
+      "max_abs": 2.5675201416015625,
+      "max_rel": 3.8512051105499268,
+      "rmse": 0.5473737120628357,
+      "cosine": 0.9999609279829125,
+      "y_orig_norm": 1982.361083984375,
+      "y_quant_norm": 1982.626220703125,
+      "max_dequant_abs_err": 0.02014636993408203,
+      "max_dequant_step_err": 0.5000019073486328,
+      "n_zero_scale_rows": 0,
+      "max_abs_q": 127,
+      "note": "量化保真度: 量化误差, 不是 kernel bug —— 只报告, 不作 kernel 正确性判定门（两层容差分离, 用户 §2）"
+    },
+    {
+      "shape": [
+        1024,
+        4096
+      ],
+      "mode": "zeros",
+      "max_abs": 0.0,
+      "max_rel": 0.0,
+      "rmse": 0.0,
+      "cosine": null,
+      "y_orig_norm": 0.0,
+      "y_quant_norm": 0.0,
+      "max_dequant_abs_err": 0.0,
+      "max_dequant_step_err": 0.0,
+      "n_zero_scale_rows": 1024,
+      "max_abs_q": 0,
+      "note": "量化保真度: 量化误差, 不是 kernel bug —— 只报告, 不作 kernel 正确性判定门（两层容差分离, 用户 §2）"
+    },
+    {
+      "shape": [
+        1024,
+        4096
+      ],
+      "mode": "tiny",
+      "max_abs": 2.710152102736174e-08,
+      "max_rel": 2.710151966311969e-05,
+      "rmse": 5.544698478132659e-09,
+      "cosine": 0.9999600468052371,
+      "y_orig_norm": 1.9823628463200293e-05,
+      "y_quant_norm": 1.9827723008347675e-05,
+      "max_dequant_abs_err": 2.0115403458476067e-06,
+      "max_dequant_step_err": 0.5000019073486328,
+      "n_zero_scale_rows": 0,
+      "max_abs_q": 127,
+      "note": "量化保真度: 量化误差, 不是 kernel bug —— 只报告, 不作 kernel 正确性判定门（两层容差分离, 用户 §2）"
+    },
+    {
+      "shape": [
+        1024,
+        4096
+      ],
+      "mode": "large",
+      "max_abs": 240.32666015625,
+      "max_rel": 3.769033670425415,
+      "rmse": 55.29239273071289,
+      "cosine": 0.9999601311520365,
+      "y_orig_norm": 198236.171875,
+      "y_quant_norm": 198263.484375,
+      "max_dequant_abs_err": 0.2013406753540039,
+      "max_dequant_step_err": 0.500001847743988,
+      "n_zero_scale_rows": 0,
+      "max_abs_q": 127,
+      "note": "量化保真度: 量化误差, 不是 kernel bug —— 只报告, 不作 kernel 正确性判定门（两层容差分离, 用户 §2）"
+    },
+    {
+      "shape": [
+        1024,
+        4096
+      ],
+      "mode": "mixed_sign",
+      "max_abs": 1.9094772338867188,
+      "max_rel": 238.3216094970703,
+      "rmse": 0.547646164894104,
+      "cosine": 0.9998970268657201,
+      "y_orig_norm": 1220.042724609375,
+      "y_quant_norm": 1220.599853515625,
+      "max_dequant_abs_err": 0.02014636993408203,
+      "max_dequant_step_err": 0.5000019073486328,
+      "n_zero_scale_rows": 0,
+      "max_abs_q": 127,
+      "note": "量化保真度: 量化误差, 不是 kernel bug —— 只报告, 不作 kernel 正确性判定门（两层容差分离, 用户 §2）"
+    },
+    {
+      "shape": [
+        4096,
+        1024
+      ],
+      "mode": "normal",
+      "max_abs": 0.9278411865234375,
+      "max_rel": 4.452234745025635,
+      "rmse": 0.25734737515449524,
+      "cosine": 0.9999679311681997,
+      "y_orig_norm": 2055.643310546875,
+      "y_quant_norm": 2056.183349609375,
+      "max_dequant_abs_err": 0.02014636993408203,
+      "max_dequant_step_err": 0.5000019073486328,
+      "n_zero_scale_rows": 0,
+      "max_abs_q": 127,
+      "note": "量化保真度: 量化误差, 不是 kernel bug —— 只报告, 不作 kernel 正确性判定门（两层容差分离, 用户 §2）"
+    },
+    {
+      "shape": [
+        4096,
+        1024
+      ],
+      "mode": "zeros",
+      "max_abs": 0.0,
+      "max_rel": 0.0,
+      "rmse": 0.0,
+      "cosine": null,
+      "y_orig_norm": 0.0,
+      "y_quant_norm": 0.0,
+      "max_dequant_abs_err": 0.0,
+      "max_dequant_step_err": 0.0,
+      "n_zero_scale_rows": 4096,
+      "max_abs_q": 0,
+      "note": "量化保真度: 量化误差, 不是 kernel bug —— 只报告, 不作 kernel 正确性判定门（两层容差分离, 用户 §2）"
+    },
+    {
+      "shape": [
+        4096,
+        1024
+      ],
+      "mode": "tiny",
+      "max_abs": 1.0037723541245214e-08,
+      "max_rel": 1.0037722859124187e-05,
+      "rmse": 2.5684925297753125e-09,
+      "cosine": 0.999967909596394,
+      "y_orig_norm": 2.0555818991851993e-05,
+      "y_quant_norm": 2.0559904442052357e-05,
+      "max_dequant_abs_err": 2.0115403458476067e-06,
+      "max_dequant_step_err": 0.5000019073486328,
+      "n_zero_scale_rows": 0,
+      "max_abs_q": 127,
+      "note": "量化保真度: 量化误差, 不是 kernel bug —— 只报告, 不作 kernel 正确性判定门（两层容差分离, 用户 §2）"
+    },
+    {
+      "shape": [
+        4096,
+        1024
+      ],
+      "mode": "large",
+      "max_abs": 99.22705078125,
+      "max_rel": 6.331715106964111,
+      "rmse": 25.778688430786133,
+      "cosine": 0.9999677479371358,
+      "y_orig_norm": 205563.328125,
+      "y_quant_norm": 205607.0,
+      "max_dequant_abs_err": 0.2012176513671875,
+      "max_dequant_step_err": 0.500001847743988,
+      "n_zero_scale_rows": 0,
+      "max_abs_q": 127,
+      "note": "量化保真度: 量化误差, 不是 kernel bug —— 只报告, 不作 kernel 正确性判定门（两层容差分离, 用户 §2）"
+    },
+    {
+      "shape": [
+        4096,
+        1024
+      ],
+      "mode": "mixed_sign",
+      "max_abs": 1.1345481872558594,
+      "max_rel": 0.5319914817810059,
+      "rmse": 0.25768449902534485,
+      "cosine": 0.9999888789730184,
+      "y_orig_norm": 3511.923095703125,
+      "y_quant_norm": 3511.551025390625,
+      "max_dequant_abs_err": 0.02014636993408203,
+      "max_dequant_step_err": 0.5000019073486328,
+      "n_zero_scale_rows": 0,
+      "max_abs_q": 127,
+      "note": "量化保真度: 量化误差, 不是 kernel bug —— 只报告, 不作 kernel 正确性判定门（两层容差分离, 用户 §2）"
+    },
+    {
+      "shape": [
+        4096,
+        4096
+      ],
+      "mode": "normal",
+      "max_abs": 2.5675201416015625,
+      "max_rel": 12.27877426147461,
+      "rmse": 0.5512456893920898,
+      "cosine": 0.9999616726452029,
+      "y_orig_norm": 4026.478271484375,
+      "y_quant_norm": 4027.510009765625,
+      "max_dequant_abs_err": 0.02122485637664795,
+      "max_dequant_step_err": 0.5000019073486328,
+      "n_zero_scale_rows": 0,
+      "max_abs_q": 127,
+      "note": "量化保真度: 量化误差, 不是 kernel bug —— 只报告, 不作 kernel 正确性判定门（两层容差分离, 用户 §2）"
+    },
+    {
+      "shape": [
+        4096,
+        4096
+      ],
+      "mode": "zeros",
+      "max_abs": 0.0,
+      "max_rel": 0.0,
+      "rmse": 0.0,
+      "cosine": null,
+      "y_orig_norm": 0.0,
+      "y_quant_norm": 0.0,
+      "max_dequant_abs_err": 0.0,
+      "max_dequant_step_err": 0.0,
+      "n_zero_scale_rows": 4096,
+      "max_abs_q": 0,
+      "note": "量化保真度: 量化误差, 不是 kernel bug —— 只报告, 不作 kernel 正确性判定门（两层容差分离, 用户 §2）"
+    },
+    {
+      "shape": [
+        4096,
+        4096
+      ],
+      "mode": "tiny",
+      "max_abs": 2.710152102736174e-08,
+      "max_rel": 2.710151966311969e-05,
+      "rmse": 5.5102216123259495e-09,
+      "cosine": 0.9999615633305966,
+      "y_orig_norm": 4.02648001909256e-05,
+      "y_quant_norm": 4.02758305426687e-05,
+      "max_dequant_abs_err": 2.122302248608321e-06,
+      "max_dequant_step_err": 0.5000019073486328,
+      "n_zero_scale_rows": 0,
+      "max_abs_q": 127,
+      "note": "量化保真度: 量化误差, 不是 kernel bug —— 只报告, 不作 kernel 正确性判定门（两层容差分离, 用户 §2）"
+    },
+    {
+      "shape": [
+        4096,
+        4096
+      ],
+      "mode": "large",
+      "max_abs": 240.32666015625,
+      "max_rel": 8.132290840148926,
+      "rmse": 55.1927490234375,
+      "cosine": 0.9999615698662027,
+      "y_orig_norm": 402643.09375,
+      "y_quant_norm": 402749.40625,
+      "max_dequant_abs_err": 0.21221399307250977,
+      "max_dequant_step_err": 0.5000019073486328,
+      "n_zero_scale_rows": 0,
+      "max_abs_q": 127,
+      "note": "量化保真度: 量化误差, 不是 kernel bug —— 只报告, 不作 kernel 正确性判定门（两层容差分离, 用户 §2）"
+    },
+    {
+      "shape": [
+        4096,
+        4096
+      ],
+      "mode": "mixed_sign",
+      "max_abs": 1.9496307373046875,
+      "max_rel": 238.3216094970703,
+      "rmse": 0.5503520965576172,
+      "cosine": 0.9998982544663161,
+      "y_orig_norm": 2467.545654296875,
+      "y_quant_norm": 2467.623046875,
+      "max_dequant_abs_err": 0.02122485637664795,
+      "max_dequant_step_err": 0.5000019073486328,
+      "n_zero_scale_rows": 0,
+      "max_abs_q": 127,
+      "note": "量化保真度: 量化误差, 不是 kernel bug —— 只报告, 不作 kernel 正确性判定门（两层容差分离, 用户 §2）"
+    },
+    {
+      "shape": [
+        11008,
+        4096
+      ],
+      "mode": "normal",
+      "max_abs": 2.5675201416015625,
+      "max_rel": 20.55289649963379,
+      "rmse": 0.5509390234947205,
+      "cosine": 0.9999621033427116,
+      "y_orig_norm": 6631.24462890625,
+      "y_quant_norm": 6632.19970703125,
+      "max_dequant_abs_err": 0.021561145782470703,
+      "max_dequant_step_err": 0.5000019073486328,
+      "n_zero_scale_rows": 0,
+      "max_abs_q": 127,
+      "note": "量化保真度: 量化误差, 不是 kernel bug —— 只报告, 不作 kernel 正确性判定门（两层容差分离, 用户 §2）"
+    },
+    {
+      "shape": [
+        11008,
+        4096
+      ],
+      "mode": "zeros",
+      "max_abs": 0.0,
+      "max_rel": 0.0,
+      "rmse": 0.0,
+      "cosine": null,
+      "y_orig_norm": 0.0,
+      "y_quant_norm": 0.0,
+      "max_dequant_abs_err": 0.0,
+      "max_dequant_step_err": 0.0,
+      "n_zero_scale_rows": 11008,
+      "max_abs_q": 0,
+      "note": "量化保真度: 量化误差, 不是 kernel bug —— 只报告, 不作 kernel 正确性判定门（两层容差分离, 用户 §2）"
+    },
+    {
+      "shape": [
+        11008,
+        4096
+      ],
+      "mode": "tiny",
+      "max_abs": 2.710152102736174e-08,
+      "max_rel": 2.710151966311969e-05,
+      "rmse": 5.510027989430455e-09,
+      "cosine": 0.999962001241603,
+      "y_orig_norm": 6.631226278841496e-05,
+      "y_quant_norm": 6.632240547332913e-05,
+      "max_dequant_abs_err": 2.1551386453211308e-06,
+      "max_dequant_step_err": 0.5000019073486328,
+      "n_zero_scale_rows": 0,
+      "max_abs_q": 127,
+      "note": "量化保真度: 量化误差, 不是 kernel bug —— 只报告, 不作 kernel 正确性判定门（两层容差分离, 用户 §2）"
+    },
+    {
+      "shape": [
+        11008,
+        4096
+      ],
+      "mode": "large",
+      "max_abs": 240.32666015625,
+      "max_rel": 14.989041328430176,
+      "rmse": 55.218971252441406,
+      "cosine": 0.9999618624901521,
+      "y_orig_norm": 663116.0625,
+      "y_quant_norm": 663218.625,
+      "max_dequant_abs_err": 0.21555137634277344,
+      "max_dequant_step_err": 0.5000019073486328,
+      "n_zero_scale_rows": 0,
+      "max_abs_q": 127,
+      "note": "量化保真度: 量化误差, 不是 kernel bug —— 只报告, 不作 kernel 正确性判定门（两层容差分离, 用户 §2）"
+    },
+    {
+      "shape": [
+        11008,
+        4096
+      ],
+      "mode": "mixed_sign",
+      "max_abs": 2.0675506591796875,
+      "max_rel": 295.0496520996094,
+      "rmse": 0.549034059047699,
+      "cosine": 0.9998978275296764,
+      "y_orig_norm": 4029.49365234375,
+      "y_quant_norm": 4030.03369140625,
+      "max_dequant_abs_err": 0.021561145782470703,
+      "max_dequant_step_err": 0.5000019073486328,
+      "n_zero_scale_rows": 0,
+      "max_abs_q": 127,
+      "note": "量化保真度: 量化误差, 不是 kernel bug —— 只报告, 不作 kernel 正确性判定门（两层容差分离, 用户 §2）"
+    },
+    {
+      "shape": [
+        4096,
+        11008
+      ],
+      "mode": "normal",
+      "max_abs": 3.946929931640625,
+      "max_rel": 19.983613967895508,
+      "rmse": 0.9584556221961975,
+      "cosine": 0.9999593924316169,
+      "y_orig_norm": 6797.88671875,
+      "y_quant_norm": 6797.06005859375,
+      "max_dequant_abs_err": 0.021561145782470703,
+      "max_dequant_step_err": 0.5000019073486328,
+      "n_zero_scale_rows": 0,
+      "max_abs_q": 127,
+      "note": "量化保真度: 量化误差, 不是 kernel bug —— 只报告, 不作 kernel 正确性判定门（两层容差分离, 用户 §2）"
+    },
+    {
+      "shape": [
+        4096,
+        11008
+      ],
+      "mode": "zeros",
+      "max_abs": 0.0,
+      "max_rel": 0.0,
+      "rmse": 0.0,
+      "cosine": null,
+      "y_orig_norm": 0.0,
+      "y_quant_norm": 0.0,
+      "max_dequant_abs_err": 0.0,
+      "max_dequant_step_err": 0.0,
+      "n_zero_scale_rows": 4096,
+      "max_abs_q": 0,
+      "note": "量化保真度: 量化误差, 不是 kernel bug —— 只报告, 不作 kernel 正确性判定门（两层容差分离, 用户 §2）"
+    },
+    {
+      "shape": [
+        4096,
+        11008
+      ],
+      "mode": "tiny",
+      "max_abs": 3.596278475015424e-08,
+      "max_rel": 3.596278475015424e-05,
+      "rmse": 9.656385024925385e-09,
+      "cosine": 0.9999586264071383,
+      "y_orig_norm": 6.797891546739265e-05,
+      "y_quant_norm": 6.797208334319293e-05,
+      "max_dequant_abs_err": 2.1551386453211308e-06,
+      "max_dequant_step_err": 0.5000019073486328,
+      "n_zero_scale_rows": 0,
+      "max_abs_q": 127,
+      "note": "量化保真度: 量化误差, 不是 kernel bug —— 只报告, 不作 kernel 正确性判定门（两层容差分离, 用户 §2）"
+    },
+    {
+      "shape": [
+        4096,
+        11008
+      ],
+      "mode": "large",
+      "max_abs": 369.186767578125,
+      "max_rel": 8.678994178771973,
+      "rmse": 96.46525573730469,
+      "cosine": 0.9999587550540406,
+      "y_orig_norm": 679789.5625,
+      "y_quant_norm": 679717.9375,
+      "max_dequant_abs_err": 0.21555137634277344,
+      "max_dequant_step_err": 0.5000019073486328,
+      "n_zero_scale_rows": 0,
+      "max_abs_q": 127,
+      "note": "量化保真度: 量化误差, 不是 kernel bug —— 只报告, 不作 kernel 正确性判定门（两层容差分离, 用户 §2）"
+    },
+    {
+      "shape": [
+        4096,
+        11008
+      ],
+      "mode": "mixed_sign",
+      "max_abs": 3.66912841796875,
+      "max_rel": 29.59398078918457,
+      "rmse": 0.9720192551612854,
+      "cosine": 0.9999629336006347,
+      "y_orig_norm": 7227.080078125,
+      "y_quant_norm": 7227.48046875,
+      "max_dequant_abs_err": 0.021561145782470703,
+      "max_dequant_step_err": 0.5000019073486328,
+      "n_zero_scale_rows": 0,
+      "max_abs_q": 127,
+      "note": "量化保真度: 量化误差, 不是 kernel bug —— 只报告, 不作 kernel 正确性判定门（两层容差分离, 用户 §2）"
+    }
+  ]
+}

@@ -1,0 +1,1392 @@
+{
+  "tolerances": {
+    "float16": {
+      "atol": 0.002,
+      "rtol": 0.005
+    },
+    "float32": {
+      "atol": 1e-05,
+      "rtol": 0.0001
+    }
+  },
+  "rel_eps_guard": 0.001,
+  "summary": {
+    "n_total": 76,
+    "n_pass": 76,
+    "n_fail": 0,
+    "all_pass": true,
+    "max_abs_error": 0.00390625,
+    "max_rel_error": 0.0009765625,
+    "failed": []
+  },
+  "results": [
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1,
+        1024
+      ],
+      "dtype": "float16",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 0.0,
+      "max_rel_error": 0.0,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1,
+        1024
+      ],
+      "dtype": "float16",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 0.0,
+      "max_rel_error": 0.0,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1,
+        1024
+      ],
+      "dtype": "float16",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 0.0,
+      "max_rel_error": 0.0,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1,
+        2048
+      ],
+      "dtype": "float16",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 0.0,
+      "max_rel_error": 0.0,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1,
+        2048
+      ],
+      "dtype": "float16",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 0.0,
+      "max_rel_error": 0.0,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1,
+        2048
+      ],
+      "dtype": "float16",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 0.0,
+      "max_rel_error": 0.0,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1,
+        4096
+      ],
+      "dtype": "float16",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 0.0,
+      "max_rel_error": 0.0,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1,
+        4096
+      ],
+      "dtype": "float16",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 0.0009765625,
+      "max_rel_error": 0.000934579468,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1,
+        4096
+      ],
+      "dtype": "float16",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 0.0,
+      "max_rel_error": 0.0,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1,
+        8192
+      ],
+      "dtype": "float16",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 0.0,
+      "max_rel_error": 0.0,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1,
+        8192
+      ],
+      "dtype": "float16",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 3.0517578e-05,
+      "max_rel_error": 0.000607533439,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1,
+        8192
+      ],
+      "dtype": "float16",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 0.0,
+      "max_rel_error": 0.0,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        16,
+        1024
+      ],
+      "dtype": "float16",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 0.0,
+      "max_rel_error": 0.0,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        16,
+        1024
+      ],
+      "dtype": "float16",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 0.0009765625,
+      "max_rel_error": 0.000510464539,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        16,
+        1024
+      ],
+      "dtype": "float16",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 0.0009765625,
+      "max_rel_error": 0.000893655058,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        16,
+        4096
+      ],
+      "dtype": "float16",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 0.001953125,
+      "max_rel_error": 0.000599161198,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        16,
+        4096
+      ],
+      "dtype": "float16",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 0.001953125,
+      "max_rel_error": 0.000934579468,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        16,
+        4096
+      ],
+      "dtype": "float16",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 0.00048828125,
+      "max_rel_error": 0.000964320148,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        128,
+        1024
+      ],
+      "dtype": "float16",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 0.001953125,
+      "max_rel_error": 0.000936329598,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        128,
+        1024
+      ],
+      "dtype": "float16",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 0.0009765625,
+      "max_rel_error": 0.000821018068,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        128,
+        1024
+      ],
+      "dtype": "float16",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 0.001953125,
+      "max_rel_error": 0.000954198476,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        128,
+        4096
+      ],
+      "dtype": "float16",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 0.001953125,
+      "max_rel_error": 0.000948766596,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        128,
+        4096
+      ],
+      "dtype": "float16",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 0.001953125,
+      "max_rel_error": 0.000967118016,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        128,
+        4096
+      ],
+      "dtype": "float16",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 0.001953125,
+      "max_rel_error": 0.000964320148,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        128,
+        8192
+      ],
+      "dtype": "float16",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 0.00390625,
+      "max_rel_error": 0.000950570335,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        128,
+        8192
+      ],
+      "dtype": "float16",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 0.00390625,
+      "max_rel_error": 0.000975609757,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        128,
+        8192
+      ],
+      "dtype": "float16",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 0.00390625,
+      "max_rel_error": 0.000965250947,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1024,
+        1024
+      ],
+      "dtype": "float16",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 0.001953125,
+      "max_rel_error": 0.000971817295,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1024,
+        1024
+      ],
+      "dtype": "float16",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 0.001953125,
+      "max_rel_error": 0.000967118016,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1024,
+        1024
+      ],
+      "dtype": "float16",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 0.001953125,
+      "max_rel_error": 0.000969932124,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1024,
+        4096
+      ],
+      "dtype": "float16",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 0.00390625,
+      "max_rel_error": 0.000975609757,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1024,
+        4096
+      ],
+      "dtype": "float16",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 0.001953125,
+      "max_rel_error": 0.0009765625,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1024,
+        4096
+      ],
+      "dtype": "float16",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 0.00390625,
+      "max_rel_error": 0.000975609757,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        4,
+        4096
+      ],
+      "dtype": "float16",
+      "seed": 7,
+      "mode": "zeros",
+      "max_abs_error": 0.0,
+      "max_rel_error": 0.0,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "edge mode=zeros scale=1.0",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        4,
+        4096
+      ],
+      "dtype": "float16",
+      "seed": 7,
+      "mode": "tiny",
+      "max_abs_error": 0.0,
+      "max_rel_error": 0.0,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "edge mode=tiny scale=1.0",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        4,
+        4096
+      ],
+      "dtype": "float16",
+      "seed": 7,
+      "mode": "normal",
+      "max_abs_error": 0.00048828125,
+      "max_rel_error": 0.000640204875,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "edge mode=normal scale=10.0",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        4,
+        4096
+      ],
+      "dtype": "float16",
+      "seed": 7,
+      "mode": "normal",
+      "max_abs_error": 0.000122070312,
+      "max_rel_error": 0.000846023671,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "edge mode=normal scale=0.1",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        4,
+        4096
+      ],
+      "dtype": "float16",
+      "seed": 7,
+      "mode": "biased",
+      "max_abs_error": 0.001953125,
+      "max_rel_error": 0.000935453689,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "edge mode=biased scale=1.0",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1,
+        1024
+      ],
+      "dtype": "float32",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 4.76837e-07,
+      "max_rel_error": 1.62612e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1,
+        1024
+      ],
+      "dtype": "float32",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 4.76837e-07,
+      "max_rel_error": 1.4905e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1,
+        1024
+      ],
+      "dtype": "float32",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 4.76837e-07,
+      "max_rel_error": 1.22268e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1,
+        2048
+      ],
+      "dtype": "float32",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 7.15256e-07,
+      "max_rel_error": 2.32919e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1,
+        2048
+      ],
+      "dtype": "float32",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 4.76837e-07,
+      "max_rel_error": 1.38441e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1,
+        2048
+      ],
+      "dtype": "float32",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 9.53674e-07,
+      "max_rel_error": 2.21025e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1,
+        4096
+      ],
+      "dtype": "float32",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 4.76837e-07,
+      "max_rel_error": 2.0014e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1,
+        4096
+      ],
+      "dtype": "float32",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 4.76837e-07,
+      "max_rel_error": 1.84337e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1,
+        4096
+      ],
+      "dtype": "float32",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 4.76837e-07,
+      "max_rel_error": 1.46682e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1,
+        8192
+      ],
+      "dtype": "float32",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 4.76837e-07,
+      "max_rel_error": 2.37451e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1,
+        8192
+      ],
+      "dtype": "float32",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 4.76837e-07,
+      "max_rel_error": 1.71484e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1,
+        8192
+      ],
+      "dtype": "float32",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 4.76837e-07,
+      "max_rel_error": 2.35333e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        16,
+        1024
+      ],
+      "dtype": "float32",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 4.76837e-07,
+      "max_rel_error": 2.35763e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        16,
+        1024
+      ],
+      "dtype": "float32",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 4.76837e-07,
+      "max_rel_error": 1.75949e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        16,
+        1024
+      ],
+      "dtype": "float32",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 9.53674e-07,
+      "max_rel_error": 2.58316e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        16,
+        4096
+      ],
+      "dtype": "float32",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 4.76837e-07,
+      "max_rel_error": 2.34514e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        16,
+        4096
+      ],
+      "dtype": "float32",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 9.53674e-07,
+      "max_rel_error": 2.26637e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        16,
+        4096
+      ],
+      "dtype": "float32",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 9.53674e-07,
+      "max_rel_error": 2.65605e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        128,
+        1024
+      ],
+      "dtype": "float32",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 9.53674e-07,
+      "max_rel_error": 2.80626e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        128,
+        1024
+      ],
+      "dtype": "float32",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 9.53674e-07,
+      "max_rel_error": 3.13109e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        128,
+        1024
+      ],
+      "dtype": "float32",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 1.430511e-06,
+      "max_rel_error": 2.81873e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        128,
+        4096
+      ],
+      "dtype": "float32",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 1.430511e-06,
+      "max_rel_error": 3.05943e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        128,
+        4096
+      ],
+      "dtype": "float32",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 1.430511e-06,
+      "max_rel_error": 3.10316e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        128,
+        4096
+      ],
+      "dtype": "float32",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 1.430511e-06,
+      "max_rel_error": 3.05044e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        128,
+        8192
+      ],
+      "dtype": "float32",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 1.430511e-06,
+      "max_rel_error": 3.04762e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        128,
+        8192
+      ],
+      "dtype": "float32",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 1.430511e-06,
+      "max_rel_error": 2.94411e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        128,
+        8192
+      ],
+      "dtype": "float32",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 1.430511e-06,
+      "max_rel_error": 3.09828e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1024,
+        1024
+      ],
+      "dtype": "float32",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 1.430511e-06,
+      "max_rel_error": 3.14224e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1024,
+        1024
+      ],
+      "dtype": "float32",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 1.430511e-06,
+      "max_rel_error": 3.13109e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1024,
+        1024
+      ],
+      "dtype": "float32",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 1.907349e-06,
+      "max_rel_error": 2.94261e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1024,
+        4096
+      ],
+      "dtype": "float32",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 1.907349e-06,
+      "max_rel_error": 3.16025e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1024,
+        4096
+      ],
+      "dtype": "float32",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 1.430511e-06,
+      "max_rel_error": 3.26966e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        1024,
+        4096
+      ],
+      "dtype": "float32",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 1.907349e-06,
+      "max_rel_error": 3.20119e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        4,
+        4096
+      ],
+      "dtype": "float32",
+      "seed": 7,
+      "mode": "zeros",
+      "max_abs_error": 0.0,
+      "max_rel_error": 0.0,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "edge mode=zeros scale=1.0",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        4,
+        4096
+      ],
+      "dtype": "float32",
+      "seed": 7,
+      "mode": "tiny",
+      "max_abs_error": 1.4901e-08,
+      "max_rel_error": 1.53251e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "edge mode=tiny scale=1.0",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        4,
+        4096
+      ],
+      "dtype": "float32",
+      "seed": 7,
+      "mode": "normal",
+      "max_abs_error": 9.53674e-07,
+      "max_rel_error": 2.35642e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "edge mode=normal scale=10.0",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        4,
+        4096
+      ],
+      "dtype": "float32",
+      "seed": 7,
+      "mode": "normal",
+      "max_abs_error": 4.76837e-07,
+      "max_rel_error": 1.55291e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "edge mode=normal scale=0.1",
+      "pass": true
+    },
+    {
+      "variant": "v1_vec",
+      "shape": [
+        4,
+        4096
+      ],
+      "dtype": "float32",
+      "seed": 7,
+      "mode": "biased",
+      "max_abs_error": 4.76837e-07,
+      "max_rel_error": 2.38359e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "edge mode=biased scale=1.0",
+      "pass": true
+    }
+  ]
+}
