@@ -1,0 +1,90 @@
+{
+  "id": "GEMV-0004",
+  "operator": "gemv",
+  "parent": "gemv_baseline",
+  "candidate": "gemv_splitk4",
+  "hypothesis": "split-K x4: K=4096 归约切 4 段并行, 增加并行度维度; 预期 main target (N=4096 行已饱和 30 SM) 收益有限, 价值主要在小 N 场景 (结构实验, 不叠加向量化)",
+  "changes": "两阶段 kernel: (1) grid=(N,4) 每 (row,c) block 归约 K/4 段到 fp32 partials [N][4]; (2) combine kernel 每行 1 线程求和; 标量 load (结构实验); K%4!=0 回退 gemv_scalar_kernel",
+  "correctness": {
+    "all_pass": true,
+    "summary": {
+      "n_total": 100,
+      "n_pass": 100,
+      "n_fail": 0,
+      "all_pass": true,
+      "max_abs_error": 4.0,
+      "max_rel_error": 0.013531799428,
+      "failed": [],
+      "max_arith_max_ratio": 0.249954783156,
+      "ok_close_vs_ref_all": false
+    },
+    "saved": "/root/code/cuda/experiments/gemv/correctness/v0.5/gemv_splitk4.json"
+  },
+  "negative": {
+    "n_total": 24,
+    "n_reject_expected": 18,
+    "n_reject_ok": 18,
+    "n_pass_expected": 6,
+    "n_pass_ok": 6,
+    "n_skipped": 0,
+    "n_passed": 24,
+    "all_pass": true
+  },
+  "paired_benchmark": {
+    "file": "/root/code/cuda/benchmarks/gemv/GEMV-0004_pair_gemv_baseline_vs_gemv_splitk4_M4096_H4096_float16_streaming.json",
+    "harness": "paired-streaming-v2.3",
+    "shape": [
+      4096,
+      4096
+    ],
+    "dtype": "float16",
+    "cache_mode": "streaming",
+    "parent": "gemv_baseline",
+    "candidate": "gemv_splitk4",
+    "paired_rounds": 9,
+    "valid_rounds": 9,
+    "invalid_environment_rounds": 0,
+    "invalid_dvfs_rounds": 0,
+    "median_speedup_parent_over_candidate": 0.878389,
+    "bootstrap_ci_95": [
+      0.87553,
+      0.880381
+    ],
+    "faster_rounds_candidate": "0/9",
+    "parent_median_us": 94.081,
+    "candidate_median_us": 106.888,
+    "raw_speedup": 0.878389,
+    "filtered_speedup": 0.878389,
+    "filter_sensitive": false,
+    "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）",
+    "rejected_samples": {
+      "fast": 0,
+      "slow": 0
+    }
+  },
+  "profile_observation": null,
+  "decision": {
+    "correctness_pass": true,
+    "valid_rounds": 9,
+    "min_valid_rounds": 5,
+    "speedups": {
+      "n": 9,
+      "median": 0.878389,
+      "mean": 0.877942,
+      "min": 0.875065,
+      "max": 0.88057,
+      "faster_count": 0,
+      "faster_fraction": 0.0
+    },
+    "ci95": [
+      0.87553,
+      0.880381
+    ],
+    "rule": "median 0.8784 <= 0.95 AND 0/9 rounds faster (<= 30%) AND CI95 upper 0.8804 < 1.00 -> REJECT",
+    "decision": "REJECT",
+    "filter_sensitive": false,
+    "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）",
+    "statistical_relation": "SLOWER",
+    "policy_decision": "REJECT"
+  }
+}

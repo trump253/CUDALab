@@ -1,0 +1,90 @@
+{
+  "id": "GEMV-0003",
+  "operator": "gemv",
+  "parent": "gemv_baseline",
+  "candidate": "gemv_warp_vec4_b512",
+  "hypothesis": "与 GEMV-0002 相同 warp 结构但 block 512 (16 rows/block): 单独测试 block size lever —— warp 级并行度相同时, 更少更大的 block 是否降低调度开销 (baseline occupancy 已 94%, 预期差异有限)",
+  "changes": "block 512 (16 rows/block), 其余与 gemv_warp_vec4_b256 完全相同; 契约不满足回退 gemv_scalar_kernel",
+  "correctness": {
+    "all_pass": true,
+    "summary": {
+      "n_total": 100,
+      "n_pass": 100,
+      "n_fail": 0,
+      "all_pass": true,
+      "max_abs_error": 8.0,
+      "max_rel_error": 0.021650878713,
+      "failed": [],
+      "max_arith_max_ratio": 0.249954783156,
+      "ok_close_vs_ref_all": false
+    },
+    "saved": "/root/code/cuda/experiments/gemv/correctness/v0.5/gemv_warp_vec4_b512.json"
+  },
+  "negative": {
+    "n_total": 24,
+    "n_reject_expected": 18,
+    "n_reject_ok": 18,
+    "n_pass_expected": 6,
+    "n_pass_ok": 6,
+    "n_skipped": 0,
+    "n_passed": 24,
+    "all_pass": true
+  },
+  "paired_benchmark": {
+    "file": "/root/code/cuda/benchmarks/gemv/GEMV-0003_pair_gemv_baseline_vs_gemv_warp_vec4_b512_M4096_H4096_float16_streaming.json",
+    "harness": "paired-streaming-v2.3",
+    "shape": [
+      4096,
+      4096
+    ],
+    "dtype": "float16",
+    "cache_mode": "streaming",
+    "parent": "gemv_baseline",
+    "candidate": "gemv_warp_vec4_b512",
+    "paired_rounds": 9,
+    "valid_rounds": 9,
+    "invalid_environment_rounds": 0,
+    "invalid_dvfs_rounds": 0,
+    "median_speedup_parent_over_candidate": 1.24067,
+    "bootstrap_ci_95": [
+      1.239623,
+      1.244641
+    ],
+    "faster_rounds_candidate": "9/9",
+    "parent_median_us": 93.745,
+    "candidate_median_us": 75.24,
+    "raw_speedup": 1.24067,
+    "filtered_speedup": 1.24067,
+    "filter_sensitive": false,
+    "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）",
+    "rejected_samples": {
+      "fast": 0,
+      "slow": 0
+    }
+  },
+  "profile_observation": null,
+  "decision": {
+    "correctness_pass": true,
+    "valid_rounds": 9,
+    "min_valid_rounds": 5,
+    "speedups": {
+      "n": 9,
+      "median": 1.24067,
+      "mean": 1.241463,
+      "min": 1.235577,
+      "max": 1.247157,
+      "faster_count": 9,
+      "faster_fraction": 1.0
+    },
+    "ci95": [
+      1.239623,
+      1.244641
+    ],
+    "rule": "median 1.2407 >= 1.05 AND 9/9 rounds faster (>= 70%) AND CI95 lower 1.2396 > 1.00 -> KEEP",
+    "decision": "KEEP",
+    "filter_sensitive": false,
+    "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）",
+    "statistical_relation": "FASTER",
+    "policy_decision": "KEEP"
+  }
+}

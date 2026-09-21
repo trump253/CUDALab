@@ -1,6 +1,6 @@
 {
   "suite": "negative-v0.5-gemv",
-  "generated": "2026-09-21T11:17:26+08:00",
+  "generated": "2026-09-21T11:19:18+08:00",
   "note": "illegal inputs must be rejected with an explicit exception before kernel launch; post_check_ok verifies the CUDA context is not polluted. Alignment contract (GEMV-0001.. vectorized variants): base pointers 16B-aligned + K a multiple of the 16B element count; unmet inputs MUST fall back to gemv_scalar_kernel (same source as gemv_baseline, so the fallback output is bit-identical -- pinned by the three per-variant regression cases fallback_W_misaligned / fallback_x_misaligned / fallback_K_not_mult8, same pattern as v0.4.1 rope_v3_half2); legal inputs (incl. offset views) must never be rejected",
   "summary": {
     "n_total": 24,
