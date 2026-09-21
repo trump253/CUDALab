@@ -1,7 +1,7 @@
 {
   "operator": "qgemv",
   "suite": "qgemv-quantization-fidelity-v0.6",
-  "generated": "2026-09-21T17:38:07+08:00",
+  "generated": "2026-09-21T17:53:55+08:00",
   "layer": "(b) 量化保真度（只报告, 不判定; 量化误差 ≠ kernel bug, 与第 (a) 层容差分离, 用户 §2）",
   "quantization": "对称 per-row INT8, zero_point=0, scale = max|W|/127, q = clamp(round-half-to-even(W/scale), -127, 127), scale=0 行 q≡0",
   "reference": "y_orig = W_fp16.float() @ x.float(); y_quant = (W_q.float()*scale[:,None]) @ x.float()（均 FP32 累加, torch.mv）",
