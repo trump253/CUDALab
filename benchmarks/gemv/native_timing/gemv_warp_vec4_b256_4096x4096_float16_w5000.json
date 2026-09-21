@@ -1,0 +1,29 @@
+{
+  "variant": "gemv_warp_vec4_b256",
+  "warmup": 5000,
+  "n_windows": 10,
+  "launches_per_window": 64,
+  "window_median_us": [
+    72.15400040149689,
+    72.12799787521362,
+    72.1919983625412,
+    72.01000303030014,
+    72.00100272893906,
+    72.10750132799149,
+    72.06399738788605,
+    72.00250029563904,
+    72.06399738788605,
+    72.08599895238876
+  ],
+  "median_us": 72.0749981701374,
+  "min_us": 72.00100272893906,
+  "max_us": 72.1919983625412,
+  "mean_us": 72.08089977502823,
+  "note": "\u4e0e API-path \u53ca NCU kernel duration \u4e3a\u4e09\u79cd\u72ec\u7acb\u53e3\u5f84, \u4e0d\u6df7\u7528. warmup=5000 (~550ms \u6301\u7eed\u8d1f\u8f7d) \u7528\u4e8e\u5438\u6536 idle \u7f3a\u53e3\u540e\u7684 DVFS \u722c\u5761 (idle \u540e GPU \u505c\u5728 base 1350MHz, 200-launch warmup \u4e0d\u591f; \u89c1 profiles/gemv/caliber_probe/warmup_probe_baseline_4096x4096.json)",
+  "shape": [
+    4096,
+    4096
+  ],
+  "dtype": "float16",
+  "caliber": "native kernel-loop: \u5355\u6b21 Python \u8c03\u7528, C++ \u5185\u8fde\u7eed 64 \u6b21 raw launch \u00d7 10 windows, CUDA events, window \u4e2d\u4f4d\u6570"
+}

@@ -1,0 +1,29 @@
+{
+  "variant": "gemv_warp_vec4_b256",
+  "warmup": 200,
+  "n_windows": 10,
+  "launches_per_window": 64,
+  "window_median_us": [
+    101.53599828481674,
+    101.50399804115295,
+    101.53750330209732,
+    101.48250311613083,
+    100.39699822664261,
+    79.9809992313385,
+    79.87900078296661,
+    79.90749925374985,
+    79.89499717950821,
+    79.99499887228012
+  ],
+  "median_us": 90.19599854946136,
+  "min_us": 79.87900078296661,
+  "max_us": 101.53750330209732,
+  "mean_us": 90.61144962906837,
+  "note": "\u4e0e API-path\uff08bench_matrix 9-round paired\uff09\u53ca NCU kernel duration \u4e3a\u4e09\u79cd\u72ec\u7acb\u53e3\u5f84, \u4e0d\u6df7\u7528",
+  "shape": [
+    4096,
+    4096
+  ],
+  "dtype": "float16",
+  "caliber": "native kernel-loop: \u5355\u6b21 Python \u8c03\u7528, C++ \u5185\u8fde\u7eed 64 \u6b21 raw launch \u00d7 10 windows, CUDA events, window \u4e2d\u4f4d\u6570"
+}

@@ -79,8 +79,14 @@ STALL_PREFIX = "smsp__average_warps_issue_stalled_"
 STALL_SUFFIX = "_per_issue_active"
 
 
-def _parse_csv_launches(text: str) -> tuple[list[dict], str | None]:
-    """解析 ncu --csv 输出。返回（每次启动的指标 dict 列表, 内核名）。"""
+def _parse_csv_launches(text: str) -> tuple[list[dict], str | None, list[str | None]]:
+    """解析 ncu --csv 输出。
+
+    返回（每次启动的指标 dict 列表, 最后见到的内核名, 每次启动的内核名列表）。
+    v0.5: 第三次返回值是增量新增 —— GEMV split-K 一次算子调用发射两个内核
+    （partials + combine）, 旧实现只保留"最后一个"内核名, 跨内核平均的
+    kernel_duration_us 会误导（把 [131.9µs, 2.4µs] 平均成 67.2µs）。
+    """
     # 去掉表头之前的非 CSV 进度行
     lines = text.splitlines()
     start = 0
@@ -94,6 +100,7 @@ def _parse_csv_launches(text: str) -> tuple[list[dict], str | None]:
     header = rows[0]
     idx = {name: i for i, name in enumerate(header)}
     launches: dict[str, dict] = {}
+    names: dict[str, str] = {}
     kernel_name = None
     for r in rows[1:]:
         if len(r) < len(header):
@@ -106,9 +113,12 @@ def _parse_csv_launches(text: str) -> tuple[list[dict], str | None]:
             val = float(r[idx["Metric Value"]])
         except ValueError:
             continue
+        names[lid] = r[idx["Kernel Name"]]
         kernel_name = r[idx["Kernel Name"]]
         m[(metric, unit)] = val
-    return list(launches.values()), kernel_name
+    lid_order = list(launches.keys())
+    return (list(launches.values()), kernel_name,
+            [names.get(l) for l in lid_order])
 
 
 def _avg(launches: list[dict], metric: str, unit: str = None):
@@ -208,7 +218,7 @@ def profile_variant(variant: str, M: int, H: int,
         out_path.write_text(json.dumps(summary, indent=2))
         return summary
 
-    launches, kernel_name = _parse_csv_launches(proc.stdout)
+    launches, kernel_name, launch_kernels = _parse_csv_launches(proc.stdout)
     if not launches:
         summary["error"] = "ncu exited 0 but no metric rows parsed; see raw report"
         out_path.write_text(json.dumps(summary, indent=2))
@@ -224,6 +234,47 @@ def profile_variant(variant: str, M: int, H: int,
 
     summary["n_launches_profiled"] = len(launches)
     summary["kernel_name"] = kernel_name
+
+    # v0.5（GEMV split-K 触发）: 一次算子调用发射多个内核时, 上面所有顶层
+    # 标量是"跨内核平均"（如 [131.9µs partials, 2.4µs combine] 平均成
+    # 67.2µs）, 方向都可能误导。新增逐内核分解; 单内核算子该列表恰好
+    # 1 条, 与顶层标量一致。顶层标量字段本身保持不变（向后兼容）。
+    def _metric_of(launch: dict, metric: str, unit: str):
+        for (m, u), v in launch.items():
+            if m == metric and u == unit:
+                return v
+        return None
+
+    distinct = []
+    for nm in launch_kernels:
+        if nm is not None and nm not in distinct:
+            distinct.append(nm)
+    kernels_out = []
+    for nm in distinct:
+        idxs = [i for i, k in enumerate(launch_kernels) if k == nm]
+        durs = [_metric_of(launches[i], "gpu__time_duration.sum", "nsecond")
+                for i in idxs]
+        durs = [d for d in durs if d is not None]
+        ddr = [_metric_of(launches[i],
+                          "dram__throughput.avg.pct_of_peak_sustained_elapsed",
+                          "%") for i in idxs]
+        ddr = [d for d in ddr if d is not None]
+        kernels_out.append({
+            "kernel_name": nm,
+            "n_launches": len(idxs),
+            "duration_us": round(sum(durs) / len(durs) / 1e3, 3)
+            if durs else None,
+            "dram_throughput_pct": round(sum(ddr) / len(ddr), 2)
+            if ddr else None,
+        })
+    summary["kernels"] = kernels_out
+    if len(distinct) > 1:
+        summary["multi_kernel_note"] = (
+            "本次 profile 捕获到 "
+            f"{len(distinct)} 个不同内核（算子一次调用发射多次 kernel）; "
+            "顶层 kernel_duration_us / dram_throughput_pct 等标量为跨内核"
+            "平均, 不可与单内核算子直接比较 —— 以 kernels[] 逐项为准, "
+            "算子总时长 = 各内核时长之和")
 
     def rate(metric: str):
         """平均命中率。ncu --csv 对 ratio 型指标输出三行：

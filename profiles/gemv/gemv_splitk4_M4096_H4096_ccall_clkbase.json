@@ -1,0 +1,105 @@
+{
+  "variant": "gemv_splitk4",
+  "shape": [
+    4096,
+    4096
+  ],
+  "ncu_version": "2022.3.0.0",
+  "cache_control": "all",
+  "clock_control": "base",
+  "clock_lock_warning": null,
+  "kernel_name": "void <unnamed>::gemv_splitk_combine_kernel<__half>(const float *, T1 *, long)",
+  "kernel_duration_us": 67.28,
+  "l1_hit_rate": {
+    "value": 61.53,
+    "unit": "%"
+  },
+  "l2_read_hit_rate": {
+    "value": 11.95,
+    "unit": "%"
+  },
+  "dram_throughput_pct": 23.7,
+  "sm_throughput_pct": 17.97,
+  "achieved_occupancy_pct": 55.64,
+  "registers_per_thread": 19,
+  "shared_memory_bytes": 16,
+  "warp_stalls": {
+    "long_scoreboard": {
+      "stalled_cycles_per_issue": 19.01,
+      "pct_of_stalls": 72.7
+    },
+    "wait": {
+      "stalled_cycles_per_issue": 2.195,
+      "pct_of_stalls": 8.4
+    },
+    "short_scoreboard": {
+      "stalled_cycles_per_issue": 1.275,
+      "pct_of_stalls": 4.9
+    },
+    "selected": {
+      "stalled_cycles_per_issue": 1.0,
+      "pct_of_stalls": 3.8
+    },
+    "no_instruction": {
+      "stalled_cycles_per_issue": 0.495,
+      "pct_of_stalls": 1.9
+    },
+    "lg_throttle": {
+      "stalled_cycles_per_issue": 0.45,
+      "pct_of_stalls": 1.7
+    },
+    "drain": {
+      "stalled_cycles_per_issue": 0.435,
+      "pct_of_stalls": 1.7
+    },
+    "not_selected": {
+      "stalled_cycles_per_issue": 0.358,
+      "pct_of_stalls": 1.4
+    },
+    "barrier": {
+      "stalled_cycles_per_issue": 0.357,
+      "pct_of_stalls": 1.4
+    },
+    "branch_resolving": {
+      "stalled_cycles_per_issue": 0.28,
+      "pct_of_stalls": 1.1
+    },
+    "math_pipe_throttle": {
+      "stalled_cycles_per_issue": 0.185,
+      "pct_of_stalls": 0.7
+    },
+    "dispatch_stall": {
+      "stalled_cycles_per_issue": 0.1,
+      "pct_of_stalls": 0.4
+    },
+    "mio_throttle": {
+      "stalled_cycles_per_issue": 0.015,
+      "pct_of_stalls": 0.1
+    },
+    "sleeping": {
+      "stalled_cycles_per_issue": 0.0,
+      "pct_of_stalls": 0.0
+    },
+    "membar": {
+      "stalled_cycles_per_issue": 0.0,
+      "pct_of_stalls": 0.0
+    }
+  },
+  "n_launches_profiled": 4,
+  "raw_report": "/root/code/cuda/profiles/gemv/raw/gemv_splitk4_M4096_H4096_ccall_clkbase.ncu.txt",
+  "kernels": [
+    {
+      "kernel_name": "void <unnamed>::gemv_splitk_partial_kernel<__half>(const T1 *, const T1 *, float *, long, long)",
+      "n_launches": 2,
+      "duration_us": 132.128,
+      "dram_throughput_pct": 42.96
+    },
+    {
+      "kernel_name": "void <unnamed>::gemv_splitk_combine_kernel<__half>(const float *, T1 *, long)",
+      "n_launches": 2,
+      "duration_us": 2.432,
+      "dram_throughput_pct": 4.45
+    }
+  ],
+  "multi_kernel_note": "\u672c\u6b21 profile \u6355\u83b7\u5230 2 \u4e2a\u4e0d\u540c\u5185\u6838\uff08\u7b97\u5b50\u4e00\u6b21\u8c03\u7528\u53d1\u5c04\u591a\u6b21 kernel\uff09; \u9876\u5c42 kernel_duration_us / dram_throughput_pct \u7b49\u6807\u91cf\u4e3a\u8de8\u5185\u6838\u5e73\u5747, \u4e0d\u53ef\u4e0e\u5355\u5185\u6838\u7b97\u5b50\u76f4\u63a5\u6bd4\u8f83 \u2014\u2014 \u4ee5 kernels[] \u9010\u9879\u4e3a\u51c6, \u7b97\u5b50\u603b\u65f6\u957f = \u5404\u5185\u6838\u65f6\u957f\u4e4b\u548c"
+}

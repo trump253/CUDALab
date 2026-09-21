@@ -1,0 +1,98 @@
+{
+  "variant": "gemv_warp_vec4_b256",
+  "shape": [
+    4096,
+    4096
+  ],
+  "ncu_version": "2022.3.0.0",
+  "cache_control": "all",
+  "clock_control": "base",
+  "clock_lock_warning": null,
+  "kernel_name": "void <unnamed>::gemv_warp_vec4_kernel<__half, (int)256>(const T1 *, const T1 *, T1 *, long, long)",
+  "kernel_duration_us": 103.016,
+  "l1_hit_rate": {
+    "value": 93.03,
+    "unit": "%"
+  },
+  "l2_read_hit_rate": {
+    "value": 10.35,
+    "unit": "%"
+  },
+  "dram_throughput_pct": 53.94,
+  "sm_throughput_pct": 23.27,
+  "achieved_occupancy_pct": 81.25,
+  "registers_per_thread": 61,
+  "shared_memory_bytes": 0,
+  "warp_stalls": {
+    "lg_throttle": {
+      "stalled_cycles_per_issue": 52.37,
+      "pct_of_stalls": 84.4
+    },
+    "long_scoreboard": {
+      "stalled_cycles_per_issue": 4.595,
+      "pct_of_stalls": 7.4
+    },
+    "not_selected": {
+      "stalled_cycles_per_issue": 1.74,
+      "pct_of_stalls": 2.8
+    },
+    "wait": {
+      "stalled_cycles_per_issue": 1.61,
+      "pct_of_stalls": 2.6
+    },
+    "selected": {
+      "stalled_cycles_per_issue": 1.0,
+      "pct_of_stalls": 1.6
+    },
+    "short_scoreboard": {
+      "stalled_cycles_per_issue": 0.26,
+      "pct_of_stalls": 0.4
+    },
+    "math_pipe_throttle": {
+      "stalled_cycles_per_issue": 0.15,
+      "pct_of_stalls": 0.2
+    },
+    "drain": {
+      "stalled_cycles_per_issue": 0.12,
+      "pct_of_stalls": 0.2
+    },
+    "branch_resolving": {
+      "stalled_cycles_per_issue": 0.11,
+      "pct_of_stalls": 0.2
+    },
+    "no_instruction": {
+      "stalled_cycles_per_issue": 0.07,
+      "pct_of_stalls": 0.1
+    },
+    "dispatch_stall": {
+      "stalled_cycles_per_issue": 0.05,
+      "pct_of_stalls": 0.1
+    },
+    "mio_throttle": {
+      "stalled_cycles_per_issue": 0.01,
+      "pct_of_stalls": 0.0
+    },
+    "barrier": {
+      "stalled_cycles_per_issue": 0.0,
+      "pct_of_stalls": 0.0
+    },
+    "sleeping": {
+      "stalled_cycles_per_issue": 0.0,
+      "pct_of_stalls": 0.0
+    },
+    "membar": {
+      "stalled_cycles_per_issue": 0.0,
+      "pct_of_stalls": 0.0
+    }
+  },
+  "n_launches_profiled": 4,
+  "raw_report": "/root/code/cuda/profiles/gemv/raw/gemv_warp_vec4_b256_M4096_H4096_ccall_clkbase.ncu.txt",
+  "kernels": [
+    {
+      "kernel_name": "void <unnamed>::gemv_warp_vec4_kernel<__half, (int)256>(const T1 *, const T1 *, T1 *, long, long)",
+      "n_launches": 4,
+      "duration_us": 103.016,
+      "dram_throughput_pct": 53.94
+    }
+  ]
+}

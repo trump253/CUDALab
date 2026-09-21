@@ -1,0 +1,87 @@
+{
+  "variant": "gemv_baseline",
+  "shape": [
+    4096,
+    4096
+  ],
+  "phases": {
+    "A_sustained": {
+      "n_samples": 1,
+      "sm_mhz_min": 1890.0,
+      "sm_mhz_median": 1890.0,
+      "sm_mhz_p10": 1890.0,
+      "sm_mhz_p90": 1890.0,
+      "power_w_median": 252.54,
+      "temp_c_max": 47.0,
+      "duration_s": 0.97
+    },
+    "B_bursty": {
+      "n_samples": 7,
+      "sm_mhz_min": 1875.0,
+      "sm_mhz_median": 1890.0,
+      "sm_mhz_p10": 1875.0,
+      "sm_mhz_p90": 1905.0,
+      "power_w_median": 253.75,
+      "temp_c_max": 51.0,
+      "duration_s": 1.01
+    }
+  },
+  "samples": [
+    {
+      "phase": "A_sustained",
+      "t": 0.615,
+      "sm_mhz": 1890.0,
+      "power_w": 252.54,
+      "temp_c": 47.0
+    },
+    {
+      "phase": "B_bursty",
+      "t": 0.045,
+      "sm_mhz": 1905.0,
+      "power_w": 111.66,
+      "temp_c": 45.0
+    },
+    {
+      "phase": "B_bursty",
+      "t": 0.138,
+      "sm_mhz": 1890.0,
+      "power_w": 255.93,
+      "temp_c": 48.0
+    },
+    {
+      "phase": "B_bursty",
+      "t": 0.229,
+      "sm_mhz": 1905.0,
+      "power_w": 247.91,
+      "temp_c": 49.0
+    },
+    {
+      "phase": "B_bursty",
+      "t": 0.377,
+      "sm_mhz": 1890.0,
+      "power_w": 257.25,
+      "temp_c": 50.0
+    },
+    {
+      "phase": "B_bursty",
+      "t": 0.474,
+      "sm_mhz": 1890.0,
+      "power_w": 256.88,
+      "temp_c": 51.0
+    },
+    {
+      "phase": "B_bursty",
+      "t": 0.571,
+      "sm_mhz": 1875.0,
+      "power_w": 253.75,
+      "temp_c": 51.0
+    },
+    {
+      "phase": "B_bursty",
+      "t": 0.656,
+      "sm_mhz": 1890.0,
+      "power_w": 252.1,
+      "temp_c": 51.0
+    }
+  ]
+}
