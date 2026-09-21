@@ -137,6 +137,19 @@ if __name__ == "__main__":
         for name in ext.variants():
             y = ext.forward(name, x, positions, cos_t, sin_t)
             print(name, "ok", y.shape, y.dtype)
+    elif op == "gemv":
+        from cudalab.operators.gemv import make_w, make_x
+        W = torch.randn(4, 4096, dtype=torch.float16, device="cuda")
+        x = torch.randn(4096, dtype=torch.float16, device="cuda")
+        out = torch.empty(4, dtype=torch.float16, device="cuda")
+        for name in ext.variants():
+            y = ext.forward(name, W, x)
+            ext.forward_into(name, W, x, out)
+            print(name, "ok", y.shape, y.dtype)
+        nt = ext.native_timing("gemv_baseline", W, x, out,
+                               warmup=50, n_windows=3,
+                               launches_per_window=16)
+        print("native_timing(gemv_baseline) median_us =", nt["median_us"])
     else:
         x = torch.randn(4, 4096, dtype=torch.float16, device="cuda")
         for name in ext.variants():
