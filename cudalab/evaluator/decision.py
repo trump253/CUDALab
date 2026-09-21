@@ -23,16 +23,20 @@ v2.3 追加（harness paired-streaming-v2.3，纯 CPU 可单测）:
 6. FILTER_SENSITIVE gate（在 decide_v2 之后应用，见
    apply_filter_gate）: 记录被标记 filter_sensitive（raw 与 filtered
    speedup 方向翻转，或 |log(filtered/raw)| > log(1.10)，判据见
-   stats.filter_sensitive）时，KEEP/REJECT 降级为 UNSTABLE——
-   "guard 改变了结论"的记录不强行 KEEP/REJECT；NEUTRAL/UNSTABLE 不受
-   影响，只记录标记。
+   stats.filter_sensitive）时，**无论原决策是 KEEP / REJECT 还是
+   NEUTRAL，最终 policy_decision 一律 UNSTABLE**——"guard 改变了
+   结论"的记录不强行给出任何 policy 判定；原决策记入
+   original_decision。仅原决策已是 UNSTABLE 时保持不变（只记录
+   标记）。
+
 """
 from __future__ import annotations
 
 from . import stats as _stats
 
 KEEP, REJECT, NEUTRAL, UNSTABLE = "KEEP", "REJECT", "NEUTRAL", "UNSTABLE"
-# v2.3: 记录级标记（不是决策值本身；决策层见到它会把 KEEP/REJECT 降级）
+# v2.3: 记录级标记（不是决策值本身；v0.4.1 起决策层见到它会把
+# KEEP/REJECT/NEUTRAL 一律降级 UNSTABLE）
 FILTER_SENSITIVE = "FILTER_SENSITIVE"
 
 MIN_VALID_ROUNDS = 5      # 少于该数量的 DVFS 稳定 round -> UNSTABLE
@@ -107,20 +111,26 @@ def apply_filter_gate(decision: str, detail: dict,
                       reason: str) -> tuple[str, dict]:
     """v2.3 filter-sensitivity gate（纯 CPU，可单测）。
 
-    在 decide_v2 之后应用：记录被标记 filter_sensitive（raw 与
-    filtered speedup 方向翻转，或 |log(filtered/raw)| > log(1.10)）且
-    决策是 KEEP 或 REJECT 时，降级为 UNSTABLE——"guard 改变了结论"
-    的记录不强行 KEEP/REJECT。NEUTRAL/UNSTABLE 不受影响，只记录标记。
-    detail 增加 filter_sensitive / filter_sensitive_reason；降级时
-    额外记录 original_decision 与新 rule。输入 detail 不被修改。
+    在 decide_v2 之后应用（v0.4.1 语义收紧）：记录被标记
+    filter_sensitive（raw 与 filtered speedup 方向翻转，或
+    |log(filtered/raw)| > log(1.10)）时，**无论原决策是 KEEP / REJECT
+    还是 NEUTRAL，最终 policy_decision 一律 UNSTABLE**——"guard 改变
+    了结论"的记录不强行给出任何 policy 判定（v0.4 的旧语义只降级
+    KEEP/REJECT、NEUTRAL 留标记；v0.4.1 起 NEUTRAL 同样降级，因为
+    raw/filtered 已分歧时该记录连"中性"都不可信）。仅原决策已是
+    UNSTABLE 时保持不变。detail 增加 filter_sensitive /
+    filter_sensitive_reason；降级时额外记录 original_decision 与新
+    rule。输入 detail 不被修改。
     """
     detail = dict(detail)
     detail["filter_sensitive"] = bool(filter_sensitive)
     detail["filter_sensitive_reason"] = reason
-    if filter_sensitive and decision in (KEEP, REJECT):
+    if filter_sensitive and decision in (KEEP, REJECT, NEUTRAL):
         detail["original_decision"] = decision
         detail["rule"] = (
             f"FILTER_SENSITIVE: {reason} — 原决策 {decision} 降级为 "
-            "UNSTABLE（不强行 KEEP/REJECT）")
+            "UNSTABLE（filter_sensitive ⇒ 最终 policy_decision 一律 "
+            "UNSTABLE，不强行 KEEP/REJECT/NEUTRAL）")
         return UNSTABLE, detail
     return decision, detail
+

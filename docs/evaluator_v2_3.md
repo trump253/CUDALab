@@ -2,7 +2,8 @@
 
 日期: 2026-09-19（v0.4-rope 分支）
 前序: v2.2（环境稳定化, 见 `evaluator_hardening_v0.3.md` 第 8 条）
-状态: 已实现，CPU 单测 28/28 通过，GPU 回归门（Phase 5）**PASS**
+状态: 已实现，CPU 单测 31/31 通过（v2.3 初始 28 + v0.4 review 约定
+钉死 1 + v0.4.1 gate 收紧 2），GPU 回归门（Phase 5）**PASS**
 （见 §6 与 `benchmarks/v2.3_regression/gate_summary.json`）
 
 ## 1. 动机：v2.2 的不对称 guard
@@ -133,10 +134,17 @@ runner R）的 raw 比值 vs filtered 比值套 `filter_sensitive` 的 10%
 
 ### 4.1 决策层 gate（`decision.apply_filter_gate`）
 
-在 `decide_v2` 之后应用：记录 `filter_sensitive=true` 且决策为
-KEEP 或 REJECT → **降级为 UNSTABLE**（不强行 KEEP/REJECT），detail
-记录 `original_decision` 与敏感原因；NEUTRAL/UNSTABLE 不受影响，只
-记录标记。`cmd_optimize` 的实验记录 `decision` 块即 gate 之后的结果。
+在 `decide_v2` 之后应用（**v0.4.1 语义收紧**）：记录
+`filter_sensitive=true` 时，**无论原决策是 KEEP / REJECT 还是
+NEUTRAL，最终 policy_decision 一律 UNSTABLE**——raw/filtered 已分歧
+的记录连"中性"都不可信，不强行给出任何 policy 判定；detail 记录
+`original_decision` 与敏感原因。仅原决策已是 UNSTABLE 时保持不变（只
+记录标记）。v0.4 的旧语义只降级 KEEP/REJECT、NEUTRAL 留标记；v0.4
+实际记录 filter_sensitive 全部为 false，故该收紧不改变任何历史判定。
+`cmd_optimize` 的实验记录 `decision` 块即 gate 之后的结果（v0.4.1 起
+同时记录 `statistical_relation`——只基于 CI95、与 5% 阈值无关——与
+`policy_decision` 两个字段：统计陈述与 acceptance policy 形式分离，
+见 decision.statistical_relation 与 experiment.classify_cell）。
 
 ## 5. 测试（`tests/test_evaluator_v23_cpu.py`）
 
@@ -161,8 +169,10 @@ KEEP 或 REJECT → **降级为 UNSTABLE**（不强行 KEEP/REJECT），detail
    `apply_filter_gate` 后必须 **UNSTABLE**。
 5. **filter_sensitive 纯函数**: 翻转 / 10% 内 / 缺值 三类。
 6. **apply_filter_gate**: KEEP→UNSTABLE（敏感）、REJECT→UNSTABLE
-   （敏感）、NEUTRAL 不变、非敏感 KEEP 不变；detail 含
-   original_decision。
+   （敏感）、非敏感 KEEP 不变、非敏感 NEUTRAL 不变、detail 含
+   original_decision；**v0.4.1 收紧**：NEUTRAL+敏感 → UNSTABLE，
+   双向必测（raw 明显更快 + filtered NEUTRAL → 敏感 → UNSTABLE；
+   raw 明显更慢 + filtered NEUTRAL → 敏感 → UNSTABLE）。
 
 ## 6. 回归门（Phase 5，RoPE 之前）— **PASS**（2026-09-20）
 

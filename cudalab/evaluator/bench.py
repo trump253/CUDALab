@@ -125,8 +125,9 @@ v0.3.1 语义澄清（2026-09-19 合并 review 之后，无重跑）:
       翻转（raw<1<filtered 或 filtered<1<raw），或
       |log(filtered/raw)| > FILTER_LOG_DELTA = log(1.10)，记录标记
       `filter_sensitive=true` 并写明原因；决策层
-      （decision.py::apply_filter_gate）随后把 KEEP/REJECT 降级为
-      UNSTABLE——不强行 KEEP/REJECT。
+      （decision.py::apply_filter_gate）随后把最终 policy_decision
+      一律降级为 UNSTABLE（v0.4.1 起 KEEP/REJECT/NEUTRAL 均降级，
+      原决策记入 original_decision）——不强行给出任何 policy 判定。
     - 记录 schema 新增: `environment_guard{method, symmetric, ...}`、
       `raw{parent_median_us, candidate_median_us, speedup,
       bootstrap_ci_95}`、`filtered{...}`、

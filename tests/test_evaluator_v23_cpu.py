@@ -7,7 +7,9 @@
 3. 无偏 swap（parent 快 outlier vs candidate 慢 outlier，互换后 guard
    行为对称）;
 4. filter-sensitive 构造（raw 看 candidate 慢、filtered 看 candidate
-   快 → 必须 FILTER_SENSITIVE / UNSTABLE，不得强行 KEEP/REJECT）。
+   快 → 必须 FILTER_SENSITIVE / UNSTABLE，不得强行 KEEP/REJECT）;
+5. v0.4.1: filter gate 收紧（NEUTRAL + filter_sensitive → 最终
+   policy_decision 一律 UNSTABLE, 双向必测）。
 
 运行:
     source tools/env.sh
@@ -248,12 +250,44 @@ def test_filter_gate_reject_downgraded():
     assert detail2["original_decision"] == D.REJECT
 
 
-def test_filter_gate_neutral_unchanged():
+def test_filter_gate_neutral_not_sensitive_unchanged():
+    # v0.4.1: 非敏感的 NEUTRAL 不受 gate 影响（只有敏感才降级）
     dec, detail = D.decide_v2(True, 9, [1.02] * 9, [1.0, 1.04])
     assert dec == D.NEUTRAL
-    dec2, detail2 = D.apply_filter_gate(dec, detail, True, "构造案例")
+    dec2, detail2 = D.apply_filter_gate(
+        dec, detail, False, "在阈值内（构造案例）")
     assert dec2 == D.NEUTRAL
-    assert detail2["filter_sensitive"] is True  # 只记录标记
+    assert detail2["filter_sensitive"] is False
+    assert "original_decision" not in detail2
+
+
+def test_filter_gate_neutral_sensitive_raw_faster_downgraded():
+    """v0.4.1 必测: raw 明显更快 + filtered 轨 NEUTRAL → FILTER_SENSITIVE
+    → 最终 policy_decision 一律 UNSTABLE（v0.4 旧语义对 NEUTRAL 只留
+    标记、不降级 —— 该语义已收紧）。"""
+    # filtered 轨: median 1.02（5% 政策带内）+ CI 含 1.00 → NEUTRAL
+    dec, detail = D.decide_v2(True, 9, [1.02] * 9, [1.00, 1.04])
+    assert dec == D.NEUTRAL
+    raw_med, filtered_med = 1.15, 1.02  # raw 明显更快（≥1.05 带）
+    sensitive, reason = S.filter_sensitive(raw_med, filtered_med)
+    assert sensitive is True  # |log(1.02/1.15)| ≈ 0.120 > log(1.10)
+    dec2, detail2 = D.apply_filter_gate(dec, detail, sensitive, reason)
+    assert dec2 == D.UNSTABLE, "敏感 + NEUTRAL 必须最终 UNSTABLE（v0.4.1）"
+    assert detail2["original_decision"] == D.NEUTRAL
+    assert detail2["filter_sensitive"] is True
+
+
+def test_filter_gate_neutral_sensitive_raw_slower_downgraded():
+    """v0.4.1 必测: raw 明显更慢 + filtered 轨 NEUTRAL → FILTER_SENSITIVE
+    → 最终 policy_decision 一律 UNSTABLE。"""
+    dec, detail = D.decide_v2(True, 9, [1.02] * 9, [1.00, 1.04])
+    assert dec == D.NEUTRAL
+    raw_med, filtered_med = 0.85, 1.02  # raw 明显更慢（≤0.95 带, 方向翻转）
+    sensitive, reason = S.filter_sensitive(raw_med, filtered_med)
+    assert sensitive is True  # raw<1<filtered 方向翻转
+    dec2, detail2 = D.apply_filter_gate(dec, detail, sensitive, reason)
+    assert dec2 == D.UNSTABLE, "敏感 + NEUTRAL 必须最终 UNSTABLE（v0.4.1）"
+    assert detail2["original_decision"] == D.NEUTRAL
 
 
 def test_filter_gate_not_sensitive_unchanged():

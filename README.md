@@ -33,10 +33,12 @@ v0.4 交付：
   1.15×，parent/candidate 完全同规则）+ raw/filtered 双轨记录
   （每 round raw/filtered 中位数 + raw_speedup + rejected_samples{fast,slow}
   + environment_guard 自描述块）+ filter-sensitivity（方向翻转或
-  |log(filtered/raw)|>log(1.10) → 敏感；KEEP/REJECT + 敏感 →
-  `apply_filter_gate` 降级 UNSTABLE，记录 original_decision）。guard
-  逻辑抽为纯 CPU 函数（stats.apply_spike_guard/block_stats/crossblock_flag），
-  tests/test_evaluator_v23_cpu.py 29/29（review 后 +1：raw 侧聚合约定钉死）。
+  |log(filtered/raw)|>log(1.10) → 敏感；敏感 → `apply_filter_gate`
+  把最终 policy_decision 一律降级 UNSTABLE——v0.4.1 起 KEEP/REJECT/
+  NEUTRAL 均降级，记录 original_decision）。guard 逻辑抽为纯 CPU
+  函数（stats.apply_spike_guard/block_stats/crossblock_flag），
+  tests/test_evaluator_v23_cpu.py 31/31（review 后 +1：raw 侧聚合
+  约定钉死；v0.4.1 +2：NEUTRAL+敏感 → UNSTABLE 双向必测）。
 - **v2.3 回归硬门 PASS**（RoPE 之前，`benchmarks/v2.3_regression/`）：
   Softmax baseline vs vec4 streaming **1.6745** [1.6727,1.6793] 9/9
   （v2.2 参考 1.6772/1.6890 精确复现，raw=filtered，rejected 0/0）；
@@ -342,10 +344,13 @@ EXP-0007 DVFS 混频、v0.3 hot 机器态漂移、v0.3.1 登记的 guard 不对�
   parent/candidate 完全同规则）+ **raw/filtered 双轨记录**（每 round
   raw/filtered 中位数 + raw_speedup + rejected_samples{fast,slow} +
   environment_guard 自描述块）+ **filter-sensitivity**（raw vs filtered
-  方向翻转或 |log(filtered/raw)|>log(1.10) → 敏感；KEEP/REJECT + 敏感 →
-  `apply_filter_gate` 降级 UNSTABLE 并记录 original_decision）。guard 逻辑
-  为纯 CPU 函数（`stats.apply_spike_guard/block_stats/crossblock_flag`），
-  28 个确定性 CPU 单测钉死（`tests/test_evaluator_v23_cpu.py`）。
+  方向翻转或 |log(filtered/raw)|>log(1.10) → 敏感；敏感 →
+  `apply_filter_gate` 把最终 policy_decision 一律降级 UNSTABLE，
+  记录 original_decision——v0.4.1 起 KEEP/REJECT/NEUTRAL 均降级）。
+  guard 逻辑为纯 CPU 函数（`stats.apply_spike_guard/block_stats/
+  crossblock_flag`），31 个确定性 CPU 单测钉死
+  （`tests/test_evaluator_v23_cpu.py`；v0.4.1 新增 2 个：
+  NEUTRAL+敏感 → UNSTABLE 双向必测）。
   详见 [docs/evaluator_v2_3.md](docs/evaluator_v2_3.md)（含 v2.3 回归门
   结果与 RMSNorm 方向翻转调查）。
 
