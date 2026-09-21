@@ -198,8 +198,7 @@ class GemvOperator(Operator):
         已保证全部张量连续/设备/dtype/形状正确, 因此计时 launch 直接
         走完整验证, 无豁免开关、无额外开销。
         """
-        del M  # 文档化: 协议 M 即 N（W 的行数）
-        N = M
+        N = M  # 协议 M 即 N（W 的行数）
         dev = "cuda"
         g = torch.Generator(device=dev)
         g.manual_seed(seed)
