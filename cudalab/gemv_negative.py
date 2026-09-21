@@ -190,6 +190,57 @@ def build_cases(ext, variant: str = V) -> list[dict]:
         lambda: fwd(W, xo_mis),
         expected="pass")
 
+
+    # ---- per-variant scalar fallback regression (added after the vectorized
+    #      GEMV-0001.. landed; same pattern as v0.4.1 rope_v3_half2): when the
+    #      contract is not met (base pointer not 16B-aligned / K not a multiple
+    #      of the 16B element count), a vectorized variant must fall back to
+    #      gemv_scalar_kernel -- the *same code source* as gemv_baseline
+    #      (gemv_common.h), so the output must be **bit-identical** to the
+    #      baseline on the same inputs (a stronger contract than "finite +
+    #      not rejected"). For the baseline itself these cases are trivially
+    #      true (it *is* that kernel).
+    def _fallback_check(cid_desc, Wm, xm, N_):
+        out_f = torch.empty(N_, dtype=torch.float16, device=dev)
+        ext.forward_into(variant, Wm, xm, out_f)  # writes out_f; returns None
+        torch.cuda.synchronize()
+        y_base = ext.forward("gemv_baseline", Wm, xm)
+        torch.cuda.synchronize()
+        assert torch.equal(out_f, y_base), (
+            f"{cid_desc}: fallback output differs from gemv_baseline "
+            f"(must be bit-identical, same scalar kernel source)")
+
+    big_w8 = torch.randn(N * K + 2, dtype=torch.float16, device=dev)
+    Wm = big_w8[2:2 + N * K].view(N, K)  # base offset 4B, not 16B-aligned
+    xa = make_x(K, torch.float16, device=dev, seed=6)
+    add("fallback_W_misaligned",
+        f"fallback: W base offset 2 elements (4B, not 16B-aligned) "
+        f"contiguous view, x aligned, K={K} multiple of 8: vectorized "
+        f"contract unmet -> must take scalar fallback, must not reject, "
+        f"output bit-identical to gemv_baseline",
+        lambda: _fallback_check("fallback_W_misaligned", Wm, xa, N),
+        expected="pass")
+    Wa = make_w(N, K, torch.float16, device=dev, seed=7)
+    big_x8 = torch.randn(K + 1, dtype=torch.float16, device=dev)
+    xm = big_x8[1:1 + K]  # x base offset 2B, not 16B-aligned
+    add("fallback_x_misaligned",
+        f"fallback: x base offset 1 half (2B, not 16B-aligned) "
+        f"contiguous slice, W aligned, K={K} multiple of 8: vectorized "
+        f"contract unmet -> must take scalar fallback, must not reject, "
+        f"output bit-identical to gemv_baseline",
+        lambda: _fallback_check("fallback_x_misaligned", Wa, xm, N),
+        expected="pass")
+    # K=13: for fp16 K%8=5 (vectorized contract fails) and K%4=1
+    # (split-K contract fails) -- covers both fallback classes at once.
+    Wk = make_w(16, 13, torch.float16, device=dev, seed=8)
+    xk = make_x(13, torch.float16, device=dev, seed=9)
+    add("fallback_K_not_mult8",
+        "fallback: K=13 (not a multiple of 8 nor of 4): both the "
+        "vectorized and split-K contracts unmet -> must take scalar "
+        "fallback, must not reject, output bit-identical to "
+        "gemv_baseline",
+        lambda: _fallback_check("fallback_K_not_mult8", Wk, xk, 16),
+        expected="pass")
     return cases
 
 
@@ -209,12 +260,7 @@ def run_negative_suite(ext, out_path: Path | None = None,
     doc = {
         "suite": SUITE_VERSION,
         "generated": _now_iso(),
-        "note": ("非法输入必须在 kernel launch 前被明确异常拒绝；"
-                 "post_check_ok 验证拒绝未污染 CUDA 上下文。"
-                 "gemv_baseline 为纯标量访存，无对齐契约（见 "
-                 "valid_offset_view_control / valid_offset_view_x）；"
-                 "向量化候选变体的对齐/整除性回归用例在其落地时追加"
-                 "（GEMV-0002, 同 v0.4.1 rope_v3_half2 模式）"),
+        "note": ("illegal inputs must be rejected with an explicit exception before kernel launch; post_check_ok verifies the CUDA context is not polluted. Alignment contract (GEMV-0001.. vectorized variants): base pointers 16B-aligned + K a multiple of the 16B element count; unmet inputs MUST fall back to gemv_scalar_kernel (same source as gemv_baseline, so the fallback output is bit-identical -- pinned by the three per-variant regression cases fallback_W_misaligned / fallback_x_misaligned / fallback_K_not_mult8, same pattern as v0.4.1 rope_v3_half2); legal inputs (incl. offset views) must never be rejected"),
         "summary": summary,
         "cases": results,
     }

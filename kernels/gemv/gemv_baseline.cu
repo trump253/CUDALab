@@ -26,75 +26,20 @@
 // row / vector / split-K）顺序不同, 正确性合同（gemv_correctness.py
 // 的固定 arith 界）对任何合法 FP32 累加顺序都成立, 变体间不要求
 // 逐位一致。
+//
+// 实现注记（GEMV-0001.. 落地时重构）: 标量计算本体移入
+// gemv_common.h 的 gemv_scalar_kernel（**单一来源**）—— 本文件与
+// 所有向量化变体的标量回退都调用它, 保证回退输出与 baseline 在同一
+// 输入上逐位一致（negative 套件 per-variant 回退回归用例的参照）。
+// 计算代码本体未改动, 只换了位置。
 
 #include "gemv_common.h"
-#include <ATen/cuda/CUDAContext.h>
-#include <c10/cuda/CUDAException.h>
-#include <cuda_fp16.h>
 
 namespace {
 
-static constexpr int kBlock = 256;
-static constexpr int kWarps = kBlock / 32;  // 8, 2 的幂（二次 shuffle 用）
-
-template <typename T>
-__global__ void gemv_baseline_kernel(const T* __restrict__ W,
-                                     const T* __restrict__ x,
-                                     T* __restrict__ out,
-                                     int64_t N, int64_t K) {
-    const int64_t row = static_cast<int64_t>(blockIdx.x);
-    const T* __restrict__ wrow = W + row * K;
-
-    // 步长部分和（FP32 累加; K 不要求整除 blockDim.x）
-    float acc = 0.f;
-    for (int64_t k = threadIdx.x; k < K; k += blockDim.x) {
-        acc += el_to_float(wrow[k]) * el_to_float(x[k]);
-    }
-
-    // 阶段 1: warp 内 shuffle 归约
-#pragma unroll
-    for (int off = 16; off > 0; off >>= 1) {
-        acc += __shfl_down_sync(0xffffffffu, acc, off);
-    }
-
-    const int lane = threadIdx.x & 31;
-    const int wid = threadIdx.x >> 5;
-    __shared__ float warp_sums[kWarps];
-    if (lane == 0) warp_sums[wid] = acc;
-    __syncthreads();
-
-    // 阶段 2: warp 0 归约 8 个 warp sum（kWarps 为 2 的幂, 越界 lane 补 0）
-    if (wid == 0) {
-        acc = (lane < kWarps) ? warp_sums[lane] : 0.f;
-#pragma unroll
-        for (int off = kWarps / 2; off > 0; off >>= 1) {
-            acc += __shfl_down_sync(0xffffffffu, acc, off);
-        }
-        if (lane == 0) out[row] = el_from_float<T>(acc);
-    }
-}
-
-template <typename T>
-void launch_gemv_baseline(const at::Tensor& W, const at::Tensor& x,
-                          at::Tensor& out) {
-    const int64_t N = W.size(0);
-    const int64_t K = W.size(1);
-    cudaStream_t stream = at::cuda::getCurrentCUDAStream();
-    gemv_baseline_kernel<T><<<static_cast<int>(N), kBlock, 0, stream>>>(
-        reinterpret_cast<const T*>(W.const_data_ptr()),
-        reinterpret_cast<const T*>(x.const_data_ptr()),
-        reinterpret_cast<T*>(out.data_ptr()),
-        N, K);
-    C10_CUDA_KERNEL_LAUNCH_CHECK();
-}
-
 void gemv_baseline_fwd(const at::Tensor& W, const at::Tensor& x,
                        at::Tensor& out) {
-    if (W.scalar_type() == at::kHalf) {
-        launch_gemv_baseline<__half>(W, x, out);
-    } else {
-        launch_gemv_baseline<float>(W, x, out);
-    }
+    launch_gemv_scalar_dispatch(W, x, out);
 }
 
 static struct Registrar {
