@@ -1,7 +1,4 @@
 {
-  "operator": "softmax",
-  "suite": "softmax-correctness-v0.3",
-  "reference": "torch.softmax(x.float(), dim=-1).to(x.dtype)",
   "tolerances": {
     "float16": {
       "atol": 0.002,
@@ -12,81 +9,19 @@
       "rtol": 0.0001
     }
   },
-  "row_sum_tol": {
-    "float16": 0.005,
-    "float32": 0.0001
-  },
   "rel_eps_guard": 0.001,
   "summary": {
-    "n_total": 72,
-    "n_pass": 72,
+    "n_total": 76,
+    "n_pass": 76,
     "n_fail": 0,
     "all_pass": true,
-    "max_abs_error": 7.63e-06,
-    "max_rel_error": 0.00095367,
-    "failed": [],
-    "max_row_sum_error": 3.695e-05
+    "max_abs_error": 0.00390625,
+    "max_rel_error": 0.000975609757,
+    "failed": []
   },
   "results": [
     {
-      "variant": "softmax_vec4",
-      "shape": [
-        1,
-        128
-      ],
-      "dtype": "float16",
-      "seed": 0,
-      "mode": "normal",
-      "max_abs_error": 0.0,
-      "max_rel_error": 0.0,
-      "row_sum_error": 3.6e-07,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 0.002,
-      "rtol": 0.005,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        1,
-        128
-      ],
-      "dtype": "float16",
-      "seed": 1,
-      "mode": "normal",
-      "max_abs_error": 0.0,
-      "max_rel_error": 0.0,
-      "row_sum_error": 2.15e-06,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 0.002,
-      "rtol": 0.005,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        1,
-        128
-      ],
-      "dtype": "float16",
-      "seed": 42,
-      "mode": "normal",
-      "max_abs_error": 0.0,
-      "max_rel_error": 0.0,
-      "row_sum_error": 1.55e-05,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 0.002,
-      "rtol": 0.005,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
       "shape": [
         1,
         1024
@@ -96,7 +31,6 @@
       "mode": "normal",
       "max_abs_error": 0.0,
       "max_rel_error": 0.0,
-      "row_sum_error": 2.38e-06,
       "has_nan": false,
       "has_inf": false,
       "atol": 0.002,
@@ -105,7 +39,7 @@
       "pass": true
     },
     {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
       "shape": [
         1,
         1024
@@ -115,7 +49,6 @@
       "mode": "normal",
       "max_abs_error": 0.0,
       "max_rel_error": 0.0,
-      "row_sum_error": 1.681e-05,
       "has_nan": false,
       "has_inf": false,
       "atol": 0.002,
@@ -124,7 +57,7 @@
       "pass": true
     },
     {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
       "shape": [
         1,
         1024
@@ -134,7 +67,6 @@
       "mode": "normal",
       "max_abs_error": 0.0,
       "max_rel_error": 0.0,
-      "row_sum_error": 9.5e-07,
       "has_nan": false,
       "has_inf": false,
       "atol": 0.002,
@@ -143,7 +75,61 @@
       "pass": true
     },
     {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
+      "shape": [
+        1,
+        2048
+      ],
+      "dtype": "float16",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 0.0,
+      "max_rel_error": 0.0,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        1,
+        2048
+      ],
+      "dtype": "float16",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 0.0,
+      "max_rel_error": 0.0,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        1,
+        2048
+      ],
+      "dtype": "float16",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 0.0,
+      "max_rel_error": 0.0,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
       "shape": [
         1,
         4096
@@ -151,9 +137,8 @@
       "dtype": "float16",
       "seed": 0,
       "mode": "normal",
-      "max_abs_error": 1.2e-07,
-      "max_rel_error": 0.00011921,
-      "row_sum_error": 1.19e-06,
+      "max_abs_error": 0.0,
+      "max_rel_error": 0.0,
       "has_nan": false,
       "has_inf": false,
       "atol": 0.002,
@@ -162,7 +147,7 @@
       "pass": true
     },
     {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
       "shape": [
         1,
         4096
@@ -172,7 +157,6 @@
       "mode": "normal",
       "max_abs_error": 0.0,
       "max_rel_error": 0.0,
-      "row_sum_error": 3.46e-06,
       "has_nan": false,
       "has_inf": false,
       "atol": 0.002,
@@ -181,7 +165,7 @@
       "pass": true
     },
     {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
       "shape": [
         1,
         4096
@@ -191,7 +175,6 @@
       "mode": "normal",
       "max_abs_error": 0.0,
       "max_rel_error": 0.0,
-      "row_sum_error": 1.19e-06,
       "has_nan": false,
       "has_inf": false,
       "atol": 0.002,
@@ -200,17 +183,70 @@
       "pass": true
     },
     {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
       "shape": [
-        32,
+        1,
+        8192
+      ],
+      "dtype": "float16",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 0.0009765625,
+      "max_rel_error": 0.00092936802,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        1,
+        8192
+      ],
+      "dtype": "float16",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 0.0,
+      "max_rel_error": 0.0,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        1,
+        8192
+      ],
+      "dtype": "float16",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 0.0,
+      "max_rel_error": 0.0,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        16,
         1024
       ],
       "dtype": "float16",
       "seed": 0,
       "mode": "normal",
-      "max_abs_error": 9.5e-07,
-      "max_rel_error": 0.00094518,
-      "row_sum_error": 3.463e-05,
+      "max_abs_error": 0.0,
+      "max_rel_error": 0.0,
       "has_nan": false,
       "has_inf": false,
       "atol": 0.002,
@@ -219,17 +255,16 @@
       "pass": true
     },
     {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
       "shape": [
-        32,
+        16,
         1024
       ],
       "dtype": "float16",
       "seed": 1,
       "mode": "normal",
-      "max_abs_error": 9.5e-07,
-      "max_rel_error": 0.00065789,
-      "row_sum_error": 1.973e-05,
+      "max_abs_error": 3.0517578e-05,
+      "max_rel_error": 0.000662251667,
       "has_nan": false,
       "has_inf": false,
       "atol": 0.002,
@@ -238,17 +273,16 @@
       "pass": true
     },
     {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
       "shape": [
-        32,
+        16,
         1024
       ],
       "dtype": "float16",
       "seed": 42,
       "mode": "normal",
-      "max_abs_error": 9.5e-07,
-      "max_rel_error": 0.000777,
-      "row_sum_error": 3.338e-05,
+      "max_abs_error": 0.0,
+      "max_rel_error": 0.0,
       "has_nan": false,
       "has_inf": false,
       "atol": 0.002,
@@ -257,7 +291,61 @@
       "pass": true
     },
     {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
+      "shape": [
+        16,
+        4096
+      ],
+      "dtype": "float16",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 0.0009765625,
+      "max_rel_error": 0.000844594615,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        16,
+        4096
+      ],
+      "dtype": "float16",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 0.0,
+      "max_rel_error": 0.0,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        16,
+        4096
+      ],
+      "dtype": "float16",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 0.0,
+      "max_rel_error": 0.0,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
       "shape": [
         128,
         1024
@@ -265,9 +353,8 @@
       "dtype": "float16",
       "seed": 0,
       "mode": "normal",
-      "max_abs_error": 9.5e-07,
-      "max_rel_error": 0.00095367,
-      "row_sum_error": 3.463e-05,
+      "max_abs_error": 0.000244140625,
+      "max_rel_error": 0.000648929272,
       "has_nan": false,
       "has_inf": false,
       "atol": 0.002,
@@ -276,7 +363,7 @@
       "pass": true
     },
     {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
       "shape": [
         128,
         1024
@@ -284,9 +371,8 @@
       "dtype": "float16",
       "seed": 1,
       "mode": "normal",
-      "max_abs_error": 9.5e-07,
-      "max_rel_error": 0.00065789,
-      "row_sum_error": 3.219e-05,
+      "max_abs_error": 0.00048828125,
+      "max_rel_error": 0.000741839758,
       "has_nan": false,
       "has_inf": false,
       "atol": 0.002,
@@ -295,7 +381,7 @@
       "pass": true
     },
     {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
       "shape": [
         128,
         1024
@@ -303,9 +389,8 @@
       "dtype": "float16",
       "seed": 42,
       "mode": "normal",
-      "max_abs_error": 1.91e-06,
-      "max_rel_error": 0.00094429,
-      "row_sum_error": 3.338e-05,
+      "max_abs_error": 0.0009765625,
+      "max_rel_error": 0.000836820109,
       "has_nan": false,
       "has_inf": false,
       "atol": 0.002,
@@ -314,7 +399,7 @@
       "pass": true
     },
     {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
       "shape": [
         128,
         4096
@@ -322,9 +407,8 @@
       "dtype": "float16",
       "seed": 0,
       "mode": "normal",
-      "max_abs_error": 4.8e-07,
-      "max_rel_error": 0.00047684,
-      "row_sum_error": 1.514e-05,
+      "max_abs_error": 0.001953125,
+      "max_rel_error": 0.000968992244,
       "has_nan": false,
       "has_inf": false,
       "atol": 0.002,
@@ -333,7 +417,7 @@
       "pass": true
     },
     {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
       "shape": [
         128,
         4096
@@ -341,9 +425,8 @@
       "dtype": "float16",
       "seed": 1,
       "mode": "normal",
-      "max_abs_error": 3.81e-06,
-      "max_rel_error": 0.00080192,
-      "row_sum_error": 1.597e-05,
+      "max_abs_error": 0.001953125,
+      "max_rel_error": 0.000956022937,
       "has_nan": false,
       "has_inf": false,
       "atol": 0.002,
@@ -352,7 +435,7 @@
       "pass": true
     },
     {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
       "shape": [
         128,
         4096
@@ -360,9 +443,8 @@
       "dtype": "float16",
       "seed": 42,
       "mode": "normal",
-      "max_abs_error": 9.5e-07,
-      "max_rel_error": 0.00095367,
-      "row_sum_error": 1.669e-05,
+      "max_abs_error": 0.0009765625,
+      "max_rel_error": 0.000790513819,
       "has_nan": false,
       "has_inf": false,
       "atol": 0.002,
@@ -371,121 +453,7 @@
       "pass": true
     },
     {
-      "variant": "softmax_vec4",
-      "shape": [
-        1024,
-        1024
-      ],
-      "dtype": "float16",
-      "seed": 0,
-      "mode": "normal",
-      "max_abs_error": 3.81e-06,
-      "max_rel_error": 0.00095367,
-      "row_sum_error": 3.463e-05,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 0.002,
-      "rtol": 0.005,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        1024,
-        1024
-      ],
-      "dtype": "float16",
-      "seed": 1,
-      "mode": "normal",
-      "max_abs_error": 7.63e-06,
-      "max_rel_error": 0.00095367,
-      "row_sum_error": 3.695e-05,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 0.002,
-      "rtol": 0.005,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        1024,
-        1024
-      ],
-      "dtype": "float16",
-      "seed": 42,
-      "mode": "normal",
-      "max_abs_error": 3.81e-06,
-      "max_rel_error": 0.00094429,
-      "row_sum_error": 3.433e-05,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 0.002,
-      "rtol": 0.005,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        1024,
-        4096
-      ],
-      "dtype": "float16",
-      "seed": 0,
-      "mode": "normal",
-      "max_abs_error": 1.91e-06,
-      "max_rel_error": 0.00094877,
-      "row_sum_error": 1.663e-05,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 0.002,
-      "rtol": 0.005,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        1024,
-        4096
-      ],
-      "dtype": "float16",
-      "seed": 1,
-      "mode": "normal",
-      "max_abs_error": 3.81e-06,
-      "max_rel_error": 0.00080192,
-      "row_sum_error": 2.033e-05,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 0.002,
-      "rtol": 0.005,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        1024,
-        4096
-      ],
-      "dtype": "float16",
-      "seed": 42,
-      "mode": "normal",
-      "max_abs_error": 3.81e-06,
-      "max_rel_error": 0.00095367,
-      "row_sum_error": 1.967e-05,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 0.002,
-      "rtol": 0.005,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
       "shape": [
         128,
         8192
@@ -493,9 +461,8 @@
       "dtype": "float16",
       "seed": 0,
       "mode": "normal",
-      "max_abs_error": 9.5e-07,
-      "max_rel_error": 0.00082988,
-      "row_sum_error": 1.192e-05,
+      "max_abs_error": 0.001953125,
+      "max_rel_error": 0.000950570335,
       "has_nan": false,
       "has_inf": false,
       "atol": 0.002,
@@ -504,7 +471,7 @@
       "pass": true
     },
     {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
       "shape": [
         128,
         8192
@@ -512,9 +479,8 @@
       "dtype": "float16",
       "seed": 1,
       "mode": "normal",
-      "max_abs_error": 9.5e-07,
-      "max_rel_error": 0.00082237,
-      "row_sum_error": 1.574e-05,
+      "max_abs_error": 0.00390625,
+      "max_rel_error": 0.000962463906,
       "has_nan": false,
       "has_inf": false,
       "atol": 0.002,
@@ -523,7 +489,7 @@
       "pass": true
     },
     {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
       "shape": [
         128,
         8192
@@ -531,9 +497,8 @@
       "dtype": "float16",
       "seed": 42,
       "mode": "normal",
-      "max_abs_error": 4.8e-07,
-      "max_rel_error": 0.00047684,
-      "row_sum_error": 1.097e-05,
+      "max_abs_error": 0.00390625,
+      "max_rel_error": 0.000951474765,
       "has_nan": false,
       "has_inf": false,
       "atol": 0.002,
@@ -542,102 +507,115 @@
       "pass": true
     },
     {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
       "shape": [
-        4,
-        4096
+        1024,
+        1024
       ],
       "dtype": "float16",
-      "seed": 7,
-      "mode": "tiny",
-      "max_abs_error": 1.2e-07,
-      "max_rel_error": 0.00011921,
-      "row_sum_error": 4.89e-06,
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 0.001953125,
+      "max_rel_error": 0.000971817295,
       "has_nan": false,
       "has_inf": false,
       "atol": 0.002,
       "rtol": 0.005,
-      "note": "edge mode=tiny",
+      "note": "",
       "pass": true
     },
     {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
       "shape": [
-        4,
-        4096
+        1024,
+        1024
       ],
       "dtype": "float16",
-      "seed": 7,
-      "mode": "biased",
-      "max_abs_error": 0.0,
-      "max_rel_error": 0.0,
-      "row_sum_error": 7.33e-06,
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 0.001953125,
+      "max_rel_error": 0.000925069384,
       "has_nan": false,
       "has_inf": false,
       "atol": 0.002,
       "rtol": 0.005,
-      "note": "edge mode=biased",
+      "note": "",
       "pass": true
     },
     {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
       "shape": [
-        4,
-        4096
+        1024,
+        1024
       ],
       "dtype": "float16",
-      "seed": 7,
-      "mode": "large_pos",
-      "max_abs_error": 0.0,
-      "max_rel_error": 0.0,
-      "row_sum_error": 2.563e-05,
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 0.0009765625,
+      "max_rel_error": 0.000952380942,
       "has_nan": false,
       "has_inf": false,
       "atol": 0.002,
       "rtol": 0.005,
-      "note": "edge mode=large_pos",
+      "note": "",
       "pass": true
     },
     {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
       "shape": [
-        4,
+        1024,
         4096
       ],
       "dtype": "float16",
-      "seed": 7,
-      "mode": "large_neg",
-      "max_abs_error": 0.0,
-      "max_rel_error": 0.0,
-      "row_sum_error": 2.563e-05,
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 0.00390625,
+      "max_rel_error": 0.000975609757,
       "has_nan": false,
       "has_inf": false,
       "atol": 0.002,
       "rtol": 0.005,
-      "note": "edge mode=large_neg",
+      "note": "",
       "pass": true
     },
     {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
       "shape": [
-        4,
+        1024,
         4096
       ],
       "dtype": "float16",
-      "seed": 7,
-      "mode": "mixed_extremes",
-      "max_abs_error": 0.0,
-      "max_rel_error": 0.0,
-      "row_sum_error": 1.478e-05,
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 0.001953125,
+      "max_rel_error": 0.000956022937,
       "has_nan": false,
       "has_inf": false,
       "atol": 0.002,
       "rtol": 0.005,
-      "note": "edge mode=mixed_extremes",
+      "note": "",
       "pass": true
     },
     {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
+      "shape": [
+        1024,
+        4096
+      ],
+      "dtype": "float16",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 0.001953125,
+      "max_rel_error": 0.000971817295,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
       "shape": [
         4,
         4096
@@ -647,681 +625,681 @@
       "mode": "zeros",
       "max_abs_error": 0.0,
       "max_rel_error": 0.0,
-      "row_sum_error": 0.0,
       "has_nan": false,
       "has_inf": false,
       "atol": 0.002,
       "rtol": 0.005,
-      "note": "edge mode=zeros",
+      "note": "edge mode=zeros scale=1.0",
       "pass": true
     },
     {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
       "shape": [
         4,
         4096
       ],
       "dtype": "float16",
-      "seed": 7,
-      "mode": "constant",
-      "max_abs_error": 0.0,
-      "max_rel_error": 0.0,
-      "row_sum_error": 0.0,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 0.002,
-      "rtol": 0.005,
-      "note": "edge mode=constant",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        4,
-        4096
-      ],
-      "dtype": "float16",
-      "seed": 7,
-      "mode": "single_dominant",
-      "max_abs_error": 0.0,
-      "max_rel_error": 0.0,
-      "row_sum_error": 0.0,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 0.002,
-      "rtol": 0.005,
-      "note": "edge mode=single_dominant",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        4,
-        4096
-      ],
-      "dtype": "float16",
-      "seed": 7,
-      "mode": "alternating",
-      "max_abs_error": 0.0,
-      "max_rel_error": 0.0,
-      "row_sum_error": 0.0,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 0.002,
-      "rtol": 0.005,
-      "note": "edge mode=alternating",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        1,
-        128
-      ],
-      "dtype": "float32",
-      "seed": 0,
-      "mode": "normal",
-      "max_abs_error": 1e-08,
-      "max_rel_error": 3.8e-07,
-      "row_sum_error": 0.0,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 1e-05,
-      "rtol": 0.0001,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        1,
-        128
-      ],
-      "dtype": "float32",
-      "seed": 1,
-      "mode": "normal",
-      "max_abs_error": 0.0,
-      "max_rel_error": 2.2e-07,
-      "row_sum_error": 0.0,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 1e-05,
-      "rtol": 0.0001,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        1,
-        128
-      ],
-      "dtype": "float32",
-      "seed": 42,
-      "mode": "normal",
-      "max_abs_error": 0.0,
-      "max_rel_error": 2.6e-07,
-      "row_sum_error": 0.0,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 1e-05,
-      "rtol": 0.0001,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        1,
-        1024
-      ],
-      "dtype": "float32",
-      "seed": 0,
-      "mode": "normal",
-      "max_abs_error": 0.0,
-      "max_rel_error": 2.9e-07,
-      "row_sum_error": 0.0,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 1e-05,
-      "rtol": 0.0001,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        1,
-        1024
-      ],
-      "dtype": "float32",
-      "seed": 1,
-      "mode": "normal",
-      "max_abs_error": 0.0,
-      "max_rel_error": 2.4e-07,
-      "row_sum_error": 1.2e-07,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 1e-05,
-      "rtol": 0.0001,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        1,
-        1024
-      ],
-      "dtype": "float32",
-      "seed": 42,
-      "mode": "normal",
-      "max_abs_error": 0.0,
-      "max_rel_error": 2.8e-07,
-      "row_sum_error": 0.0,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 1e-05,
-      "rtol": 0.0001,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        1,
-        4096
-      ],
-      "dtype": "float32",
-      "seed": 0,
-      "mode": "normal",
-      "max_abs_error": 0.0,
-      "max_rel_error": 2.3e-07,
-      "row_sum_error": 6e-08,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 1e-05,
-      "rtol": 0.0001,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        1,
-        4096
-      ],
-      "dtype": "float32",
-      "seed": 1,
-      "mode": "normal",
-      "max_abs_error": 0.0,
-      "max_rel_error": 2.3e-07,
-      "row_sum_error": 1.2e-07,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 1e-05,
-      "rtol": 0.0001,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        1,
-        4096
-      ],
-      "dtype": "float32",
-      "seed": 42,
-      "mode": "normal",
-      "max_abs_error": 0.0,
-      "max_rel_error": 1.8e-07,
-      "row_sum_error": 0.0,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 1e-05,
-      "rtol": 0.0001,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        32,
-        1024
-      ],
-      "dtype": "float32",
-      "seed": 0,
-      "mode": "normal",
-      "max_abs_error": 0.0,
-      "max_rel_error": 3.5e-07,
-      "row_sum_error": 1.2e-07,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 1e-05,
-      "rtol": 0.0001,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        32,
-        1024
-      ],
-      "dtype": "float32",
-      "seed": 1,
-      "mode": "normal",
-      "max_abs_error": 2e-08,
-      "max_rel_error": 5e-07,
-      "row_sum_error": 2.4e-07,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 1e-05,
-      "rtol": 0.0001,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        32,
-        1024
-      ],
-      "dtype": "float32",
-      "seed": 42,
-      "mode": "normal",
-      "max_abs_error": 0.0,
-      "max_rel_error": 3.5e-07,
-      "row_sum_error": 1.2e-07,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 1e-05,
-      "rtol": 0.0001,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        128,
-        1024
-      ],
-      "dtype": "float32",
-      "seed": 0,
-      "mode": "normal",
-      "max_abs_error": 0.0,
-      "max_rel_error": 4.5e-07,
-      "row_sum_error": 1.2e-07,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 1e-05,
-      "rtol": 0.0001,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        128,
-        1024
-      ],
-      "dtype": "float32",
-      "seed": 1,
-      "mode": "normal",
-      "max_abs_error": 2e-08,
-      "max_rel_error": 5e-07,
-      "row_sum_error": 2.4e-07,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 1e-05,
-      "rtol": 0.0001,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        128,
-        1024
-      ],
-      "dtype": "float32",
-      "seed": 42,
-      "mode": "normal",
-      "max_abs_error": 0.0,
-      "max_rel_error": 5.5e-07,
-      "row_sum_error": 2.4e-07,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 1e-05,
-      "rtol": 0.0001,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        128,
-        4096
-      ],
-      "dtype": "float32",
-      "seed": 0,
-      "mode": "normal",
-      "max_abs_error": 0.0,
-      "max_rel_error": 4.1e-07,
-      "row_sum_error": 2.4e-07,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 1e-05,
-      "rtol": 0.0001,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        128,
-        4096
-      ],
-      "dtype": "float32",
-      "seed": 1,
-      "mode": "normal",
-      "max_abs_error": 0.0,
-      "max_rel_error": 4.4e-07,
-      "row_sum_error": 2.4e-07,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 1e-05,
-      "rtol": 0.0001,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        128,
-        4096
-      ],
-      "dtype": "float32",
-      "seed": 42,
-      "mode": "normal",
-      "max_abs_error": 0.0,
-      "max_rel_error": 4.2e-07,
-      "row_sum_error": 2.4e-07,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 1e-05,
-      "rtol": 0.0001,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        1024,
-        1024
-      ],
-      "dtype": "float32",
-      "seed": 0,
-      "mode": "normal",
-      "max_abs_error": 1e-08,
-      "max_rel_error": 4.6e-07,
-      "row_sum_error": 2.4e-07,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 1e-05,
-      "rtol": 0.0001,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        1024,
-        1024
-      ],
-      "dtype": "float32",
-      "seed": 1,
-      "mode": "normal",
-      "max_abs_error": 2e-08,
-      "max_rel_error": 5e-07,
-      "row_sum_error": 2.4e-07,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 1e-05,
-      "rtol": 0.0001,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        1024,
-        1024
-      ],
-      "dtype": "float32",
-      "seed": 42,
-      "mode": "normal",
-      "max_abs_error": 1e-08,
-      "max_rel_error": 5.5e-07,
-      "row_sum_error": 2.4e-07,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 1e-05,
-      "rtol": 0.0001,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        1024,
-        4096
-      ],
-      "dtype": "float32",
-      "seed": 0,
-      "mode": "normal",
-      "max_abs_error": 0.0,
-      "max_rel_error": 4.2e-07,
-      "row_sum_error": 2.4e-07,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 1e-05,
-      "rtol": 0.0001,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        1024,
-        4096
-      ],
-      "dtype": "float32",
-      "seed": 1,
-      "mode": "normal",
-      "max_abs_error": 0.0,
-      "max_rel_error": 4.4e-07,
-      "row_sum_error": 2.4e-07,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 1e-05,
-      "rtol": 0.0001,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        1024,
-        4096
-      ],
-      "dtype": "float32",
-      "seed": 42,
-      "mode": "normal",
-      "max_abs_error": 0.0,
-      "max_rel_error": 4.4e-07,
-      "row_sum_error": 2.4e-07,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 1e-05,
-      "rtol": 0.0001,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        128,
-        8192
-      ],
-      "dtype": "float32",
-      "seed": 0,
-      "mode": "normal",
-      "max_abs_error": 0.0,
-      "max_rel_error": 3.5e-07,
-      "row_sum_error": 2.4e-07,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 1e-05,
-      "rtol": 0.0001,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        128,
-        8192
-      ],
-      "dtype": "float32",
-      "seed": 1,
-      "mode": "normal",
-      "max_abs_error": 0.0,
-      "max_rel_error": 3.5e-07,
-      "row_sum_error": 2.4e-07,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 1e-05,
-      "rtol": 0.0001,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        128,
-        8192
-      ],
-      "dtype": "float32",
-      "seed": 42,
-      "mode": "normal",
-      "max_abs_error": 0.0,
-      "max_rel_error": 3.7e-07,
-      "row_sum_error": 1.2e-07,
-      "has_nan": false,
-      "has_inf": false,
-      "atol": 1e-05,
-      "rtol": 0.0001,
-      "note": "",
-      "pass": true
-    },
-    {
-      "variant": "softmax_vec4",
-      "shape": [
-        4,
-        4096
-      ],
-      "dtype": "float32",
       "seed": 7,
       "mode": "tiny",
       "max_abs_error": 0.0,
-      "max_rel_error": 6e-08,
-      "row_sum_error": 1.2e-07,
+      "max_rel_error": 0.0,
       "has_nan": false,
       "has_inf": false,
-      "atol": 1e-05,
-      "rtol": 0.0001,
-      "note": "edge mode=tiny",
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "edge mode=tiny scale=1.0",
       "pass": true
     },
     {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
       "shape": [
         4,
         4096
       ],
-      "dtype": "float32",
+      "dtype": "float16",
+      "seed": 7,
+      "mode": "normal",
+      "max_abs_error": 6.1035156e-05,
+      "max_rel_error": 0.000553709862,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "edge mode=normal scale=10.0",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        4,
+        4096
+      ],
+      "dtype": "float16",
+      "seed": 7,
+      "mode": "normal",
+      "max_abs_error": 0.0,
+      "max_rel_error": 0.0,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "edge mode=normal scale=0.1",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        4,
+        4096
+      ],
+      "dtype": "float16",
       "seed": 7,
       "mode": "biased",
+      "max_abs_error": 0.001953125,
+      "max_rel_error": 0.000826446281,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 0.002,
+      "rtol": 0.005,
+      "note": "edge mode=biased scale=1.0",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        1,
+        1024
+      ],
+      "dtype": "float32",
+      "seed": 0,
+      "mode": "normal",
       "max_abs_error": 0.0,
-      "max_rel_error": 3.4e-07,
-      "row_sum_error": 1.2e-07,
+      "max_rel_error": 0.0,
       "has_nan": false,
       "has_inf": false,
       "atol": 1e-05,
       "rtol": 0.0001,
-      "note": "edge mode=biased",
+      "note": "",
       "pass": true
     },
     {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
       "shape": [
-        4,
+        1,
+        1024
+      ],
+      "dtype": "float32",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 0.0,
+      "max_rel_error": 0.0,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        1,
+        1024
+      ],
+      "dtype": "float32",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 9.53674e-07,
+      "max_rel_error": 1.99127e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        1,
+        2048
+      ],
+      "dtype": "float32",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 0.0,
+      "max_rel_error": 0.0,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        1,
+        2048
+      ],
+      "dtype": "float32",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 0.0,
+      "max_rel_error": 0.0,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        1,
+        2048
+      ],
+      "dtype": "float32",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 4.76837e-07,
+      "max_rel_error": 2.1412e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        1,
         4096
       ],
       "dtype": "float32",
-      "seed": 7,
-      "mode": "large_pos",
+      "seed": 0,
+      "mode": "normal",
       "max_abs_error": 0.0,
-      "max_rel_error": 2.3e-07,
-      "row_sum_error": 0.0,
+      "max_rel_error": 0.0,
       "has_nan": false,
       "has_inf": false,
       "atol": 1e-05,
       "rtol": 0.0001,
-      "note": "edge mode=large_pos",
+      "note": "",
       "pass": true
     },
     {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
       "shape": [
-        4,
+        1,
         4096
       ],
       "dtype": "float32",
-      "seed": 7,
-      "mode": "large_neg",
+      "seed": 1,
+      "mode": "normal",
       "max_abs_error": 0.0,
-      "max_rel_error": 2.3e-07,
-      "row_sum_error": 0.0,
+      "max_rel_error": 0.0,
       "has_nan": false,
       "has_inf": false,
       "atol": 1e-05,
       "rtol": 0.0001,
-      "note": "edge mode=large_neg",
+      "note": "",
       "pass": true
     },
     {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
       "shape": [
-        4,
+        1,
         4096
       ],
       "dtype": "float32",
-      "seed": 7,
-      "mode": "mixed_extremes",
+      "seed": 42,
+      "mode": "normal",
       "max_abs_error": 0.0,
-      "max_rel_error": 2.9e-07,
-      "row_sum_error": 1.2e-07,
+      "max_rel_error": 0.0,
       "has_nan": false,
       "has_inf": false,
       "atol": 1e-05,
       "rtol": 0.0001,
-      "note": "edge mode=mixed_extremes",
+      "note": "",
       "pass": true
     },
     {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
+      "shape": [
+        1,
+        8192
+      ],
+      "dtype": "float32",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 0.0,
+      "max_rel_error": 0.0,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        1,
+        8192
+      ],
+      "dtype": "float32",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 0.0,
+      "max_rel_error": 0.0,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        1,
+        8192
+      ],
+      "dtype": "float32",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 4.76837e-07,
+      "max_rel_error": 2.19412e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        16,
+        1024
+      ],
+      "dtype": "float32",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 9.53674e-07,
+      "max_rel_error": 2.64081e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        16,
+        1024
+      ],
+      "dtype": "float32",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 9.53674e-07,
+      "max_rel_error": 2.78847e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        16,
+        1024
+      ],
+      "dtype": "float32",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 9.53674e-07,
+      "max_rel_error": 2.25988e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        16,
+        4096
+      ],
+      "dtype": "float32",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 9.53674e-07,
+      "max_rel_error": 3.01279e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        16,
+        4096
+      ],
+      "dtype": "float32",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 0.0,
+      "max_rel_error": 0.0,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        16,
+        4096
+      ],
+      "dtype": "float32",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 9.53674e-07,
+      "max_rel_error": 2.91432e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        128,
+        1024
+      ],
+      "dtype": "float32",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 9.53674e-07,
+      "max_rel_error": 3.02341e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        128,
+        1024
+      ],
+      "dtype": "float32",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 9.53674e-07,
+      "max_rel_error": 3.17982e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        128,
+        1024
+      ],
+      "dtype": "float32",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 9.53674e-07,
+      "max_rel_error": 3.12062e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        128,
+        4096
+      ],
+      "dtype": "float32",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 1.430511e-06,
+      "max_rel_error": 3.10593e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        128,
+        4096
+      ],
+      "dtype": "float32",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 9.53674e-07,
+      "max_rel_error": 3.14734e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        128,
+        4096
+      ],
+      "dtype": "float32",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 1.430511e-06,
+      "max_rel_error": 3.02182e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        128,
+        8192
+      ],
+      "dtype": "float32",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 1.430511e-06,
+      "max_rel_error": 3.17867e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        128,
+        8192
+      ],
+      "dtype": "float32",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 1.430511e-06,
+      "max_rel_error": 3.20684e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        128,
+        8192
+      ],
+      "dtype": "float32",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 1.430511e-06,
+      "max_rel_error": 3.33193e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        1024,
+        1024
+      ],
+      "dtype": "float32",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 1.430511e-06,
+      "max_rel_error": 3.16469e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        1024,
+        1024
+      ],
+      "dtype": "float32",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 1.430511e-06,
+      "max_rel_error": 3.22301e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        1024,
+        1024
+      ],
+      "dtype": "float32",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 1.907349e-06,
+      "max_rel_error": 3.18718e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        1024,
+        4096
+      ],
+      "dtype": "float32",
+      "seed": 0,
+      "mode": "normal",
+      "max_abs_error": 1.430511e-06,
+      "max_rel_error": 3.41619e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        1024,
+        4096
+      ],
+      "dtype": "float32",
+      "seed": 1,
+      "mode": "normal",
+      "max_abs_error": 1.907349e-06,
+      "max_rel_error": 3.36668e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        1024,
+        4096
+      ],
+      "dtype": "float32",
+      "seed": 42,
+      "mode": "normal",
+      "max_abs_error": 1.907349e-06,
+      "max_rel_error": 3.28008e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
       "shape": [
         4,
         4096
@@ -1331,69 +1309,83 @@
       "mode": "zeros",
       "max_abs_error": 0.0,
       "max_rel_error": 0.0,
-      "row_sum_error": 0.0,
       "has_nan": false,
       "has_inf": false,
       "atol": 1e-05,
       "rtol": 0.0001,
-      "note": "edge mode=zeros",
+      "note": "edge mode=zeros scale=1.0",
       "pass": true
     },
     {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
       "shape": [
         4,
         4096
       ],
       "dtype": "float32",
       "seed": 7,
-      "mode": "constant",
+      "mode": "tiny",
       "max_abs_error": 0.0,
       "max_rel_error": 0.0,
-      "row_sum_error": 0.0,
       "has_nan": false,
       "has_inf": false,
       "atol": 1e-05,
       "rtol": 0.0001,
-      "note": "edge mode=constant",
+      "note": "edge mode=tiny scale=1.0",
       "pass": true
     },
     {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
       "shape": [
         4,
         4096
       ],
       "dtype": "float32",
       "seed": 7,
-      "mode": "single_dominant",
-      "max_abs_error": 0.0,
-      "max_rel_error": 0.0,
-      "row_sum_error": 0.0,
+      "mode": "normal",
+      "max_abs_error": 4.76837e-07,
+      "max_rel_error": 2.15367e-07,
       "has_nan": false,
       "has_inf": false,
       "atol": 1e-05,
       "rtol": 0.0001,
-      "note": "edge mode=single_dominant",
+      "note": "edge mode=normal scale=10.0",
       "pass": true
     },
     {
-      "variant": "softmax_vec4",
+      "variant": "baseline",
       "shape": [
         4,
         4096
       ],
       "dtype": "float32",
       "seed": 7,
-      "mode": "alternating",
-      "max_abs_error": 0.0,
-      "max_rel_error": 0.0,
-      "row_sum_error": 1.2e-07,
+      "mode": "normal",
+      "max_abs_error": 9.53674e-07,
+      "max_rel_error": 2.3792e-07,
       "has_nan": false,
       "has_inf": false,
       "atol": 1e-05,
       "rtol": 0.0001,
-      "note": "edge mode=alternating",
+      "note": "edge mode=normal scale=0.1",
+      "pass": true
+    },
+    {
+      "variant": "baseline",
+      "shape": [
+        4,
+        4096
+      ],
+      "dtype": "float32",
+      "seed": 7,
+      "mode": "biased",
+      "max_abs_error": 4.76837e-07,
+      "max_rel_error": 2.51025e-07,
+      "has_nan": false,
+      "has_inf": false,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "note": "edge mode=biased scale=1.0",
       "pass": true
     }
   ]

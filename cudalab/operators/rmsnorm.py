@@ -7,6 +7,12 @@
 
 算法 IO（最小有用流量）: 读 x 一次 + 读 w 一次 + 写 y 一次
 = (M*H + H + M*H) * element_size。
+
+negative suite 语义（v0.5 merge review 2026-09-21 显式标记）:
+negative_suite_scope = "cross-variant" —— 单跑设计, 同一组用例覆盖
+全部变体（用例自带 variant 字段）, run_negative 的 variant 参数被忽略。
+不要将其描述为 per-variant（GEMV / Softmax / RoPE 的套件才是
+per-variant, 逐变体运行并归档）。
 """
 from __future__ import annotations
 
@@ -103,26 +109,40 @@ print("profile driver done")
 
     def run_correctness(self, ext, variant: str,
                         out_dir: Path | None = None) -> dict:
-        """完整正确性套件。默认输出到 v0.3 回归目录 ——
-        v0.2 的已发布产物（correctness/v0.2/*.json）绝不覆盖。"""
+        """完整正确性套件。
+
+        默认输出（v0.5 merge review 2026-09-21, append-only 约定）:
+        experiments/regression/v0.5/rmsnorm/ —— 旧默认
+        experiments/rmsnorm/correctness/v0.3_regression/ 是 main 已发布
+        的历史记录, 历史 experiment artifact 不可变; v0.5 smoke 重跑的
+        覆盖结果已迁移到 regression 目录（*_rerun_v0.5.json, 数值与原
+        文件逐项一致）, 新验证一律只追加到 regression 目录。
+        """
         from ..correctness import run_suite, summarize, save_results
         if out_dir is None:
-            out_dir = self.experiments_dir / "correctness" / "v0.3_regression"
+            out_dir = ROOT / "experiments" / "regression" / "v0.5" / "rmsnorm"
         out_dir.mkdir(parents=True, exist_ok=True)
         results = run_suite(variant, ext)
         saved = save_results(results, out_dir / f"{variant}.json")
         s = summarize(results)
         return {"all_pass": s["all_pass"], "summary": s, "saved": str(saved)}
 
-    def run_negative(self, ext, variant: str | None = None) -> dict:
-        # 本套件是单跑设计（对所有变体同一组用例）, variant 参数被忽略
-        # （签名与 base.Operator 协议一致, v0.5 独立审查 MAJOR-1）。
+    def run_negative(self, ext, variant: str | None = None,
+                     out_dir: Path | None = None) -> dict:
+        # cross-variant 套件（negative_suite_scope = "cross-variant"）:
+        # 单跑设计, 同一组用例覆盖全部变体（每个用例自带 variant 字段,
+        # 见 cudalab/negative_suite.py build_cases）—— 这是算子级共享
+        # 契约, 不描述为 per-variant; variant 参数被忽略（签名与
+        # base.Operator 协议一致, v0.5 独立审查 MAJOR-1）。
+        # 默认输出（v0.5 merge review, append-only 约定）:
+        # experiments/regression/v0.5/rmsnorm/ —— 不覆盖 main 已发布的
+        # v0.3 记录（覆盖结果已迁移为 invalid_inputs_rerun_v0.5.json）。
         from ..negative_suite import run_negative_suite
-        # 默认输出到 v0.3 回归目录（v0.2 产物不覆盖；内容 schema 一致，
-        # 仅 generated 时间戳不同）。
-        out = self.experiments_dir / "correctness" / "v0.3_regression" \
-            / "invalid_inputs.json"
-        return run_negative_suite(ext, out_path=out)
+        if out_dir is None:
+            out_dir = ROOT / "experiments" / "regression" / "v0.5" / "rmsnorm"
+        out_dir = Path(out_dir)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        return run_negative_suite(ext, out_path=out_dir / "invalid_inputs.json")
 
     def pytorch_ref_latency(self, M: int, H: int, dtype: torch.dtype,
                             iters: int = 200, batch: int = 32) -> dict:

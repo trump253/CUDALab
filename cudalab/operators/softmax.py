@@ -186,22 +186,47 @@ print("profile driver done")
 
     def run_correctness(self, ext, variant: str,
                         out_dir: Path | None = None) -> dict:
+        # 默认输出（v0.5 merge review 2026-09-21, append-only 约定）:
+        # experiments/regression/v0.5/softmax/ —— 旧默认
+        # experiments/softmax/correctness/v0.3/ 是 main 已发布的历史记录,
+        # 历史 experiment artifact 不可变; v0.5 smoke 的覆盖结果已迁移
+        # 到 regression 目录（*_rerun_v0.5.json, 数值与原文件逐项一致）,
+        # 新验证一律只追加到 regression 目录。
         from ..softmax_correctness import run_suite, summarize, save_results
         if out_dir is None:
-            out_dir = self.experiments_dir / "correctness" / "v0.3"
+            out_dir = ROOT / "experiments" / "regression" / "v0.5" / "softmax"
         out_dir.mkdir(parents=True, exist_ok=True)
         results = run_suite(variant, ext)
         saved = save_results(results, out_dir / f"{variant}.json")
         s = summarize(results)
         return {"all_pass": s["all_pass"], "summary": s, "saved": str(saved)}
 
-    def run_negative(self, ext, variant: str | None = None) -> dict:
-        # 本套件是单跑设计（对所有变体同一组用例）, variant 参数被忽略
-        # （签名与 base.Operator 协议一致, v0.5 独立审查 MAJOR-1）。
-        from ..softmax_negative import run_negative_suite
-        out = self.experiments_dir / "correctness" / "v0.3" \
-            / "invalid_inputs.json"
-        return run_negative_suite(ext, out_path=out)
+    def run_negative(self, ext, variant: str | None = None,
+                     out_dir: Path | None = None) -> dict:
+        """per-variant negative 套件（negative_suite_scope =
+        "per-variant"; v0.5 merge review 2026-09-21 修复）。
+
+        套件本体（cudalab/softmax_negative.py 的 build_cases /
+        _post_check_ok）一直按 variant 参数化, 但 operator 层此前忽略
+        variant, 恒以默认 softmax_baseline 跑 —— CLI 指定的候选变体
+        从未被 negative 套件实测。修复后实际测试受测变体:
+        默认变体 → 规范 invalid_inputs.json, 其余变体 →
+        invalid_inputs_<variant>.json。
+
+        out_dir（append-only 约定）: 默认
+        experiments/regression/v0.5/softmax/ —— 不覆盖 main 已发布的
+        v0.3 记录（v0.5 smoke 的覆盖结果已迁移为
+        invalid_inputs_rerun_v0.5.json）。
+        """
+        from ..softmax_negative import run_negative_suite, V as _V
+        v = variant or _V
+        if out_dir is None:
+            out_dir = ROOT / "experiments" / "regression" / "v0.5" / "softmax"
+        out_dir = Path(out_dir)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        name = ("invalid_inputs.json" if v == _V
+                else f"invalid_inputs_{v}.json")
+        return run_negative_suite(ext, out_path=out_dir / name, variant=v)
 
     def pytorch_ref_latency(self, M: int, H: int, dtype: torch.dtype,
                             iters: int = 200, batch: int = 32) -> dict:

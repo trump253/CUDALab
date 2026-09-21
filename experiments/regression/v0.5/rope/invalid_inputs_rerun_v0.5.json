@@ -1,6 +1,6 @@
 {
   "suite": "negative-v0.4-rope",
-  "generated": "2026-09-21T09:31:45+08:00",
+  "generated": "2026-09-21T15:12:59+08:00",
   "note": "非法输入必须在 kernel launch 前被明确异常拒绝；post_check_ok 验证拒绝未污染 CUDA 上下文。baseline 为标量访存，无对齐契约（见 valid_offset_view_control）；v3_half2 fp16 路径对 x/out 基指针有 4B 对齐契约，未对齐时 host 侧回退标量路径（v0.4.1 回归用例 v3_half2_x_misaligned_2b / v3_half2_x_aligned_4b / v3_half2_out_misaligned_2b）。",
   "summary": {
     "n_total": 37,
