@@ -53,6 +53,25 @@ compute）**只作 framework context**（pytorch_ref_latency）, 不是决策
     = (N·K + K + N)·es
 这是算子最小有用 IO（cuBLAS/llama.cpp GEMV 的同口径下界, x 的
 多次物理重读由 L2 缓存, 不计入算法流量）。
+
+变体状态（v0.5 merge review, 2026-09-21）:
+- **gemv_splitk4 已被隔离**（UNSAFE_HISTORICAL_EXPERIMENT / REJECTED /
+  NOT_FOR_NORMAL_DISPATCH）: 其 `static at::Tensor g_splitk_partials`
+  进程级 workspace 有多 stream 并发 race 风险 + 跨 device workspace
+  设备风险; GEMV-0004 决策为 REJECT, 该变体从 ext.variants() 与 CLI
+  test / benchmark / optimize / profile 正常路径移除。显式
+  forward("gemv_splitk4", ...) 保留为受控历史审计入口（单 stream /
+  单 device / 单线程受控复现）。内核源码与全部 GEMV-0004 bench / NCU
+  历史数据原样保留。见 kernels/gemv/bindings.cpp（quarantined_set）、
+  kernels/gemv/gemv_splitk4.cu 文件头、experiments/gemv/GEMV-0004.json
+  （quarantine_note）。
+- **对齐契约的适用范围**: 向量化变体（gemv_vec4_row /
+  gemv_warp_vec4_b256 / gemv_warp_vec4_b512）有显式对齐契约（W 基址
+  16B ∧ x 基址 16B ∧ K 为 16B 元素数 fp16:8 / fp32:4 的整数倍; 不满足
+  → gemv_scalar_kernel 同源代码逐位一致回退, negative 套件的三个
+  fallback 回归用例钉死）。**对齐不是标量变体的约束**: gemv_baseline
+  与（隔离的）gemv_splitk4 均为标量访存, 无对齐契约 —— splitk4 的
+  唯一契约是 K%4==0（段长整数）, 不满足时回退 gemv_scalar_kernel。
 """
 from __future__ import annotations
 
@@ -305,7 +324,8 @@ print("profile driver done")
         return {"all_pass": bool(s["all_pass"]),
                 "summary": s, "saved": str(saved)}
 
-    def run_negative(self, ext, variant: str | None = None) -> dict:
+    def run_negative(self, ext, variant: str | None = None,
+                     out_dir: Path | None = None) -> dict:
         """per-variant negative suite（v0.5 独立审查 MAJOR-1 修复）。
 
         套件本体自 75c1ccd 起即按 variant 参数化（build_cases /
@@ -314,16 +334,25 @@ print("profile driver done")
         4 个向量化变体的对齐契约/回退回归证据从未归档。修复后:
         variant=None/"gemv_baseline" → 规范 invalid_inputs.json;
         其余变体 → invalid_inputs_<variant>.json。
+
+        out_dir（v0.5 merge review 新增, append-only 约定）: 显式
+        指定时结果存到该目录（自动创建）, 不覆盖规范记录 ——
+        例如 `experiments/regression/v0.5/gemv/`。
+
+        注: gemv_splitk4 已被隔离（NOT_FOR_NORMAL_DISPATCH, 见模块
+        docstring）—— 正常 CLI 路径对其报隔离错误; 程序化显式调用
+        本方法可按 splitk4 语义运行（错位用例为 finite-only control,
+        K=13 用例钉 K%4 契约回退, 见 cudalab/gemv_negative.py）。
         """
         from ..gemv_negative import run_negative_suite
         v = variant or "gemv_baseline"
-        if v == "gemv_baseline":
-            out = self.experiments_dir / "correctness" / "v0.5" \
-                / "invalid_inputs.json"
-        else:
-            out = self.experiments_dir / "correctness" / "v0.5" \
-                / f"invalid_inputs_{v}.json"
-        return run_negative_suite(ext, out_path=out, variant=v)
+        if out_dir is None:
+            out_dir = self.experiments_dir / "correctness" / "v0.5"
+        out_dir = Path(out_dir)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        name = ("invalid_inputs.json" if v == "gemv_baseline"
+                else f"invalid_inputs_{v}.json")
+        return run_negative_suite(ext, out_path=out_dir / name, variant=v)
 
     def pytorch_ref_latency(self, M: int, K: int, dtype: torch.dtype,
                             iters: int = 200, batch: int = 32) -> dict:

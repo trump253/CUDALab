@@ -16,13 +16,23 @@ gemv_baseline 是**纯标量访存**（每 thread 2B/4B 元素 load, 无向量�
 **没有对齐契约** —— `valid_offset_view_control` / `valid_offset_view_x`
 两个 control 用例钉死: storage offset 视图（连续但未 16B 对齐）对
 baseline 是合法输入, 必须成功。
-向量化候选变体（GEMV-0001 起, float4 / __half2 打包 load / split-K）
+向量化候选变体（GEMV-0001 起, float4 / __half2 打包 load）
 有显式对齐契约: W 基址 16B ∧ x 基址 16B ∧ K 为 16B 元素数
 （fp16: 8 / fp32: 4）的整数倍; 契约不满足时不得拒绝 —— 必须回退
 `gemv_scalar_kernel`（与 baseline 同一代码源, 同输入下输出与
 baseline **bit-identical**）。三个 per-variant 回归用例
 fallback_W_misaligned / fallback_x_misaligned / fallback_K_not_mult8
-对**每一个受测变体**生效（与 v0.4.1 rope_v3_half2 同一模式）。
+钉死该契约于每一个受测的向量化变体（与 v0.4.1 rope_v3_half2
+同一模式）。
+**对齐不是 split-K 的约束**: gemv_splitk4（v0.5 merge review 后
+隔离, NOT_FOR_NORMAL_DISPATCH）是**标量访存、无对齐契约** —— 它的
+唯一契约是 K%4==0（段长整数）, 不满足时回退 gemv_scalar_kernel
+（bit-identical）; K%4==0 时的错位 W/x 直接走 split-K 路径
+（归约顺序与 baseline 不同, **不保证** bit-identical）。因此本套件
+被显式以 variant="gemv_splitk4" 运行时（受控历史审计入口, 正常 CLI
+negative 路径不接受该变体）, 两个错位用例退化为"不得拒绝 + 输出
+有限"的 control, 仅 K=13 用例保留 bit-identical 断言（那才是
+splitk4 的 K%4 契约回退）。
 
 per-variant 运行（v0.5 独立审查 MAJOR-1 修复）: 本套件自 75c1ccd 起
 即完全按 variant 参数化（build_cases / _post_check_ok / 三个回退
@@ -30,8 +40,11 @@ per-variant 运行（v0.5 独立审查 MAJOR-1 修复）: 本套件自 75c1ccd �
 默认 gemv_baseline 调用, 4 个向量化变体的契约/回退证据从未归档。
 现在 `op.run_negative(ext, variant)` 对每个受测变体运行全套 24 例:
 baseline 存规范 `invalid_inputs.json`, 其余变体存
-`invalid_inputs_<variant>.json`（5 变体归档, 见
-experiments/gemv/correctness/v0.5/）。
+`invalid_inputs_<variant>.json`（v0.5 初版 5 变体归档, 见
+experiments/gemv/correctness/v0.5/）。v0.5 merge review 后
+gemv_splitk4 被隔离（bindings.cpp quarantined_set）: 正常
+CLI test/optimize 的 negative 路径对其报隔离错误; 仅程序化显式
+调用可按上述 splitk4 语义运行本套件。
 """
 from __future__ import annotations
 
@@ -186,17 +199,27 @@ def build_cases(ext, variant: str = V) -> list[dict]:
             "offset-view forward_into 输出含非有限值")
         assert torch.isfinite(y.float()).all(), "control forward 输出非有限"
 
+    # 描述措辞随变体: baseline / splitk4 均为标量访存、无对齐契约;
+    # 向量化变体则是"契约不满足 → scalar fallback"路径, 同样不得拒绝。
+    if variant == "gemv_splitk4":
+        _align_note = "splitk4 为标量访存, 无对齐契约（错位输入直接走 " \
+                      "split-K 路径, 非 scalar fallback）"
+    elif variant == "gemv_baseline":
+        _align_note = "标量 baseline 无对齐契约"
+    else:
+        _align_note = "对齐契约不满足 → scalar fallback（同源代码, " \
+                      "不得拒绝）"
     add("valid_offset_view_control",
-        "control: W 为基址偏移 2 元素（4B, 未 16B 对齐）的连续视图, "
-        "is_contiguous()==True: 标量 baseline 无对齐契约, 不得拒绝此"
-        "合法输入: 必须成功",
+        f"control: W 为基址偏移 2 元素（4B, 未 16B 对齐）的连续视图, "
+        f"is_contiguous()==True: {_align_note}, 不得拒绝此"
+        f"合法输入: 必须成功",
         _offset_control,
         expected="pass")
     big_xv = torch.randn(K + 1, dtype=torch.float16, device=dev)
     xo_mis = big_xv[1:1 + K]  # x 基址偏移 1 元素（2B）
     add("valid_offset_view_x",
-        "control: x 为基址偏移 1 个 half（2B）的连续切片: 标量 baseline"
-        "无对齐契约, 不得拒绝: 必须成功",
+        f"control: x 为基址偏移 1 个 half（2B）的连续切片: {_align_note}, "
+        f"不得拒绝: 必须成功",
         lambda: fwd(W, xo_mis),
         expected="pass")
 
@@ -223,34 +246,76 @@ def build_cases(ext, variant: str = V) -> list[dict]:
     big_w8 = torch.randn(N * K + 2, dtype=torch.float16, device=dev)
     Wm = big_w8[2:2 + N * K].view(N, K)  # base offset 4B, not 16B-aligned
     xa = make_x(K, torch.float16, device=dev, seed=6)
-    add("fallback_W_misaligned",
-        f"fallback: W base offset 2 elements (4B, not 16B-aligned) "
-        f"contiguous view, x aligned, K={K} multiple of 8: vectorized "
-        f"contract unmet -> must take scalar fallback, must not reject, "
-        f"output bit-identical to gemv_baseline",
-        lambda: _fallback_check("fallback_W_misaligned", Wm, xa, N),
-        expected="pass")
     Wa = make_w(N, K, torch.float16, device=dev, seed=7)
     big_x8 = torch.randn(K + 1, dtype=torch.float16, device=dev)
     xm = big_x8[1:1 + K]  # x base offset 2B, not 16B-aligned
-    add("fallback_x_misaligned",
-        f"fallback: x base offset 1 half (2B, not 16B-aligned) "
-        f"contiguous slice, W aligned, K={K} multiple of 8: vectorized "
-        f"contract unmet -> must take scalar fallback, must not reject, "
-        f"output bit-identical to gemv_baseline",
-        lambda: _fallback_check("fallback_x_misaligned", Wa, xm, N),
-        expected="pass")
-    # K=13: for fp16 K%8=5 (vectorized contract fails) and K%4=1
-    # (split-K contract fails) -- covers both fallback classes at once.
+    if variant == "gemv_splitk4":
+        # splitk4 是标量访存, **无对齐契约**: 错位 W/x 且 K%4==0 时
+        # 直接走 split-K 路径（不是 scalar fallback）, 归约顺序与
+        # baseline 不同 → bit-identical 不保证。两个错位用例退化为
+        # "不得拒绝 + 有限输出" control。
+        def _splitk_finite_control(Wm_, xm_, tag_):
+            out_f = torch.empty(N, dtype=torch.float16, device=dev)
+            ext.forward_into(variant, Wm_, xm_, out_f)
+            torch.cuda.synchronize()
+            assert torch.isfinite(out_f.float()).all(), (
+                f"{tag_}: split-K 路径输出含非有限值")
+
+        add("fallback_W_misaligned",
+            "splitk4 control: W base offset 2 elements (4B) contiguous "
+            "view, x aligned, K=64 satisfies K%4==0: this variant is "
+            "scalar with NO alignment contract -- the misaligned input "
+            "runs the split-K path directly (not the scalar fallback); "
+            "assert must-not-reject + finite output only (reduction "
+            "order differs from baseline, no bit-identity guarantee)",
+            lambda: _splitk_finite_control(Wm, xa, "W misaligned"),
+            expected="pass")
+        add("fallback_x_misaligned",
+            "splitk4 control: x base offset 1 half (2B) contiguous "
+            "slice, W aligned, K=64 satisfies K%4==0: this variant is "
+            "scalar with NO alignment contract -- the misaligned input "
+            "runs the split-K path directly (not the scalar fallback); "
+            "assert must-not-reject + finite output only (reduction "
+            "order differs from baseline, no bit-identity guarantee)",
+            lambda: _splitk_finite_control(Wa, xm, "x misaligned"),
+            expected="pass")
+    else:
+        add("fallback_W_misaligned",
+            f"fallback: W base offset 2 elements (4B, not 16B-aligned) "
+            f"contiguous view, x aligned, K={K} multiple of 8: "
+            f"alignment contract unmet -> must take scalar fallback, "
+            f"must not reject, output bit-identical to gemv_baseline",
+            lambda: _fallback_check("fallback_W_misaligned", Wm, xa, N),
+            expected="pass")
+        add("fallback_x_misaligned",
+            f"fallback: x base offset 1 half (2B, not 16B-aligned) "
+            f"contiguous slice, W aligned, K={K} multiple of 8: "
+            f"alignment contract unmet -> must take scalar fallback, "
+            f"must not reject, output bit-identical to gemv_baseline",
+            lambda: _fallback_check("fallback_x_misaligned", Wa, xm, N),
+            expected="pass")
+    # K=13: K%4=1（违反 splitk4 的唯一契约 K%4==0）且 K%8=5（违反
+    # 向量化契约）→ 两类变体都必须回退 gemv_scalar_kernel（同一代码
+    # 源 → bit-identical）。
     Wk = make_w(16, 13, torch.float16, device=dev, seed=8)
     xk = make_x(13, torch.float16, device=dev, seed=9)
-    add("fallback_K_not_mult8",
-        "fallback: K=13 (not a multiple of 8 nor of 4): both the "
-        "vectorized and split-K contracts unmet -> must take scalar "
-        "fallback, must not reject, output bit-identical to "
-        "gemv_baseline",
-        lambda: _fallback_check("fallback_K_not_mult8", Wk, xk, 16),
-        expected="pass")
+    if variant == "gemv_splitk4":
+        add("fallback_K_not_mult8",
+            "splitk4 fallback: K=13 violates the only contract of this "
+            "variant (K%4==0) -> must take gemv_scalar_kernel fallback "
+            "(same code source as baseline), must not reject, output "
+            "bit-identical to gemv_baseline; pointer alignment is NOT "
+            "a constraint of this variant (scalar loads)",
+            lambda: _fallback_check("fallback_K_not_mult8", Wk, xk, 16),
+            expected="pass")
+    else:
+        add("fallback_K_not_mult8",
+            "fallback: K=13 (not a multiple of 8 nor of 4): both the "
+            "vectorized and split-K contracts unmet -> must take scalar "
+            "fallback, must not reject, output bit-identical to "
+            "gemv_baseline",
+            lambda: _fallback_check("fallback_K_not_mult8", Wk, xk, 16),
+            expected="pass")
     return cases
 
 
@@ -267,10 +332,14 @@ def run_negative_suite(ext, out_path: Path | None = None,
         results.append(r)
 
     summary = summarize_cases(results)
+    if variant == "gemv_splitk4":
+        _note = ("illegal inputs must be rejected with an explicit exception before kernel launch; post_check_ok verifies the CUDA context is not polluted. QUARANTINE: gemv_splitk4 is UNSAFE_HISTORICAL_EXPERIMENT / REJECTED / NOT_FOR_NORMAL_DISPATCH (process-level static workspace, multi-stream race + cross-device risk; see bindings.cpp and experiments/gemv/GEMV-0004.json quarantine_note) -- this record comes from a controlled explicit historical-audit run, not the normal dispatch path. Contract: this variant is SCALAR with NO alignment contract (pointer alignment is not a constraint); its only contract is K%4==0, unmet -> gemv_scalar_kernel fallback (same source as gemv_baseline, bit-identical -- pinned by fallback_K_not_mult8). The two misalignment cases (K=64, K%4==0 met) are finite-only controls: the misaligned inputs run the split-K path directly and its reduction order differs from baseline, so no bit-identity guarantee; legal inputs (incl. offset views) must never be rejected")
+    else:
+        _note = ("illegal inputs must be rejected with an explicit exception before kernel launch; post_check_ok verifies the CUDA context is not polluted. Alignment contract (GEMV-0001.. vectorized variants): base pointers 16B-aligned + K a multiple of the 16B element count; unmet inputs MUST fall back to gemv_scalar_kernel (same source as gemv_baseline, so the fallback output is bit-identical -- pinned by the three per-variant regression cases fallback_W_misaligned / fallback_x_misaligned / fallback_K_not_mult8, same pattern as v0.4.1 rope_v3_half2); alignment is NOT a contract of the scalar variants (gemv_baseline, and quarantined gemv_splitk4 -- whose only contract is K%4==0); legal inputs (incl. offset views) must never be rejected")
     doc = {
         "suite": SUITE_VERSION,
         "generated": _now_iso(),
-        "note": ("illegal inputs must be rejected with an explicit exception before kernel launch; post_check_ok verifies the CUDA context is not polluted. Alignment contract (GEMV-0001.. vectorized variants): base pointers 16B-aligned + K a multiple of the 16B element count; unmet inputs MUST fall back to gemv_scalar_kernel (same source as gemv_baseline, so the fallback output is bit-identical -- pinned by the three per-variant regression cases fallback_W_misaligned / fallback_x_misaligned / fallback_K_not_mult8, same pattern as v0.4.1 rope_v3_half2); legal inputs (incl. offset views) must never be rejected"),
+        "note": _note,
         "summary": summary,
         "cases": results,
     }

@@ -325,5 +325,6 @@
       "pass": true,
       "id": "fallback_K_not_mult8"
     }
-  ]
+  ],
+  "note_addendum": "v0.5 merge review (2026-09-21): reframe of the three fallback cases in this record. gemv_splitk4 is SCALAR with NO pointer-alignment contract (only the K%4==0 segment contract); it was described in the original record as subject to the vectorized alignment fallback contract, which is not a constraint of this variant. Concretely: (a) fallback_W_misaligned / fallback_x_misaligned (K=64, K%4==0 met) did NOT run a scalar fallback — the misaligned inputs ran the split-K path directly, whose reduction order differs from gemv_baseline, so bit-identity is NOT guaranteed in general; the bit-identity observed in this record held for these seeded K=64 inputs but was data-coincidental, and these cases are finite-only controls for this variant; (b) fallback_K_not_mult8 (K=13) IS the genuine contract fallback of this variant (K%4 != 0 -> gemv_scalar_kernel, same code source, bit-identity is a real contract). The suite code (cudalab/gemv_negative.py) re-frames the cases accordingly and the variant is now quarantined (NOT_FOR_NORMAL_DISPATCH); this record is preserved as the archived v0.5 evidence."
 }

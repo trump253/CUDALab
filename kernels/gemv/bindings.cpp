@@ -36,6 +36,7 @@
 #include <numeric>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "gemv_common.h"
@@ -44,6 +45,41 @@ namespace {
 std::unordered_map<std::string, gemv_fn_t>& registry() {
     static std::unordered_map<std::string, gemv_fn_t> r;
     return r;
+}
+
+// ---- v0.5 merge review 隔离（quarantine）策略 -----------------------------
+//
+//   UNSAFE_HISTORICAL_EXPERIMENT / REJECTED / NOT_FOR_NORMAL_DISPATCH
+//
+// gemv_splitk4（GEMV-0004）使用进程级静态张量
+// `static at::Tensor g_splitk_partials`（首次调用时分配、按 N 单调
+// 增长的中间结果 workspace）。两个已知风险:
+//   (1) 多 stream / 多线程并发: 两次并发调用共享同一静态 workspace，
+//       无锁写入存在 race（一次调用的 combine 可能读到另一次调用的
+//       partials）;
+//   (2) 多 device: 静态 workspace 固定留在首次调用所在 device; 后续
+//       在其他 device 上的调用会得到错误 device 的 workspace
+//       （跨设备访问风险）。
+//
+// 该内核本身是**标量访存、无指针对齐契约**（只有 K%4==0 的
+// 分段契约，违反时回退 gemv_scalar_kernel 逐位一致路径），
+// 静态 workspace 对它没有任何性能或正确性收益; 且 GEMV-0004 的
+// 决策为 REJECT（speedup 0.878 < 1），它永远不会成为正常 dispatch
+// 目标。
+//
+// 该变体因此从 variants() 正常列表移除（NOT_FOR_NORMAL_DISPATCH:
+// 正常 dispatch / 基准 / 测试 / 剖析 / 优化路径不再暴露它）。内核源
+// 文件 kernels/gemv/gemv_splitk4.cu、GEMV-0004 实验记录与全部
+// bench / NCU 历史数据原样保留（历史证据，不得删除）。显式
+// forward / forward_into("gemv_splitk4", ...) 仍是可调用的受控
+// 历史审计入口（非正常 dispatch 路径）——隔离理由见
+// experiments/gemv/GEMV-0004.json 的 quarantine_note 与
+// docs/report_v0.5_result.md。
+const std::unordered_set<std::string>& quarantined_set() {
+    static const std::unordered_set<std::string> q = {
+        "gemv_splitk4",
+    };
+    return q;
 }
 
 // ---- 输入验证（全部在 launch 前, 全部 host 元数据, 无同步）------------
@@ -102,11 +138,20 @@ at::Tensor gemv_forward(const std::string& name, const at::Tensor& W,
                         const at::Tensor& x) {
     auto& r = registry();
     auto it = r.find(name);
-    TORCH_CHECK(it != r.end(), "未知 gemv 变体 '", name, "'。可用: ", [&] {
-        std::string s;
-        for (auto& n : gemv_variant_list()) s += n + " ";
-        return s;
-    }());
+    TORCH_CHECK(it != r.end(),
+                "未知 gemv 变体 '", name,
+                "'。正常可用: ", [&] {
+                    std::string s;
+                    for (auto& n : gemv_variant_list()) s += n + " ";
+                    return s;
+                }(),
+                "；被隔离（NOT_FOR_NORMAL_DISPATCH）: ", [&] {
+                    std::string s;
+                    for (auto& n : gemv_quarantined_variant_list())
+                        s += n + " ";
+                    return s;
+                }(),
+                "（显式命名仍可调用，属受控历史审计入口）");
     validate_gemv_W(W);
     validate_gemv_x(W, x);
     at::Tensor out = at::empty({W.size(0)}, W.options());
@@ -122,11 +167,20 @@ void gemv_forward_into(const std::string& name, const at::Tensor& W,
                        const at::Tensor& x, at::Tensor& out) {
     auto& r = registry();
     auto it = r.find(name);
-    TORCH_CHECK(it != r.end(), "未知 gemv 变体 '", name, "'。可用: ", [&] {
-        std::string s;
-        for (auto& n : gemv_variant_list()) s += n + " ";
-        return s;
-    }());
+    TORCH_CHECK(it != r.end(),
+                "未知 gemv 变体 '", name,
+                "'。正常可用: ", [&] {
+                    std::string s;
+                    for (auto& n : gemv_variant_list()) s += n + " ";
+                    return s;
+                }(),
+                "；被隔离（NOT_FOR_NORMAL_DISPATCH）: ", [&] {
+                    std::string s;
+                    for (auto& n : gemv_quarantined_variant_list())
+                        s += n + " ";
+                    return s;
+                }(),
+                "（显式命名仍可调用，属受控历史审计入口）");
     validate_gemv_W(W);
     validate_gemv_x(W, x);
     validate_gemv_out(W, x, out);
@@ -143,11 +197,20 @@ py::dict gemv_native_timing(const std::string& name, const at::Tensor& W,
                             int64_t launches_per_window) {
     auto& r = registry();
     auto it = r.find(name);
-    TORCH_CHECK(it != r.end(), "未知 gemv 变体 '", name, "'。可用: ", [&] {
-        std::string s;
-        for (auto& n : gemv_variant_list()) s += n + " ";
-        return s;
-    }());
+    TORCH_CHECK(it != r.end(),
+                "未知 gemv 变体 '", name,
+                "'。正常可用: ", [&] {
+                    std::string s;
+                    for (auto& n : gemv_variant_list()) s += n + " ";
+                    return s;
+                }(),
+                "；被隔离（NOT_FOR_NORMAL_DISPATCH）: ", [&] {
+                    std::string s;
+                    for (auto& n : gemv_quarantined_variant_list())
+                        s += n + " ";
+                    return s;
+                }(),
+                "（显式命名仍可调用，属受控历史审计入口）");
     TORCH_CHECK(warmup >= 0, "warmup 必须 >= 0，实际 ", warmup);
     TORCH_CHECK(n_windows >= 1, "n_windows 必须 >= 1，实际 ", n_windows);
     TORCH_CHECK(launches_per_window >= 1,
@@ -212,15 +275,36 @@ py::dict gemv_native_timing(const std::string& name, const at::Tensor& W,
             "NCU kernel duration）"));
 }
 
+// 默认（正常）变体列表：不含被隔离的变体（v0.5 merge review
+// quarantine，见文件头部 quarantine 策略注释）。所有正常 dispatch /
+// 基准 / 测试路径都使用本列表。
 std::vector<std::string> gemv_variant_list() {
+    std::vector<std::string> names;
+    for (auto& kv : registry()) {
+        if (!quarantined_set().count(kv.first)) names.push_back(kv.first);
+    }
+    std::sort(names.begin(), names.end());
+    return names;
+}
+
+// 全部已注册变体（含被隔离者）：显式历史审计入口使用
+// （如 NCU 驱动断言、历史实验复现）。
+std::vector<std::string> gemv_all_variant_list() {
     std::vector<std::string> names;
     for (auto& kv : registry()) names.push_back(kv.first);
     std::sort(names.begin(), names.end());
     return names;
 }
 
-std::vector<std::string> gemv_all_variant_list() {
-    return gemv_variant_list();  // 当前无被隔离变体
+// 被隔离的变体列表（仅返回实际已注册者）:
+// UNSAFE_HISTORICAL_EXPERIMENT / REJECTED / NOT_FOR_NORMAL_DISPATCH。
+std::vector<std::string> gemv_quarantined_variant_list() {
+    std::vector<std::string> names;
+    for (auto& kv : registry()) {
+        if (quarantined_set().count(kv.first)) names.push_back(kv.first);
+    }
+    std::sort(names.begin(), names.end());
+    return names;
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
@@ -241,7 +325,12 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
           py::arg("warmup") = 200, py::arg("n_windows") = 10,
           py::arg("launches_per_window") = 64);
     m.def("variants", &gemv_variant_list,
-          "正常（可 dispatch）的 gemv 变体列表");
+          "正常（可 dispatch）的 gemv 变体列表；不含被隔离变体"
+          "（v0.5 merge review quarantine，见 quarantined_variants()）");
     m.def("all_variants", &gemv_all_variant_list,
-          "全部已注册 gemv 变体");
+          "全部已注册变体（含被隔离者，仅供显式历史审计）");
+    m.def("quarantined_variants", &gemv_quarantined_variant_list,
+          "被隔离的变体: UNSAFE_HISTORICAL_EXPERIMENT / REJECTED / "
+          "NOT_FOR_NORMAL_DISPATCH（见 experiments/gemv/GEMV-0004.json "
+          "的 quarantine_note）");
 }

@@ -35,13 +35,31 @@ v0.5 交付：
   | GEMV-0001 | `gemv_vec4_row` | long_scoreboard 79% / DRAM 49% → 16B 向量 load（在途字节 4×） | **KEEP 1.5416×** [1.5398,1.5517] 9/9 → **incumbent**；NCU DRAM 87.9%（@none 90.2%）= DRAM 饱和 |
   | GEMV-0002 | `gemv_warp_vec4_b256` | warp-per-row + ILP=4（消除 shared/barrier） | **KEEP 1.2539×** [1.2454,1.2555] 9/9；瓶颈搬到 LSU issue（lg_throttle 84%） |
   | GEMV-0003 | `gemv_warp_vec4_b512` | block 512 杠杆 | **KEEP 1.2407×** [1.2396,1.2446] 9/9（同族机理） |
-  | GEMV-0004 | `gemv_splitk4` | split-K×4 并行度 | **REJECT 0.8784×** [0.8755,0.8804] 0/9（每线程 4 元素，MLP 不足 + 二次 launch） |
+  | GEMV-0004 | `gemv_splitk4` ⚠隔离 | split-K×4 并行度 | **REJECT 0.8784×** [0.8755,0.8804] 0/9（每线程 4 元素，MLP 不足 + 二次 launch）；**v0.5 merge review 后已隔离**（见下） |
 
   失败实验全部保留。正确性 **100/100 × 5 变体**（2 dtype × 10 形状 ×
   5 模式；**固定算术误差界容差**，非 per-variant 调参；allclose 只记录
-  不门控）+ 负例 **24/24 × 5 变体**（18 拒绝 + 6 通过，含 3 个向量化
-  回退**逐位一致**回归——所有向量化变体显式 16B 对齐契约 + host 侧检查 +
-  回退到与 baseline 同一份 `gemv_scalar_kernel`）。
+  不门控）+ 负例 **24/24 × 5 变体**（18 拒绝 + 6 通过，含 3 个标量
+  回退**逐位一致**回归——向量化变体显式 16B 对齐契约 + host 侧检查 +
+  回退到与 baseline 同一份 `gemv_scalar_kernel`；**对齐不是标量变体的
+  约束**：baseline 与隔离的 splitk4 均为标量访存，splitk4 唯一契约
+  K%4==0）。
+
+  **v0.5 merge review 修复（2026-09-21, 3 个 fix commit, 推送前）**：
+  (1) **splitk4 隔离**（UNSAFE_HISTORICAL_EXPERIMENT / REJECTED /
+  NOT_FOR_NORMAL_DISPATCH）：`static at::Tensor g_splitk_partials`
+  进程级 workspace 有多 stream 并发 race + 跨 device workspace 风险；
+  从 `ext.variants()` 与 CLI test/benchmark/optimize/profile 正常路径
+  移除（显式请求报隔离错误），源码与全部 bench/NCU 历史保留，显式
+  `forward("gemv_splitk4", ...)` 为受控历史审计入口；(2) **历史
+  artifact 不可变**：恢复被 v0.5 smoke 误覆盖的 7 个 main 历史
+  correctness 记录（rmsnorm/softmax/rope），本轮验证一律追加到
+  `experiments/regression/v0.5/`（append-only 目录，含 README），
+  三个旧算子默认输出目录改指该处；(3) **negative 套件语义统一**：
+  Softmax/RoPE 的 `run_negative` 改为 per-variant（CLI 指定的候选被
+  实际测试），四个套件记录带 `negative_suite_scope` 字段（GEMV/
+  Softmax/RoPE = per-variant，RMSNorm = cross-variant 单跑设计，
+  不再描述为 per-variant）。细节：报告 §12 "merge review 处置"。
 - **主目标最终结果**（`gemv_vec4_row`，三种口径分开报告，不混用）：
   API-path（paired v2.3 streaming）59.88 µs / native kernel-loop
   （1 次 Python 调用 → C++ 连续 launch → CUDA events /N，w5000 warmup）
@@ -472,10 +490,18 @@ harness 位于 `cudalab/evaluator/bench.py`（`cudalab/bench_v2.py` 为兼容 sh
 - **算子 4：GEMV**（v0.5 新增；`y = W @ x`，W `[N,K]` 行主序、x `[K]`、
   y `[N]`；主路径 fp16 输入/输出 + FP32 累加，FP32 支持路径；ref
   `torch.mv(W.float(), x.float()).to(torch.float16)`；主目标 (4096,4096)
-  fp16，5 形状矩阵见上。向量化变体显式对齐契约（W/x 基指针 16B 对齐 ∧
-  K % 16B内元素数 == 0，fp16:8/fp32:4），不满足 → 标量回退（与 baseline
-  同一份 `gemv_scalar_kernel`，逐位一致），不拒绝合法输入。排除：GEMM、
-  quantization、Attention、CUDALM 集成。）
+  fp16，5 形状矩阵见上。向量化变体（vec4_row / warp b256 / warp b512）
+  显式对齐契约（W/x 基指针 16B 对齐 ∧ K % 16B内元素数 == 0，fp16:8/
+  fp32:4），不满足 → 标量回退（与 baseline 同一份 `gemv_scalar_kernel`，
+  逐位一致），不拒绝合法输入。**标量变体（baseline / splitk4）无对齐
+  约束**（splitk4 唯一契约 K%4==0）。排除：GEMM、quantization、
+  Attention、CUDALM 集成。）
+  ⚠ `gemv_splitk4` 在 v0.5 merge review 后被**隔离**
+  （UNSAFE_HISTORICAL_EXPERIMENT / REJECTED / NOT_FOR_NORMAL_DISPATCH：
+  进程级 static workspace 多 stream 并发 race + 跨 device workspace 风险）：
+  不在 `ext.variants()` 正常列表与 CLI test/benchmark/optimize/profile
+  正常路径；源码与全部 bench/NCU 历史保留，显式 `forward("gemv_splitk4",
+  ...)` 为受控历史审计入口（报告 §6/§12）。
 - **算子 1：RMSNorm**（`y = x * rsqrt(mean(x², dim=-1) + eps) * w`，默认
   `eps=1e-5`，FP32 累加）—— v0.1/v0.2 历史算子，v0.3/v0.4/v0.5 仅做回归硬门。
 - **算子 2：row-wise Softmax**（v0.3 新增；`y = exp(x − rowmax)/Σexp(x −
@@ -832,6 +858,18 @@ final_reval/ + best.json）、`benchmarks/softmax/`、`profiles/softmax/`、
     逐内核 `kernels[]` 分解 + `multi_kernel_note`（由 splitk4 两阶段
     数据触发；顶层字段语义不变、向后兼容）。读旧记录无此问题（均单
     内核算子）。
+  - **splitk4 static workspace（已隔离）**：`gemv_splitk4` 的进程级
+    `static at::Tensor g_splitk_partials` 在多 stream / 多线程并发下 race、
+    且固定留在首次调用设备（跨 device 风险）—— 正常 dispatch 不安全，
+    v0.5 merge review 后正式隔离（NOT_FOR_NORMAL_DISPATCH）：移出
+    `ext.variants()` 与 CLI test/benchmark/optimize/profile 正常路径，
+    源码与全部 bench/NCU 历史保留，显式 `forward("gemv_splitk4", ...)`
+    为受控历史审计入口（报告 §6/§12）。
+- **历史 experiment artifact 不可变（v0.5 merge review 新约定）**：
+  main（4eb520b）上提交的 experiment 记录一律不再改写；新验证只
+  append 到 `experiments/regression/<版本>/<op>/`（含 README 说明
+  来源与约定）；RMSNorm/Softmax/RoPE 三算子的默认输出目录已改指
+  该处，防止再覆盖历史文件。
 - 环境有 **2× 2080 Ti**（nvidia-smi 可见 index 0/1）；v0.5 全部测量固定
   GPU 0（`CUDA_VISIBLE_DEVICES=0` + 时钟采样 `nvidia-smi --id=0`）。
 - 四个算子（RMSNorm + row-wise Softmax + interleaved RoPE + GEMV）；单 GPU

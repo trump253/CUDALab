@@ -1,5 +1,23 @@
 // CUDALab GEMV — GEMV-0004: 4 路 split-K（partial + combine 两 kernel）。
 //
+// ======================================================================
+// 状态（v0.5 merge review, 2026-09-21）:
+//
+//   UNSAFE_HISTORICAL_EXPERIMENT / REJECTED / NOT_FOR_NORMAL_DISPATCH
+//
+// 本文件为**被隔离的历史实验代码**, 原样保留作为历史证据, 不做重写。
+// 隔离原因: 下方 workspace 的 `static at::Tensor g_splitk_partials`
+// 是进程级共享状态 —— (1) 多 CUDA stream / 多线程并发调用时两次调用
+// 共享同一 workspace, 无锁读写存在 race; (2) 多 device 环境下 workspace
+// 固定留在首次调用所在 device, 后续其他 device 的调用会得到错误
+// device 的 workspace。GEMV-0004 决策为 REJECT（speedup 0.878 < 1）,
+// 该变体已从 ext.variants() 正常列表与 CLI benchmark/optimize/
+// profile/test 正常路径隔离（quarantined_set, 见 bindings.cpp）;
+// 显式 forward("gemv_splitk4", ...) 仅作受控历史审计入口, 仅限
+// 单 stream / 单 device / 单线程的受控复现。隔离理由与全部历史
+// 证据见 experiments/gemv/GEMV-0004.json 的 quarantine_note。
+// ======================================================================
+//
 // 实验假设（GEMV-0004）: 把归约维 K 切成 4 段, 每段由独立的
 // (行, 段) block 归约并写 FP32 部分和, 第二个 kernel 求和 + cast。
 // 动机: 主目标 N=K=4096 时 baseline 已有 4096 个 block（并行度充足,
@@ -23,6 +41,9 @@
 // workspace: partials 缓冲（N·4·4B, 主目标 64KB）在**首次调用**时
 // 分配, 之后按 N 增长单调复用（static 缓存）—— 计时区的 warmup
 // （≥150 launches）覆盖首次分配, 稳态计时区域内无 malloc。
+// ⚠ 此 static workspace 仅限单 stream / 单 device / 单线程的受控
+// harness 使用 —— 多 stream 并发 race + 跨 device workspace 风险是
+// 本变体被隔离（NOT_FOR_NORMAL_DISPATCH）的直接原因, 见文件头。
 //
 // 契约: K % 4 == 0（段长整数）; 不满足 → 回退 gemv_scalar_kernel
 // （逐位一致于 baseline）; 合法输入不得被拒。标量访存, **无指针

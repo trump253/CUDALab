@@ -2,7 +2,7 @@
 
 **日期：** 2026-09-21
 **阶段：** v0.5 — FP16 GEMV 优化（第四算子）
-**状态：** 分支 `v0.5-gemv`（基线 main = v0.4.1 = 4eb520b），**不 merge 回 main**；停止条件全部达成：正确性 + per-variant 负例、三口径（API / native kernel loop / NCU kernel duration）分开记录且冲突已调查定性（DVFS ramp，报告 §5）、4 个自主实验（GEMV-0001..0004，3 KEEP + 1 REJECT，失败实验保留）、全形状矩阵（gemv_vec4_row 20 格全胜）、最终 incumbent 复核 v1 + v2、RMSNorm/Softmax/RoPE smoke 回归 **6/6 PASS**、最终报告 `docs/report_v0.5_result.md`（12 节，含 §12 独立审查处置表）定稿；两个独立 subagent review（CUDA correctness + Benchmark methodology）双双 **PASS WITH CAVEATS**、全部 findings 已处置；`v0.5-gemv` 已 push 等外部 review。
+**状态：** 分支 `v0.5-gemv`（基线 main = v0.4.1 = 4eb520b），**不 merge 回 main**；停止条件全部达成：正确性 + per-variant 负例、三口径（API / native kernel loop / NCU kernel duration）分开记录且冲突已调查定性（DVFS ramp，报告 §5）、4 个自主实验（GEMV-0001..0004，3 KEEP + 1 REJECT，失败实验保留）、全形状矩阵（gemv_vec4_row 20 格全胜）、最终 incumbent 复核 v1 + v2、RMSNorm/Softmax/RoPE smoke 回归 **6/6 PASS**、最终报告 `docs/report_v0.5_result.md`（12 节，含 §12 独立审查处置表）定稿；两个独立 subagent review（CUDA correctness + Benchmark methodology）双双 **PASS WITH CAVEATS**、全部 findings 已处置；**v0.5 merge review 4 项修复完成**（splitk4 隔离 + 历史 artifact 恢复 + negative 套件语义统一 + 2^-24 文档修正，3 个 fix commit，见下）；`v0.5-gemv` 已 push 等外部 review。
 
 ## v0.5 完成摘要（2026-09-21）
 
@@ -32,6 +32,30 @@ kernel loop / NCU kernel duration）下给出一致、可审计的结论。** �
 | 独立 review | 2 个独立 subagent 双双 **PASS WITH CAVEATS**（CUDA：1 MAJOR + 2 MINOR + 2 NIT；Benchmark：0 MAJOR + 5 MINOR + 8 NIT）；无记录造假类发现（byte 级核对 84 个新增 0 修改记录文件 + git 全分支 diff + 独立复算 4 个 pair 中位数 / GEMV-0001 bootstrap CI / 矩阵抽核格）。全部 findings 处置（报告 §12 处置表）：per-variant 负例归档、mixed_sign 修复、报告数字修正（33,570,816 B / 304 GB/s / 1.54× / barrier 71.9% 等 11 项）。历史 benchmark/profile JSON 逐字节未改；修正 = 报告修正 + 重录 correctness/negative + 实验记录 additive note（v0.4 先例） |
 | git | 分支 `v0.5-gemv`（9 commit）：50d6c0c（GEMV 算子）→ 4521540（make_bench_pool 未定义 M 修复）→ de150bc（baseline Phase 4 记录）→ 75c1ccd（候选内核 + 负例 + 回退）→ 652f4f1（GEMV-0001..0004）→ 25bd9ab（native + NCU + 多 kernel 修复 + 口径）→ 2e4836f（全矩阵）→ 8f2b944（复核 v1）→ (末) 本报告 + README/STATUS + 独立审查处置；**不 merge main、不 force push** |
 | 未做 / v0.6 | GEMM、quantization、Attention、CUDALM 集成（用户指定 out of scope）；v0.6 仅建议：**Quantized GEMV**（用户指定优先级），另见报告 §10 |
+
+## v0.5 Merge Review 修复摘要（2026-09-21）
+
+外部 merge review 后的 4 项修复（只修 finding：不新增 kernel、不重跑
+full matrix、不做 Quantized GEMV；3 个 fix commit，见报告 §12
+"v0.5 merge review 处置"）：
+
+| # | 修复 | 处置 |
+|---|---|---|
+| 1 | **splitk4 隔离**（MAJOR）：`static at::Tensor g_splitk_partials` 进程级 workspace 多 stream 并发 race + 跨 device workspace 设备风险 | `kernels/gemv/bindings.cpp` 新增 `quarantined_set = {"gemv_splitk4"}`（UNSAFE_HISTORICAL_EXPERIMENT / REJECTED / NOT_FOR_NORMAL_DISPATCH）：`ext.variants()` 正常列表移除、`quarantined_variants()` 新入口、未知变体错误列出隔离变体；CLI test/benchmark/optimize/profile 全路径拒绝（既有门禁 + bench 引擎 `_require_normal_variant`）；`gemv_splitk4.cu` 头注释隔离标记（**不重写内核**）；GEMV-0004.json 追加 `quarantine_note`；显式 `forward("gemv_splitk4", ...)` 保留为受控历史审计入口 |
+| 2 | **历史 artifact 不可变**（MAJOR）：v0.5 smoke 误覆盖 7 个 main 历史 correctness 记录（rmsnorm v0.3_regression ×3 / softmax v0.3 ×3 / rope v0.4 ×1） | 7 个文件按 main（4eb520b）版本恢复；本轮 smoke 结果迁移至新目录 `experiments/regression/v0.5/{rmsnorm,softmax,rope,gemv}/`（append-only，含 README 来源说明 + 不可变约定）；rmsnorm/softmax/rope 三算子默认输出目录改指 regression 目录；隔离后 4 正常变体的 GEMV 再验证存 `experiments/regression/v0.5/gemv/`（官方 v0.5 记录不动） |
+| 3 | **negative 套件 variant 语义统一**（MINOR）：Softmax/RoPE `run_negative` 忽略 variant（CLI 指定候选未被实际测试）；RMSNorm cross-variant 无显式声明 | Softmax/RoPE 改 per-variant（套件本体早已参数化，补管线 + per-variant 归档命名 + `--neg-out-dir`）；4 个套件记录新增 `negative_suite_scope`（GEMV/Softmax/RoPE = **per-variant**；RMSNorm = **cross-variant**，docstring 更新，不再描述为 per-variant）；base.py 协议 docstring 更新 |
+| 4 | **文档小修正**（NIT）：`2^-24 ≈ 6.1e-5` 错误；错位 W/x 用例被错误描述为 splitk4 的"标量回退契约" | `gemv_correctness.py` docstring 改 **2^-24 ≈ 5.96e-8**（半步 ≈3e-8；6.1e-5 = 2^-14 是次正规**边界**，rope 处用法正确未动）；明确**对齐不是 splitk4 的约束**（标量访存，唯一契约 K%4==0）：`gemv_negative.py` 按 variant 重构（splitk4 下 2 个错位用例 = finite-only control、K=13 用例保留 bit-identical = K%4 契约回退）、归档 `invalid_inputs_gemv_splitk4.json` 追加 `note_addendum`、报告 §3 表格更新 |
+
+验证（2026-09-21，GPU 0）：GEMV 4 正常变体（baseline / vec4_row /
+warp b256 / warp b512）正确性 100/100 + 负例 24/24（append 至
+`experiments/regression/v0.5/gemv/`）；Softmax incumbent `softmax_vec4`
+负例 PASS（per-variant 首跑）；RoPE incumbent `rope_v3_half2` 负例
+PASS；RMSNorm cross-variant 负例 PASS；CLI 对 `gemv_splitk4` 的
+test/benchmark/optimize/profile 全部拒绝（隔离消息）+ 显式 forward
+审计入口仍可用 + `variants()`/`quarantined_variants()` 列表正确；
+CPU evaluator 测试 36/36（+18/18、20/20、6/6）。**不重跑 GEMV full
+matrix / GEMV-0001 / NCU**；incumbent 仍为 `gemv_vec4_row`（隔离不
+改变任何决策证据，splitk4 本为 REJECT）。
 
 ## v0.4 完成摘要（2026-09-20）
 

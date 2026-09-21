@@ -63,6 +63,10 @@ void register_gemv_variant(const std::string& name, gemv_fn_t fn);
 
 std::vector<std::string> gemv_variant_list();
 std::vector<std::string> gemv_all_variant_list();
+// v0.5 merge review: 被隔离变体（UNSAFE_HISTORICAL_EXPERIMENT / REJECTED /
+// NOT_FOR_NORMAL_DISPATCH，见 bindings.cpp quarantined_set）; 仅供显式
+// 历史审计入口与门禁使用, 不属于正常 dispatch 列表。
+std::vector<std::string> gemv_quarantined_variant_list();
 
 // ---- 16B 向量化变体的对齐契约（host 侧, launch 前检查）-----------------
 // 任何 16B 向量 load 变体（8×__half 或 4×float）必须满足:

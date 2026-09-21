@@ -67,9 +67,10 @@ scale=1000 —— 两个算子的 large 语义不同, 不共用数值。
     边界自检:
     - zeros: S=0, y=exact=0 → tol = 2·(0.5·ulp16(0)+0.5·ulp16(0))
       = 2^-23 ≈ 1.2e-7, 任何正确实现 diff=0 精确通过;
-    - tiny: |y|~1e-8 落 fp16 次正规区（步长 2^-24 ≈ 6.1e-5）,
+    - tiny: |y|~1e-8 落 fp16 次正规区（步长 2^-24 ≈ 5.96e-8;
+      次正规边界 2^-14 ≈ 6.1e-5）,
       y 常被舍入到 0 —— 界中的 0.5·ulp_dtype(|exact|) 项
-      （次正规步长的一半 ≈ 3e-5）覆盖该量化, 不误判。
+      （次正规步长的一半 ≈ 3e-8）覆盖该量化, 不误判。
     y 与 torch 参考 `gemv_ref` 的 elementwise 差（max_abs/max_rel/
     allclose, 共享 TOLERANCES: fp16 atol=2e-3/rtol=5e-3, fp32
     atol=1e-5/rtol=1e-4）照常**报告**, 但**不作为判定门** ——

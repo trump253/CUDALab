@@ -91,23 +91,31 @@ FAIL）。修复：W seed=SEED、x seed=SEED+1（**独立随机流**），100/10
 审查 MAJOR-1 修复）**: 18 项必须拒绝（shape / dtype / device / 非连续 /
 out 形状·dtype·设备 / 未知变体 / x 长度不匹配，全部要求 launch 前显式异常 +
 CUDA context 无污染后置检查）+ 6 项合法输入必须通过，其中 3 项为
-**向量化回退逐位一致回归**（对每个向量化变体自身执行）：
+**标量回退逐位一致回归**（对每个向量化变体自身执行；对隔离的
+gemv_splitk4 仅 K=13 一项适用，见下表）：
 
-| 用例 | 构造 | 契约 |
-|---|---|---|
-| fallback_W_misaligned | W = 大块[2:2+N·K].view(N,K)，基址偏移 4B | 16B 对齐不满足 → 回退 |
-| fallback_x_misaligned | x = 大块[1:1+K]，基址偏移 2B | 同上 |
-| fallback_K_not_mult8 | N=16, K=13（K%8=5 且 K%4=1） | 向量 + split-K 契约同时不满足 |
+| 用例 | 构造 | 向量化变体语义 | splitk4 语义（隔离后） |
+|---|---|---|---|
+| fallback_W_misaligned | W = 大块[2:2+N·K].view(N,K)，基址偏移 4B | 16B 对齐不满足 → 标量回退 | **无对齐约束**：直接走 split-K 路径（finite-only control） |
+| fallback_x_misaligned | x = 大块[1:1+K]，基址偏移 2B | 同上 | 同上 |
+| fallback_K_not_mult8 | N=16, K=13（K%8=5 且 K%4=1） | 向量契约不满足 → 标量回退 | 唯一契约 K%4==0 不满足 → 标量回退（bit-identical 真契约） |
 
 回退门要求：不拒绝、成功执行、**输出与 gemv_baseline `torch.equal` 逐位一致**。
 逐位一致由构造保证：所有回退与 baseline 调用**同一份** `gemv_scalar_kernel`
-（`kernels/gemv/gemv_common.h` 单一来源）。
+（`kernels/gemv/gemv_common.h` 单一来源）。**splitk4 例外**（v0.5 merge
+review 澄清）: splitk4 为标量访存、**无对齐契约** —— K%4==0 时的错位
+W/x 直接走 split-K 路径（归约顺序与 baseline 不同，bit-identical 不
+保证）; v0.5 归档记录中该两例的 bit-identical 是种子数据巧合，套件
+代码已按此重构（`cudalab/gemv_negative.py`），归档记录
+`invalid_inputs_gemv_splitk4.json` 追加 `note_addendum` 说明。
 
 **向量化对齐契约**（所有 16B load 变体显式声明，host 侧 launch 前检查）:
 W 基指针 16B 对齐 ∧ x 基指针 16B 对齐 ∧ K % (16B 内元素数) == 0
 （fp16: 8, fp32: 4）。不满足 → 标量回退，**永不拒绝合法输入**。
 out 为标量 2B/4B 写，无对齐检查。`is_contiguous()==true` 不保证对齐
-（offset view 用例钉死此语义）。
+（offset view 用例钉死此语义）。**对齐契约不适用于标量变体**：
+gemv_baseline 与（隔离的）gemv_splitk4 均为标量访存，无对齐约束
+（splitk4 的唯一契约是 K%4==0）。
 
 **结果**（v0.5 独立审查修复后重录归档）: 5/5 变体 正确性 100/100 +
 负例 24/24。记录：`experiments/gemv/correctness/v0.5/` 下 5 个
@@ -123,6 +131,14 @@ x 符号 k%2 → 乘积符号 = (-1)^i **逐行恒定**，|y| = Σ|W·x|，该�
 抵消深度为零（真实抵消覆盖此前来自 random 模式）；已修复为 x 独立
 Bernoulli 符号流（乘积符号独立, 行求和出现真实正负抵消）, 并**全套
 重跑 5 变体正确性重录**（修复前记录保留于 75c1ccd git 历史）。
+
+**v0.5 merge review 后（隔离 + append-only 约定）**: gemv_splitk4 被
+隔离（NOT_FOR_NORMAL_DISPATCH，见 §6 GEMV-0004 行与 §11）后，正常
+变体集为 4 个（gemv_baseline / gemv_vec4_row / gemv_warp_vec4_b256 /
+gemv_warp_vec4_b512）。此后所有再验证**只追加、不覆盖**上述 v0.5
+官方记录 —— 隔离后的 4 变体正确性 / 负例重录存于
+`experiments/regression/v0.5/gemv/`（append-only 约定见该目录
+README）。
 
 ---
 
@@ -224,7 +240,21 @@ MAJOR-1 后已补齐 per-variant 负例归档, 见 §3 与实验记录 additive 
 | **GEMV-0001** | `gemv_vec4_row` | 向量化（保持 block-per-row 结构）：16B load × 8 half/次，每线程在途字节 4× | W/x load → `uint4` 16B 向量（`#pragma unroll 4`），reduction 结构不变；契约不满足回退标量 | 92.34 → **59.89** | **1.5416** | [1.5398, 1.5517] | 9/9 | **KEEP** |
 | **GEMV-0002** | `gemv_warp_vec4_b256` | warp-per-row + 16B load + ILP=4：消除 shared reduction 与 barrier | 1 warp/行，lane stride-128 覆盖，4 独立累加链，5 步 warp shuffle，无 shared/barrier；block 256 | 93.25 → 74.68 | 1.2539 | [1.2454, 1.2555] | 9/9 | **KEEP** |
 | **GEMV-0003** | `gemv_warp_vec4_b512` | block size 杠杆（同 0002 结构，16 行/block） | block 512，其余同 0002 | 93.75 → 75.24 | 1.2407 | [1.2396, 1.2446] | 9/9 | **KEEP** |
-| **GEMV-0004** | `gemv_splitk4` | split-K×4 并行度杠杆（预期主目标收益有限） | 两阶段：(N,4) grid 归约 K/4 段 → fp32 partials [N][4] + 每行 1 线程 combine；标量 load（结构实验） | 94.08 → 106.89 | 0.8784 | [0.8755, 0.8804] | 0/9 | **REJECT** |
+| **GEMV-0004** ⚠隔离 | `gemv_splitk4` | split-K×4 并行度杠杆（预期主目标收益有限） | 两阶段：(N,4) grid 归约 K/4 段 → fp32 partials [N][4] + 每行 1 线程 combine；标量 load（结构实验） | 94.08 → 106.89 | 0.8784 | [0.8755, 0.8804] | 0/9 | **REJECT**（已隔离 ⚠） |
+
+⚠ **隔离说明（v0.5 merge review, 2026-09-21）**: `gemv_splitk4` 标记为
+UNSAFE_HISTORICAL_EXPERIMENT / REJECTED / NOT_FOR_NORMAL_DISPATCH ——
+其 `static at::Tensor g_splitk_partials` 进程级 workspace 在**多 stream
+并发调用时存在 race**（一次调用的 combine 可能读到另一次的 partials），
+且 workspace 固定在首次调用的 device（**跨 device 调用拿到错误设备的
+workspace**）。该内核为标量访存（无对齐契约，唯一契约 K%4==0），静态
+workspace 无任何收益；决策 REJECT 也使其永非正常 dispatch 目标。处置：
+从 `ext.variants()` 与 CLI test/benchmark/optimize/profile 正常路径移除
+（`kernels/gemv/bindings.cpp` `quarantined_set`；显式请求报隔离错误）；
+源码、本行全部 bench/NCU 历史数据与实验记录原样保留（实验记录含
+additive `quarantine_note`）；显式 `forward("gemv_splitk4", ...)` 保留为
+受控历史审计入口（单 stream / 单 device / 单线程）。上述 paired/NCU
+数字为单 stream 单 device harness 下的有效证据，不受隔离影响。
 
 **NCU 机理解释**（base clock, cc=all）:
 
@@ -385,6 +415,12 @@ duration_us / dram%）+ `multi_kernel_note`；**顶层标量字段原样保留**
 8. **splitk4 的 partials 为 static 设备缓冲**（`g_splitk_partials`）,
    假设单流使用 —— 多流并发 forward_into(splitk4) 会在 partials 上竞争;
    本项目全部单流测量, 不受影响（独立审查 NIT-4, 记录不改动内核）。
+   **v0.5 merge review 处置**: 该风险 + 跨 device workspace 风险（静态
+   缓冲固定在首次调用设备）已升级为正式隔离 —— `gemv_splitk4` 标记
+   UNSAFE_HISTORICAL_EXPERIMENT / REJECTED / NOT_FOR_NORMAL_DISPATCH，
+   从 `ext.variants()` 与全部 CLI 正常路径移除（`quarantined_set`，
+   见 §6 GEMV-0004 行注）；内核源码与全部历史数据保留，显式
+   `forward("gemv_splitk4", ...)` 为受控历史审计入口。
 9. **baseline NCU@base 与 @none 记录的内核名不同**（`gemv_baseline_kernel`
    重构前 vs `gemv_scalar_kernel` 重构后, 代码逐行相同, 独立审查 diff
    核实）—— 已在 §5 注记披露（MINOR-3）。
@@ -401,6 +437,23 @@ duration_us / dram%）+ `multi_kernel_note`；**顶层标量字段原样保留**
     baseline@base 为 de150bc 旧 schema（profiler 修复前, 单内核算子,
     顶层标量准确）, 其余 12 条（含全部 splitk4 重录）均含 kernels[]
     （独立审查 NIT-8 核对结果）。
+14. **历史 experiment artifact 不可变（v0.5 merge review 新约定）**:
+    历史上提交于 main（4eb520b）的 experiment artifact（如
+    `experiments/rmsnorm/correctness/v0.3_regression/`、
+    `experiments/softmax/correctness/v0.3/`、
+    `experiments/rope/correctness/v0.4/`）一律**不可再改写** ——
+    v0.5 smoke 曾误覆盖其中 7 个文件，已按 main 版本恢复，本轮结果
+    迁移至新的 append-only 目录 `experiments/regression/v0.5/`（含
+    README 说明约定与来源）。三个旧算子的默认输出目录已改指
+    `experiments/regression/v0.5/<op>/`，防止复发。同版本记录
+    （`experiments/gemv/correctness/v0.5/`）本轮同样不改写，新验证
+    一律追加到 regression 目录。
+15. **negative 套件 scope 语义（v0.5 merge review 新约定）**: 套件记录
+    的 `negative_suite_scope` 字段明确声明其语义 ——
+    **per-variant**（GEMV / Softmax / RoPE: 套件主体对请求的 variant
+    运行, CLI 指定的候选变体即被实际测试）或 **cross-variant**
+    （RMSNorm: 单次运行跨多变体覆盖算子级共享契约, 用例自带
+    variant 字段; 保持单跑设计, **不**改描述为 per-variant）。
 
 ---
 
@@ -420,6 +473,7 @@ duration_us / dram%）+ `multi_kernel_note`；**顶层标量字段原样保留**
 | 2e4836f | 全 shape matrix（fp16 5 变体 + fp32 子集）+ per-dtype winners |
 | 8f2b944 | 最终 incumbent 独立复核记录 |
 | (末) | 本报告 + README/STATUS 更新 + 独立审查处置（per-variant 负例归档 + mixed_sign 修复 + 记录重录 + 本报告修正） |
+| (merge review ×3) | v0.5 merge review 修复（见下）: `fix: quarantine unsafe splitk4 experiment` / `fix: preserve historical regression artifacts` / `fix: unify negative-suite variant semantics` |
 
 **复现**:
 
@@ -463,6 +517,16 @@ negative 记录 + 实验记录 additive note, v0.4 先例）:
 | 9 | Bench | MINOR | §9 cuBLAS 比值 1.57× 算错 | 改 1.54×（94.2/61.23） |
 | 10 | Bench | MINOR | DVFS 探针 n=1 稀疏采样未披露 | §5.2 + §11.10 |
 | 11 | Bench | NIT×8 | 97.8/97.4%（最终文本已无此数, 早期草稿修正消化）; barrier 72.0%→71.9/71.2%; max_rel 区间下限; 302→304 GB/s; fp32 下限 494→492; `window_median_us` 命名; 解析器无 CPU 单测; "全部 NCU 记录含 kernels[]" 实为 12/14 | 逐条处置: §4/§6/§8 数值修正, §11.11/§11.12/§11.13 记录 |
+
+**v0.5 merge review 处置**（2026-09-21, 推送前第二轮审查, 4 项, 无重跑
+full matrix）:
+
+| # | 级别 | finding | 处置 |
+|---|---|---|---|
+| M1 | MAJOR | splitk4 的 `static at::Tensor g_splitk_partials` 进程级 workspace: 多 stream 并发 race + 跨 device workspace 设备风险 | 正式隔离（UNSAFE_HISTORICAL_EXPERIMENT / REJECTED / NOT_FOR_NORMAL_DISPATCH）: `bindings.cpp` `quarantined_set` 将其移出 `ext.variants()`, CLI test/benchmark/optimize/profile 全路径拒绝（显式报隔离错误）; 源码/GEMV-0004/bench/NCU 历史全部保留; 显式 forward 保留为受控历史审计入口; GEMV-0004.json 追加 `quarantine_note`; 内核头注释标记（§6/§11.8） |
+| M2 | MAJOR | v0.5 smoke 覆盖了 main 历史 artifact（rmsnorm v0.3_regression ×3, softmax v0.3 ×3, rope v0.4 ×1） | 7 个文件按 main（4eb520b）版本恢复; 本轮结果迁移至新目录 `experiments/regression/v0.5/`（append-only, 含 README 来源说明）; 三个旧算子默认输出目录改指 regression 目录; 新约定: 历史 experiment artifact 不可变, 新验证只 append（§11.14） |
+| M3 | MINOR | negative 套件 variant 语义不统一: Softmax/RoPE 的 `run_negative` 忽略 variant 参数（CLI 指定的候选未被实际测试）; RMSNorm 套件实为 cross-variant 却无显式声明 | Softmax/RoPE `run_negative` 改为 per-variant（套件本体早已参数化, 补管线 + per-variant 归档命名）; 四个套件记录新增 `negative_suite_scope` 字段（GEMV/Softmax/RoPE = per-variant, RMSNorm = cross-variant 并更新 docstring, 不再描述为 per-variant）; base.py 协议 docstring 更新（§11.15） |
+| M4 | NIT | 文档 2^-24 ≈ 6.1e-5 错误; splitk4 的错位用例被错误描述为其"标量回退契约" | `gemv_correctness.py` docstring 修正为 2^-24 ≈ 5.96e-8（半步 ≈3e-8; 6.1e-5 = 2^-14 次正规**边界**, 另一处用法正确未动）; 明确**对齐不是 splitk4 的约束**（标量访存, 唯一契约 K%4==0）: 套件代码按 variant 重构（错位用例在 splitk4 下为 finite-only control, K=13 用例保留 bit-identical = K%4 契约回退）, 归档记录追加 `note_addendum`, §3 表格更新 |
 
 审查范围（benchmark 侧, 逐字核对）: 报告全文、bindings.cpp、
 kernels/gemv（含 de150bc 历史版本 diff）、bench.py / profiler.py、
