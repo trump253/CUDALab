@@ -94,6 +94,14 @@ class Operator:
         """单变体完整正确性套件。返回 {all_pass, summary, saved}。"""
         raise NotImplementedError
 
-    def run_negative(self, ext) -> dict:
-        """negative suite。返回保存的 doc（含 summary）。"""
+    def run_negative(self, ext, variant: str | None = None) -> dict:
+        """negative suite。返回保存的 doc（含 summary）。
+
+        variant（v0.5 独立审查 MAJOR-1）: GEMV 的 negative 套件是
+        per-variant 参数化的（每个向量化候选的对齐契约 / 标量回退
+        回归必须对该候选自身运行并归档）。统一 CLI 传入受测变体:
+        baseline 存规范 `invalid_inputs.json`, 其余变体存
+        `invalid_inputs_<variant>.json`。其余算子（rmsnorm/softmax/
+        rope）的套件是单跑设计, 忽略该参数。
+        """
         raise NotImplementedError

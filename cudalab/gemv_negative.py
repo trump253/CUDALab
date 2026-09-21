@@ -16,12 +16,22 @@ gemv_baseline 是**纯标量访存**（每 thread 2B/4B 元素 load, 无向量�
 **没有对齐契约** —— `valid_offset_view_control` / `valid_offset_view_x`
 两个 control 用例钉死: storage offset 视图（连续但未 16B 对齐）对
 baseline 是合法输入, 必须成功。
-向量化候选变体（GEMV-0002 起, float4 / __half2 打包 load）将在其
-**变体落地时**在本套件中追加 per-variant 对齐回归用例
-（未对齐基指针 → host 侧回退标量路径且结果与 baseline 一致; K 不整除
-向量宽度 → 标量尾处理; 合法输入不得被拒 —— 与 v0.4.1 rope_v3_half2
-的三个回归用例同一模式）。Phase 1 阶段只有 baseline, 故无 per-variant
-对齐用例（不是遗漏, 是该契约此刻不存在）。
+向量化候选变体（GEMV-0001 起, float4 / __half2 打包 load / split-K）
+有显式对齐契约: W 基址 16B ∧ x 基址 16B ∧ K 为 16B 元素数
+（fp16: 8 / fp32: 4）的整数倍; 契约不满足时不得拒绝 —— 必须回退
+`gemv_scalar_kernel`（与 baseline 同一代码源, 同输入下输出与
+baseline **bit-identical**）。三个 per-variant 回归用例
+fallback_W_misaligned / fallback_x_misaligned / fallback_K_not_mult8
+对**每一个受测变体**生效（与 v0.4.1 rope_v3_half2 同一模式）。
+
+per-variant 运行（v0.5 独立审查 MAJOR-1 修复）: 本套件自 75c1ccd 起
+即完全按 variant 参数化（build_cases / _post_check_ok / 三个回退
+回归用例全部走 `ext.forward(variant, ...)`）, 但统一 CLI 此前只以
+默认 gemv_baseline 调用, 4 个向量化变体的契约/回退证据从未归档。
+现在 `op.run_negative(ext, variant)` 对每个受测变体运行全套 24 例:
+baseline 存规范 `invalid_inputs.json`, 其余变体存
+`invalid_inputs_<variant>.json`（5 变体归档, 见
+experiments/gemv/correctness/v0.5/）。
 """
 from __future__ import annotations
 

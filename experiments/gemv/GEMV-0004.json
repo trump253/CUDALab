@@ -86,5 +86,6 @@
     "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）",
     "statistical_relation": "SLOWER",
     "policy_decision": "REJECT"
-  }
+  },
+  "negative_note": "Negative gate at experiment-run time used the baseline canonical suite (CLI invoked op.run_negative(ext) without a variant). After the v0.5 independent review (MAJOR-1), the negative suite was re-run per variant and archived: experiments/gemv/correctness/v0.5/invalid_inputs_<variant>.json (24/24 each, 2026-09-21). Original decision numbers in this file are untouched."
 }

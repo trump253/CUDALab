@@ -1,8 +1,37 @@
 # CUDALab — 状态
 
-**日期：** 2026-09-20
-**阶段：** v0.4 — Evaluator v2.3 + RoPE 泛化（第三算子）
-**状态：** 分支 `v0.4-rope`（基线 main = v0.3.1 = 86bd871），**不 merge 回 main、不开始 v0.5**；Phase 0–7 全部完成：3 个独立 subagent review（CUDA / Methodology / Math）+ Lead 最终审计已交付并全部处置（2 minor + 4 minor/nit 级修复入树，正确性/negative 记录重录），最终报告 `docs/report_v0.4_result.md` 定稿，`v0.4-rope` 已 push 等外部 review。
+**日期：** 2026-09-21
+**阶段：** v0.5 — FP16 GEMV 优化（第四算子）
+**状态：** 分支 `v0.5-gemv`（基线 main = v0.4.1 = 4eb520b），**不 merge 回 main**；停止条件全部达成：正确性 + per-variant 负例、三口径（API / native kernel loop / NCU kernel duration）分开记录且冲突已调查定性（DVFS ramp，报告 §5）、4 个自主实验（GEMV-0001..0004，3 KEEP + 1 REJECT，失败实验保留）、全形状矩阵（gemv_vec4_row 20 格全胜）、最终 incumbent 复核 v1 + v2、RMSNorm/Softmax/RoPE smoke 回归 **6/6 PASS**、最终报告 `docs/report_v0.5_result.md`（12 节，含 §12 独立审查处置表）定稿；两个独立 subagent review（CUDA correctness + Benchmark methodology）双双 **PASS WITH CAVEATS**、全部 findings 已处置；`v0.5-gemv` 已 push 等外部 review。
+
+## v0.5 完成摘要（2026-09-21）
+
+核心问题：**闭环能否迁移到带宽受限的第四算子（FP16 GEMV，y = W @ x，
+W [N,K]、x [K]、y [N]，FP32 累加），并在三口径计时（API 路径 / native
+kernel loop / NCU kernel duration）下给出一致、可审计的结论。** 用户
+指定 out of scope：不做 GEMM / quantization / Attention / CUDALM 集成。
+最终报告：`docs/report_v0.5_result.md`（定稿，12 节，§12 含独立 review
+结论与逐条处置表）。
+
+| 项目 | v0.5 结果 |
+|---|---|
+| GEMV 算子 | `kernels/gemv/` 5 变体：`gemv_baseline`（标量，每行一 block）/ `gemv_vec4_row`（fp16x8 向量化 load + fp32 累加）/ `gemv_warp_vec4_b256` / `gemv_warp_vec4_b512`（warp 级列切分）/ `gemv_splitk4`（partials + combine 双 kernel）；`gemv_common.h` 单一来源 `gemv_scalar_kernel`（回退与 baseline 位级一致）+ `gemv_vec_contract_ok`。FP16 主 + FP32 顺带；主目标 (4096,4096) fp16，5 形状 {(1024,4096),(4096,1024),(4096,4096),(11008,4096),(4096,11008)} |
+| 对齐契约 | W 基址 16B ∧ x 基址 16B ∧ K%epv==0（fp16 epv=8 / fp32 epv=4）；host 侧 launch 前显式检查，不满足 → 标量回退（不拒绝调用、无静默向量化路径）；负例含 3 例 per-variant 回退位级一致回归 |
+| 正确性 | 5 变体各 **100/100**（固定容差非 per-variant；random/zeros/small/large/mixed-sign × 5 个 N/K；max_abs/max_rel/NaN-Inf 门）。审查 MINOR-2：mixed_sign 原为 (-1)^k 零抵消，x 改独立 Bernoulli 符号流后全套重录（100/100 ×5）。max_arith 5 变体一致 0.249954783156（K=1 元素算术界）；max_abs 4.0/8.0 = 1 ulp @ |y|∈[4096,8192)/[8192,16384) binade；max_rel 0.0124–0.0217 |
+| 负例 | 5 变体各 **24/24**（18 reject + 6 pass，含 3 位级一致回退）。审查 **MAJOR-1**（negative 套件此前从未 per-variant 运行，CLI 只调用 baseline 默认）→ `run_negative(ext, variant)` 管线修复（base.py 协议 + gemv.py + 统一 CLI test/optimize + revalidate 脚本）+ 5 变体重跑归档（`invalid_inputs.json` + 4 × `invalid_inputs_<variant>.json`）+ GEMV-0001..0004 记录 additive `negative_note`（原数字不变） |
+| 三口径 | 分开记录不混用（审查 MINOR-7："<4%" 表述与自身数据矛盾，已改 "API vs native-w5000 <1.5%；NCU@none 残余 ~7%"）。主目标 baseline/vec4_row（µs）：API 93.88/59.89；native w200 109.824/60.416、w5000 91.353/59.649；NCU@base 114.76/64.192、NCU@none 98.848/63.704。**冲突根因 = post-idle DVFS ramp**（base 1350 MHz → boost 1890 MHz；native w200 warmup ~22ms 落在 ramp 内：baseline w200 109.153 µs @1350 MHz vs w5000 91.339 µs @1890 MHz，probe 核实）；NCU@none ≈ API+7% = cache flush + profiling 隔离（已解释）。DVFS probe 采样稀疏（n=1 时钟样本/相位）已披露（§5.2/§11.10）；baseline NCU@base 与 @none 剖自 75c1ccd 重构前后不同二进制、代码逐行相同（审查 diff 核实）已披露（§5） |
+| Baseline NCU | (4096,4096) fp16 @base：kernel 114.76 µs、DRAM 49.34%（逻辑 ~304 GB/s）、long_scoreboard 79.3% —— 标量 load 延迟受限形态 |
+| 自主优化实验 | **4/4**（paired v2.3 streaming 9r，parent=gemv_baseline，NCU 证据驱动）：GEMV-0001 `gemv_vec4_row` **KEEP** 92.34→59.890 µs，1.5416 [1.5398,1.5517]；GEMV-0002 `gemv_warp_vec4_b256` KEEP 1.2539（NCU lg_throttle 84.4% / 61 regs / occ 81.25%）；GEMV-0003 `gemv_warp_vec4_b512` KEEP 1.2407；GEMV-0004 `gemv_splitk4` **REJECT** 0.8784（partials 132.128 µs DRAM 42.96% + combine 2.432 µs；barrier stall 71.9%/71.2% @ccall、72.4%/72.1% @ccnone；失败实验保留）。**incumbent = `gemv_vec4_row`** |
+| Winner NCU | vec4_row DRAM 87.89%（@none 90.2%）vs baseline 49.34% —— 带宽受限形态；主目标 ~91% 2080 Ti 616 GB/s 规格峰值（33,570,816 B 算法流量，理想 @616 GB/s ≈ 54.5 µs，实测 59.89 µs） |
+| 全矩阵 | 5 形状 × {fp16,fp32} × {hot,streaming}（20 full + 20 base）：**gemv_vec4_row 10 格 fp16 + 10 格 fp32 全胜**（fp16 1.51–1.63×、fp32 1.06–1.11× vs baseline）；(11008,4096)/(4096,11008) 575–576 GB/s（93.4–93.5%）；fp32 492–548 GB/s |
+| 最终复核 | v1（已发布，`gemv_vec4_row_revalidation.json`）：streaming 92.754→59.879 CI [1.5406,1.5521] KEEP / hot 92.736→59.840 CI [1.5422,1.5501] KEEP + torch.mv 61.229 µs。**v2**（审查后新进程、新文件 `_revalidation_v2.json`，含 incumbent per-variant 负例 + mixed_sign 修复后正确性）：streaming 91.826→59.840 CI [1.5266,1.5378] KEEP / hot 92.809→59.779 CI [1.5521,1.5602] KEEP；run 间点估计漂移 ~1% 属已确立机器态特性，结论只用 run 内 paired 比值 |
+| PyTorch 参照 | torch.mv 61.2 µs（主目标，context only 不决策）——incumbent 59.8–59.9 µs ≈ 打平 |
+| Evaluator | v2.3 decision/bench **自 4eb520b 起逐字节未动**（未提前变成 evaluator 重构项目）；唯一 evaluator 改动 = `profiler.py` additive（NCU 多 kernel summary 修复：kernels[] + multi_kernel_note，splitk4 双 kernel 解析；CPU 36/36 无回归，解析器 CPU 单测缺失登记为 §11.12 gap） |
+| CPU 测试 | test_evaluator_v23_cpu 36/36、test_evaluator_cpu 18/18、test_softmax_cpu 20/20、test_dispatch 6/6（无需 GPU） |
+| Smoke 回归 | **6/6 PASS**（rmsnorm baseline / v4_vec_reg 76/76 + 29/30；softmax baseline / vec4 72/72 + 14/15 ×2；rope baseline / v3_half2 384/384 + 表核对 + 36/37 ×2；每算子 skipped=1 为预存环境 skip，跨变体一致）；重录各算子 correctness/negative 记录。此前 rmsnorm 挂起事故（orphaned FileBaton lock）已 root-cause 并修复，见"值得注意的事故" |
+| 独立 review | 2 个独立 subagent 双双 **PASS WITH CAVEATS**（CUDA：1 MAJOR + 2 MINOR + 2 NIT；Benchmark：0 MAJOR + 5 MINOR + 8 NIT）；无记录造假类发现（byte 级核对 84 个新增 0 修改记录文件 + git 全分支 diff + 独立复算 4 个 pair 中位数 / GEMV-0001 bootstrap CI / 矩阵抽核格）。全部 findings 处置（报告 §12 处置表）：per-variant 负例归档、mixed_sign 修复、报告数字修正（33,570,816 B / 304 GB/s / 1.54× / barrier 71.9% 等 11 项）。历史 benchmark/profile JSON 逐字节未改；修正 = 报告修正 + 重录 correctness/negative + 实验记录 additive note（v0.4 先例） |
+| git | 分支 `v0.5-gemv`（9 commit）：50d6c0c（GEMV 算子）→ 4521540（make_bench_pool 未定义 M 修复）→ de150bc（baseline Phase 4 记录）→ 75c1ccd（候选内核 + 负例 + 回退）→ 652f4f1（GEMV-0001..0004）→ 25bd9ab（native + NCU + 多 kernel 修复 + 口径）→ 2e4836f（全矩阵）→ 8f2b944（复核 v1）→ (末) 本报告 + README/STATUS + 独立审查处置；**不 merge main、不 force push** |
+| 未做 / v0.6 | GEMM、quantization、Attention、CUDALM 集成（用户指定 out of scope）；v0.6 仅建议：**Quantized GEMV**（用户指定优先级），另见报告 §10 |
 
 ## v0.4 完成摘要（2026-09-20）
 
@@ -159,6 +188,11 @@ v0.2 review 提出的 4 项 findings 全部修复（无新内核、无 v0.2 数�
 - 分发表（v0.2.1）仅在 3 个实测格路由优化变体（2 个 paired-evidence + 1 个
   incumbent-fallback），其余实测/未实测组合一律 baseline（evidence > coverage）。
 - v0.1/v0.2 数字跨版本不可直接比较（harness/时钟/缓存策略均不同）。
+- DVFS probe 采样稀疏（nvidia-smi 启动开销 → 有效采样周期 ~100ms，每相位
+  n=1 时钟样本）：口径冲突调查中时间比为主证据、时钟采样为辅（v0.5 披露，
+  报告 §5.2/§11.10）。
+- NCU 多 kernel summary（splitk4 类双 kernel launch）解析器无 CPU 单测
+  （v0.5 报告 §11.12 登记 gap；该路径由 GPU 记录逐条人工核对过）。
 
 ## 值得注意的事故（已记录，未隐藏）
 
@@ -168,3 +202,13 @@ v0.2 review 提出的 4 项 findings 全部修复（无新内核、无 v0.2 数�
   混频（v1@~1350 MHz vs v4@~1905 MHz），1.231× 加速比虚高。v0.2 paired
   harness + DVFS guard 复验后 REVISED 为 1.011×（streaming）/ v4 快约 7%（hot，median 0.9327）。
   两条教训共同支撑客观层设计：独立于智能体、完整保留作废记录、结论可复现可审计。
+- **rmsnorm smoke 挂起**（v0.5，2026-09-21）：smoke 回归首跑
+  `test rmsnorm --variant baseline` 挂起 56+ 分钟、GPU 0% 且无进程记录。
+  root-cause（faulthandler step-through 逐段定位）= `/root/.cache/torch_extensions/
+  cudalab_rmsnorm/lock` 的 **orphaned 0 字节 FileBaton lock**：先前一个构建进程
+  被 SIGKILL 未释放锁，`FileBaton.wait()` 为 `while os.path.exists: sleep(0.1)`
+  无限等待，进程卡在 `cpp_extension.load` 路径（还没到任何 CUDA 调用），与
+  "9 秒 CPU / 56 分钟"、GPU 空闲、新 context 可用等全部症状吻合。lsof 确认
+  无 fd 持有者后删锁；同路径 87 s 完成（84 s 冷编译 + 正确性 76/76 + 负例
+  all_pass）。教训：未来 torch_extensions 构建挂起，先查 orphaned `lock`
+  baton 文件（`lsof` 验证无持有者再 `rm -f`）。

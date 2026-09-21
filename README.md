@@ -12,6 +12,65 @@ CUDALab 闭环自动化内核优化：
 
 外层 LLM 智能体（开发者的编码代理）提供优化假设与内核代码；**客观、非 LLM 的评估层** —— 正确性校验框架、配对 CUDA 事件基准框架（含 DVFS guard）、Nsight Compute 集成、以及固定的 KEEP/REJECT/NEUTRAL/UNSTABLE 判定规则 —— 提供证据。智能体不能自封胜者；只有框架的数字才算数。见 [docs/design.md](docs/design.md)。
 
+## 当前状态：v0.5（FP16 GEMV 优化）
+
+v0.5 回答一个问题：**闭环能否在第四算子 GEMV（内存受限）上做出真实的
+优化收益？** 分支 `v0.5-gemv`（基线 main = v0.4.1 = 4eb520b），
+**不 merge 回 main**（用户指定）。最终报告：`docs/report_v0.5_result.md`。
+
+**CUDALab Operators：RMSNorm / Softmax / RoPE / GEMV**。GEMV：
+`y = W @ x`（W `[N,K]` 行主序，x `[K]`，y `[N]`），主路径
+**W/x/output = FP16，累加 = FP32**；ref `torch.mv(W.float(), x.float())
+.to(torch.float16)`；FP32 输入/输出为支持路径。测试形状 (N,K)：
+1024×4096 / 4096×1024 / **4096×4096（主目标）** / 11008×4096 /
+4096×11008（LLM hidden/MLP 形状）。范围排除：GEMM、quantization、
+Attention、CUDALM 集成（用户指定）。
+
+v0.5 交付：
+- **4 个自主优化实验**（NCU 证据 → 假设，paired v2.3，(4096,4096) fp16
+  streaming，parent=gemv_baseline）：
+
+  | 实验 | 变体 | 假设（来自剖析） | 判定 |
+  |---|---|---|---|
+  | GEMV-0001 | `gemv_vec4_row` | long_scoreboard 79% / DRAM 49% → 16B 向量 load（在途字节 4×） | **KEEP 1.5416×** [1.5398,1.5517] 9/9 → **incumbent**；NCU DRAM 87.9%（@none 90.2%）= DRAM 饱和 |
+  | GEMV-0002 | `gemv_warp_vec4_b256` | warp-per-row + ILP=4（消除 shared/barrier） | **KEEP 1.2539×** [1.2454,1.2555] 9/9；瓶颈搬到 LSU issue（lg_throttle 84%） |
+  | GEMV-0003 | `gemv_warp_vec4_b512` | block 512 杠杆 | **KEEP 1.2407×** [1.2396,1.2446] 9/9（同族机理） |
+  | GEMV-0004 | `gemv_splitk4` | split-K×4 并行度 | **REJECT 0.8784×** [0.8755,0.8804] 0/9（每线程 4 元素，MLP 不足 + 二次 launch） |
+
+  失败实验全部保留。正确性 **100/100 × 5 变体**（2 dtype × 10 形状 ×
+  5 模式；**固定算术误差界容差**，非 per-variant 调参；allclose 只记录
+  不门控）+ 负例 **24/24 × 5 变体**（18 拒绝 + 6 通过，含 3 个向量化
+  回退**逐位一致**回归——所有向量化变体显式 16B 对齐契约 + host 侧检查 +
+  回退到与 baseline 同一份 `gemv_scalar_kernel`）。
+- **主目标最终结果**（`gemv_vec4_row`，三种口径分开报告，不混用）：
+  API-path（paired v2.3 streaming）59.88 µs / native kernel-loop
+  （1 次 Python 调用 → C++ 连续 launch → CUDA events /N，w5000 warmup）
+  59.65 µs / NCU kernel duration 64.19 µs（base 锁频）/ 63.70 µs
+  （@none）。vs baseline 93.9–94.2 µs = **1.54×**，算法带宽 560 GB/s =
+  **91% 规格峰值**（616 GB/s），理想 54.5 µs 的 1.10×。独立复核（新进程
+  9-round 双模式 + 正确性/负例重跑）KEEP/KEEP。
+- **全 shape matrix**（5 形状 × {hot,streaming}）：**vec4_row 10/10 格
+  胜出**（fp16 1.51–1.63× vs baseline；fp32 子集 1.06–1.11×）。
+- **三口径冲突调查**（用户要求记录并调查）：API < native-w200 < NCU@base
+  的排序差已定位 = idle 缺口后 DVFS 从 base 1350 MHz 爬向 boost 1890 MHz，
+  native 默认 200-launch warmup 落在爬坡内（3 s 空闲 + 时钟采样探测定量
+  复现：w200 109.2 µs @1350 MHz vs w5000 91.3 µs @1890 MHz）；DRAM 饱和
+  的 vec4_row 对时钟不敏感（API 与两档 native 差 <1.3%）；控制时钟状态后
+  API 与 native-w5000 差 <1.5%，NCU@none 仍有 ~7% 残余（cache flush +
+  剖析隔离，已解释，§5.4）。与 v0.4 RoPE（launch 受限 → NCU 快于
+  API）方向相反，是瓶颈资源不同导致的口径关系翻转。
+- **PyTorch context**：`torch.mv` 61.23 µs（(4096,4096) fp16）——仅参照，
+  vec4_row 与 cuBLAS 同级（~1.02×），不作决策依据。
+- **Evaluator v2.3 决策/基准零改动**；唯一 evaluator 侧改动 = profiler
+  对多内核算子（splitk4 两阶段）新增逐内核 `kernels[]` 摘要（增量、由
+  真实数据触发、顶层字段不变、splitk4 记录修复后重录）；CPU 36/36。
+- RMSNorm / Softmax / RoPE smoke 回归 **6/6 PASS**；两个独立 subagent
+  review（CUDA correctness + benchmark methodology）双双 **PASS WITH
+  CAVEATS**（CUDA 1 MAJOR + 2 MINOR + 2 NIT；Benchmark 5 MINOR + 8 NIT），
+  全部 findings 已处置（报告 §12 处置表）：per-variant 负例归档 +
+  mixed_sign 构造修复 + 记录重录 + 报告数字修正，历史 benchmark/profile
+  记录逐字节未动。
+
 ## 当前状态：v0.4（Evaluator v2.3 + RoPE 泛化）
 
 v0.4 回答两个问题：**(1) evaluator 能否从 v2.2 升级到 v2.3**（对称
@@ -408,10 +467,17 @@ harness 位于 `cudalab/evaluator/bench.py`（`cudalab/bench_v2.py` 为兼容 sh
 局限：nvidia-smi 轮询是 kernel 区间外的代理采样，不能捕捉区间内瞬时降频；
 这是已记录的残余风险（见审计文档）。
 
-## 范围（v0.4：三个算子）
+## 范围（v0.5：四个算子）
 
+- **算子 4：GEMV**（v0.5 新增；`y = W @ x`，W `[N,K]` 行主序、x `[K]`、
+  y `[N]`；主路径 fp16 输入/输出 + FP32 累加，FP32 支持路径；ref
+  `torch.mv(W.float(), x.float()).to(torch.float16)`；主目标 (4096,4096)
+  fp16，5 形状矩阵见上。向量化变体显式对齐契约（W/x 基指针 16B 对齐 ∧
+  K % 16B内元素数 == 0，fp16:8/fp32:4），不满足 → 标量回退（与 baseline
+  同一份 `gemv_scalar_kernel`，逐位一致），不拒绝合法输入。排除：GEMM、
+  quantization、Attention、CUDALM 集成。）
 - **算子 1：RMSNorm**（`y = x * rsqrt(mean(x², dim=-1) + eps) * w`，默认
-  `eps=1e-5`，FP32 累加）—— v0.1/v0.2 历史算子，v0.3/v0.4 仅做回归硬门。
+  `eps=1e-5`，FP32 累加）—— v0.1/v0.2 历史算子，v0.3/v0.4/v0.5 仅做回归硬门。
 - **算子 2：row-wise Softmax**（v0.3 新增；`y = exp(x − rowmax)/Σexp(x −
   rowmax)`，FP32 内部计算，输出原 dtype；ref `torch.softmax(x.float(),
   dim=-1).to(x.dtype)`）。连续输入；baseline 任意 H；vec4/ilp2 要求
@@ -510,7 +576,7 @@ bench / NCU 数据原样保留（历史证据）；显式 `ext.forward("softmax_
 完整记录：[`experiments/rmsnorm/`](experiments/rmsnorm/)（EXP-0008 为 v0.2 复验记录；
 `best_v0.1.json` 为 v0.1 最佳存档，`best.json` 为 v0.2 当前最佳）。
 
-## 架构（v0.4：evaluator 核心 + 三算子 adapter）
+## 架构（v0.5：evaluator 核心 + 四算子 adapter）
 
 ```
 cudalab/
@@ -529,14 +595,16 @@ cudalab/
     negative.py         通用负例运行器
     experiment.py       实验记录 + 判定 + best.json 生成
     gpu.py / correctness.py
-  operators/            算子 adapter（v0.4：三算子）
+  operators/            算子 adapter（v0.5：四算子）
     base.py             adapter 接口
     rmsnorm.py          RMSNorm adapter（matrix/pool/bytes/正确性/负例/NCU）
     softmax.py          Softmax adapter（同上 + ncu_kernel_regex="softmax"）
     rope.py             RoPE adapter（9 形状池 + 共享 cos/sin 表 + rope_ref +
                         ncu driver；计时 launch 用 validate=False，池契约见 docstring）
-  build.py              扩展构建 + 内容哈希缓存（build(op="rmsnorm"|"softmax"|"rope")，
-                        三扩展独立）
+    gemv.py             GEMV adapter（5 形状池 + bytes + 正确性(100 例)/
+                        负例(24 例) + NCU driver + native_timing 入口）
+  build.py              扩展构建 + 内容哈希缓存（build(op="rmsnorm"|"softmax"|"rope"|"gemv")，
+                        四扩展独立）
   reference.py          显式 FP32 累加的 RMSNorm 参考实现
   softmax_correctness.py / softmax_negative.py   Softmax 正确性(72 例)/负例(15 例)套件
   rope_correctness.py   RoPE 正确性(384 例：finiteness + double-rounding 算术界
@@ -574,9 +642,31 @@ kernels/rope/             v0.4 新算子（interleaved RoPE）
   bindings.cpp      PyTorch 扩展入口（forward/forward_into 带 validate 参数，默认
                     true；validate=false 跳过 positions 值域 D2H 同步，仅供预验证
                     基准池/NCU driver；正确性/negative/正常调用保持完整验证）
+kernels/gemv/             v0.5 新算子（y = W@x，fp16 主 + fp32，FP32 累加）
+  gemv_common.h     自注册变体注册表 + el_to_float/el_from_float + **共享
+                    `gemv_scalar_kernel`**（所有向量化变体的回退 = 与 baseline
+                    同一份源码 → 逐位一致）
+  gemv_baseline.cu  一行一 block，256 线程，2B 标量 load，warp-shuffle+shared
+                    归约（GEMV-0000；**简单形式参照**）
+  gemv_vec4_row.cu  GEMV-0001：16B 向量 load × 8 half/次（`uint4`），结构不变
+                    —— **incumbent**（1.54×，NCU DRAM 87.9%）
+  gemv_warp_vec4_b256.cu  GEMV-0002：warp-per-row + ILP=4，无 shared/barrier
+  gemv_warp_vec4_b512.cu  GEMV-0003：同 0002，block 512
+  gemv_splitk4.cu   GEMV-0004：split-K×4 两阶段（(N,4) partials + per-row
+                    combine；K%4≠0 回退标量；主目标 REJECT 0.878×）
+  bindings.cpp      PyTorch 扩展入口（launch 前对齐契约检查 + 统一
+                    TORCH_CHECK + 启动后检查）+ **`native_timing`**（1 次
+                    Python 调用 → C++ 连续 launch × N → CUDA events / N；
+                    三口径计时的 native kernel-loop 表面）
 scripts/
   cudalab.py            统一 CLI：test|benchmark|profile|pytorch|optimize
-                        {rmsnorm,softmax,rope}
+                        {rmsnorm,softmax,rope,gemv}
+  bench_gemv_full.py    GEMV 全矩阵驱动（fp16 全 5 变体 / fp32 子集；per-dtype
+                        winners tag）
+  revalidate_gemv_incumbent.py  最终 incumbent 独立复核（新进程 9r 双模式 +
+                        正确性/负例重跑 + PyTorch context）
+  dvfs_probe.py / caliber_warmup_probe.py   三口径冲突调查（DVFS 爬坡探测，
+                        线程化 nvidia-smi --id=0 时钟采样）
   bench_v2.py / profile_v2.py / test_rmsnorm.py / …   v0.2 入口（保留）
 tests/
   test_evaluator_cpu.py     stats/decision 纯 CPU 单元测试（v0.3 全过）
@@ -591,6 +681,8 @@ docs/
   evaluator_v2_3.md             v2.3 对称 guard + raw/filtered + filter-sensitivity
                                 + v2.3 回归门结果 + RMSNorm 方向翻转调查
   benchmark_audit_v0.2.md / benchmark_audit_v0.3.md   独立方法学审计
+  report_v0.5_result.md         v0.5 GEMV 最终报告（12 节：三口径分离 + 冲突
+                                调查 + 4 实验 + 全矩阵 + 复核 + review）
 tools/env.sh        环境变量的唯一事实来源
 experiments/rmsnorm/   EXP-*.json + correctness/ + best.json / best_v0.1.json（v0.2 冻结）
 experiments/softmax/   SFM-0001…0004（MD + result/pair JSON）+ correctness/v0.3/
@@ -598,14 +690,24 @@ experiments/softmax/   SFM-0001…0004（MD + result/pair JSON）+ correctness/v
                        + v0.3.1/（合并修复验证：4 变体正确性 + negative + 隔离验证记录）
 experiments/rope/      ROPE-0001…0004（result/pair JSON）+ correctness/v0.4/
                        （baseline + 4 候选 384/384 + 表核对 + invalid_inputs 36/37）
+experiments/gemv/      GEMV-0001…0004（result/pair JSON）+ correctness/v0.5/
+                       （5 变体 100/100 + invalid_inputs 24/24）+
+                       revalidation/（最终 incumbent 独立复核）
 benchmarks/softmax/    base_*/inc_*/full5_* 36 格 × 多组 + pair_*（v0.2 路径原样保留）
 benchmarks/v0.3_regression/   RMSNorm/Softmax 回归硬门记录（v2.2 协议）
 benchmarks/v2.3_regression/   v2.3 回归硬门记录（gate_summary + 4 pair + repeat）
 benchmarks/rope/       base_main_{streaming,hot} + ROPE-000{1..4}_pair_* +
                        rope_v04_matrix_*（36 格 × 5 变体）+ *_shape_winners +
                        *_presyncfix_archive（D2H 同步 bug 审计痕迹）
+benchmarks/gemv/       gemv_base_*（Phase 4 baseline 20 条）+
+                       gemv_GEMV-000{1..4}_pair_* +
+                       gemv_full_*（全矩阵 20 条）+
+                       gemv_full_shape_winners_{float16,float32}.json +
+                       native_timing/（w200 + w5000 双档）
 profiles/softmax/      baseline vs 4 候选 NCU 对比 + per-variant 双 cache-control + raw/
 profiles/rope/         baseline + 4 候选 NCU（双 cache-control @1755MHz）+ raw/
+profiles/gemv/         5 变体 NCU（cc all/none × clk base/none）+ raw/ +
+                       caliber_probe/（DVFS/warmup 冲突调查记录）
 ```
 
 新增内核变体 = 新增一个 `.cu` 文件（自注册；无需改动绑定层）。
@@ -713,9 +815,26 @@ final_reval/ + best.json）、`benchmarks/softmax/`、`profiles/softmax/`、
 （含 `shape_winners.json`）、`profiles/rmsnorm/v0.2/`、
 `experiments/rmsnorm/correctness/v0.2/`。
 
-## 局限（v0.4 更新）
+## 局限（v0.5 更新）
 
-- 三个算子（RMSNorm + row-wise Softmax + interleaved RoPE）；单 GPU
+- **v0.5 新增（GEMV 三口径计时）**：
+  - **native kernel-loop 默认 warmup=200 对时钟敏感 kernel 系统性偏慢**：
+    本 GPU idle 缺口后从 base 1350 MHz 爬向 boost 1890 MHz 需数百 ms；
+    200 次 warmup（~22 ms）落在爬坡内，延迟受限的 gemv_baseline 在
+    w200 下读 109.8 µs vs w5000 91.3 µs（+20%）。v0.5 全部 native 记录
+    同时提供 w200 与 w5000 两档，报告统一用 w5000（boost 稳态）；
+    DRAM 饱和 kernel（vec4_row）API/native 差 <1.3%（时钟不敏感；NCU
+    残余 ~7% 与下一条同源，与时钟无关）。详见报告 §5 与
+    `profiles/gemv/caliber_probe/`。
+  - NCU@none 比 API-path 高 ~7%（cc=all 每 replay 前 flush 缓存 + 剖析
+    隔离），方向已解释、幅度已量化、不影响 paired 决策（报告 §5.4）。
+  - **多内核算子的 NCU 顶层标量是跨内核平均**：v0.5 起 profiler 新增
+    逐内核 `kernels[]` 分解 + `multi_kernel_note`（由 splitk4 两阶段
+    数据触发；顶层字段语义不变、向后兼容）。读旧记录无此问题（均单
+    内核算子）。
+- 环境有 **2× 2080 Ti**（nvidia-smi 可见 index 0/1）；v0.5 全部测量固定
+  GPU 0（`CUDA_VISIBLE_DEVICES=0` + 时钟采样 `nvidia-smi --id=0`）。
+- 四个算子（RMSNorm + row-wise Softmax + interleaved RoPE + GEMV）；单 GPU
   （GPU 0）；仅连续输入；fp16/fp32（**禁 BF16**）。
 - 变体 H/D 支持约束如上（baseline 完全通用；softmax 非对齐/小 H 回退
   共享标量核；RoPE v2_4pair 要求 D%8==0、v4_8pair 要求 D%16==0）。
@@ -766,9 +885,11 @@ final_reval/ + best.json）、`benchmarks/softmax/`、`profiles/softmax/`、
 - ~~新内核（Softmax、RoPE）复用 v0.2 客观层~~ —— **Softmax 已在 v0.3 完成、
   RoPE 已在 v0.4 完成**（第三算子自然接入验证成功；evaluator 同期升级到
   v2.3）。
-- **v0.5 候选：GEMV**（`y = x @ w`，权重列主序/行主序双路径；内存受限
-  算子，与 RoPE 同属 launch/带宽敏感区，可复用 v2.3 的对称 guard +
-  raw/filtered 双轨 + RoPE 的 validate 契约经验；建议作为第四算子）。
+- ~~v0.5 候选：GEMV~~ —— **已在 v0.5 完成**（分支 `v0.5-gemv`：
+  baseline + 4 候选、vec4_row 1.54× KEEP、全矩阵 10/10、三口径计时、
+  失败实验保留；不 merge main）。
+- **v0.6 建议：Quantized GEMV**（INT8/FP8 权重 + 内核内 dequant；
+  字节量减半 → 理论带宽余量 2×；复用 v0.5 对齐契约/回退/三口径计时）。
 - 支持锁频的环境（裸机/特权容器）下重跑 paired harness，验证 v2.3 对称
   guard 在零失配条件下的噪声下限；重点复验 (128,4096) fp16 **hot** 模式
   （v0.3 已确认其机器态敏感性，streaming 结论稳健）。

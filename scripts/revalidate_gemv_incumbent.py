@@ -30,7 +30,12 @@ def main() -> int:
     M, H = 4096, 4096  # 主目标 (N=4096, K=4096)
 
     corr = op.run_correctness(ext, "gemv_vec4_row")
-    neg = op.run_negative(ext)
+    neg = op.run_negative(ext)  # 规范 baseline 套件
+    # v0.5 独立审查 MAJOR-1: incumbent 自身的 per-variant 套件
+    # （对齐契约 / 标量回退回归对 gemv_vec4_row 自身运行并归档）
+    neg_inc = op.run_negative(ext, "gemv_vec4_row")
+    neg_inc_file = (op.experiments_dir / "correctness" / "v0.5"
+                    / "invalid_inputs_gemv_vec4_row.json")
 
     out = {
         "revalidation_of": "GEMV-0001 (gemv_vec4_row, KEEP)",
@@ -42,10 +47,16 @@ def main() -> int:
         "correctness": {"all_pass": corr["all_pass"],
                         "summary": corr["summary"], "saved": corr["saved"]},
         "negative": neg["summary"],
+        "negative_incumbent_variant": {
+            "variant": "gemv_vec4_row",
+            "file": str(neg_inc_file),
+            "summary": neg_inc["summary"],
+        },
         "modes": {},
     }
 
-    ok = corr["all_pass"] and neg["summary"]["all_pass"]
+    ok = (corr["all_pass"] and neg["summary"]["all_pass"]
+          and neg_inc["summary"]["all_pass"])
     for mode in ("streaming", "hot"):
         paired = bench_pair(op, ext, "gemv_baseline", "gemv_vec4_row",
                             M, H, torch.float16, mode=mode, rounds=9)
@@ -80,7 +91,12 @@ def main() -> int:
 
     p = Path("experiments/gemv/revalidation")
     p.mkdir(parents=True, exist_ok=True)
-    outp = p / "gemv_vec4_row_revalidation.json"
+    # 可选 argv[1]: 输出文件名（默认规范名; v0.5 独立审查后重跑用
+    # gemv_vec4_row_revalidation_v2.json, 不覆盖 8f2b944 的已发布记录 ——
+    # 基准记录不可变原则, 重录 = 新文件）
+    out_name = sys.argv[1] if len(sys.argv) > 1 else \
+        "gemv_vec4_row_revalidation.json"
+    outp = p / out_name
     outp.write_text(json.dumps(out, indent=2, ensure_ascii=False))
     print("->", outp)
     return 0

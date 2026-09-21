@@ -1,6 +1,6 @@
 {
   "suite": "negative-v0.3-softmax",
-  "generated": "2026-09-19T20:50:16+08:00",
+  "generated": "2026-09-21T15:11:29+08:00",
   "note": "非法输入必须在 kernel launch 前被明确异常拒绝；post_check_ok 验证拒绝未污染 CUDA 上下文。baseline 为标量访存，无对齐契约（见 align_offset_view_control）。",
   "summary": {
     "n_total": 15,
@@ -196,7 +196,7 @@
     },
     {
       "variant": "softmax_baseline",
-      "description": "control: 基址偏移 8B（未 16B 对齐）的连续视图; baseline 为标量访存、无对齐契约: 必须成功",
+      "description": "control: 基址偏移 8B（未 16B 对齐）的连续视图; 所有变体均不得拒绝此合法输入（向量化变体须走其回退/可用路径）: 必须成功",
       "expected": "pass",
       "status": "passed_without_exception",
       "exception_type": null,

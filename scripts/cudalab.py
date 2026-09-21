@@ -130,7 +130,7 @@ def cmd_test(a) -> int:
     if "table_check_all_pass" in res:  # rope v0.4 review: 独立表值核对
         print(f"  table_check_all_pass={res['table_check_all_pass']}")
     print(f"  -> {res['saved']}")
-    neg = op.run_negative(ext)
+    neg = op.run_negative(ext, a.variant)
     s = neg["summary"]
     print(f"[negative] all_pass={s['all_pass']} "
           f"n_passed={s['n_passed']}/{s['n_total']} "
@@ -275,8 +275,8 @@ def cmd_optimize(a) -> int:
     corr = op.run_correctness(ext, a.candidate)
     print(f"   all_pass={corr['all_pass']} -> {corr['saved']}")
 
-    print(f"== [{a.id}] negative suite ==", flush=True)
-    neg = op.run_negative(ext)
+    print(f"== [{a.id}] negative suite: {a.candidate} ==", flush=True)
+    neg = op.run_negative(ext, a.candidate)
     neg_sum = neg["summary"]
     print(f"   all_pass={neg_sum['all_pass']} "
           f"({neg_sum['n_passed']}/{neg_sum['n_total']})")

@@ -97,8 +97,12 @@ def make_w(N: int, K: int, dtype: torch.dtype, device: str = "cuda",
                     的 1000 不同）: y ~ N(0, K)·scale², K=4096 时
                     5σ = 32000 < fp16 上限 65504（8σ = 51200 仍在界内）;
                     RoPE 是旋转（范数保持）所以可以 scale=1000。
-      "mixed_sign"  绝对值随机 + 确定性交替符号
-                    （(i+j)%2 模式, 强制正负各半, 检验抵消路径）
+      "mixed_sign"  绝对值随机 + 确定性交替符号（(i+j)%2 模式, 强制
+                    正负各半）; 与 make_x 的独立 Bernoulli 符号流配合,
+                    乘积 W[i,j]·x[j] 的逐元素符号独立 → 行求和出现
+                    真实正负抵消, 检验抵消路径（v0.5 独立审查
+                    MINOR-2: 旧实现的 x 符号 (-1)^j 使乘积符号逐行
+                    恒定 = (-1)^i, 该模式下抵消深度为零）
     """
     g = torch.Generator(device=device)
     g.manual_seed(seed)
@@ -130,7 +134,10 @@ def make_x(K: int, dtype: torch.dtype, device: str = "cuda",
            large: float = 10.0) -> torch.Tensor:
     """确定性 x (K,) 输入生成器。mode 语义同 make_w:
 
-      "mixed_sign": |randn| × 交替符号（k%2 模式）。
+      "mixed_sign": |randn| × 独立 Bernoulli 符号（与 make_w 的
+      (i+j)%2 模式独立 → 乘积符号独立, 行求和出现真实正负抵消,
+      见 MINOR-2 说明; 幅度固定 |N(0,1)|, 该模式不适用 large
+      参数 —— 它是符号模式而非幅度模式）。
     """
     g = torch.Generator(device=device)
     g.manual_seed(seed)
@@ -146,10 +153,17 @@ def make_x(K: int, dtype: torch.dtype, device: str = "cuda",
         x = torch.randn(K, generator=g, dtype=torch.float32,
                         device=device) * large
     elif mode == "mixed_sign":
+        # 独立 Bernoulli 符号流（不复用 (i+j)%2 / k%2 模式）: 与
+        # make_w 的 (i+j)%2 符号组合后, 乘积 W[i,j]*x[j] 的符号
+        # (-1)^(i+j)·s_j 对 j 独立 → 每行求和是 K 个独立符号项的
+        # 和, 出现真实正负抵消（深度抵消覆盖来自此处 + normal 模式）。
+        # 旧实现 x 符号 = (-1)^j: 乘积符号 = (-1)^i 逐行恒定,
+        # |y| = Σ|W·x|, 无抵消 —— v0.5 独立审查 MINOR-2。
         a = torch.randn(K, generator=g, dtype=torch.float32,
                         device=device).abs()
-        sign = torch.where((torch.arange(K, device=device) % 2) == 0,
-                           1.0, -1.0)
+        s = torch.randint(0, 2, (K,), generator=g, dtype=torch.int32,
+                          device=device)
+        sign = torch.where(s == 0, 1.0, -1.0)
         x = a * sign
     else:
         raise ValueError(f"未知输入 mode: {mode}")
@@ -291,11 +305,25 @@ print("profile driver done")
         return {"all_pass": bool(s["all_pass"]),
                 "summary": s, "saved": str(saved)}
 
-    def run_negative(self, ext) -> dict:
+    def run_negative(self, ext, variant: str | None = None) -> dict:
+        """per-variant negative suite（v0.5 独立审查 MAJOR-1 修复）。
+
+        套件本体自 75c1ccd 起即按 variant 参数化（build_cases /
+        _post_check_ok / 三个标量回退回归用例全部走 ext.forward
+        (variant, ...)）, 但统一 CLI 此前只以默认 gemv_baseline 调用 ——
+        4 个向量化变体的对齐契约/回退回归证据从未归档。修复后:
+        variant=None/"gemv_baseline" → 规范 invalid_inputs.json;
+        其余变体 → invalid_inputs_<variant>.json。
+        """
         from ..gemv_negative import run_negative_suite
-        out = self.experiments_dir / "correctness" / "v0.5" \
-            / "invalid_inputs.json"
-        return run_negative_suite(ext, out_path=out)
+        v = variant or "gemv_baseline"
+        if v == "gemv_baseline":
+            out = self.experiments_dir / "correctness" / "v0.5" \
+                / "invalid_inputs.json"
+        else:
+            out = self.experiments_dir / "correctness" / "v0.5" \
+                / f"invalid_inputs_{v}.json"
+        return run_negative_suite(ext, out_path=out, variant=v)
 
     def pytorch_ref_latency(self, M: int, K: int, dtype: torch.dtype,
                             iters: int = 200, batch: int = 32) -> dict:

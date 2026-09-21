@@ -1,0 +1,150 @@
+{
+  "revalidation_of": "GEMV-0001 (gemv_vec4_row, KEEP)",
+  "harness": "paired-streaming-v2.3",
+  "operator": "gemv",
+  "shape": [
+    4096,
+    4096
+  ],
+  "dtype": "float16",
+  "ts": "2026-09-21T07:14:28.837231+00:00",
+  "correctness": {
+    "all_pass": true,
+    "summary": {
+      "n_total": 100,
+      "n_pass": 100,
+      "n_fail": 0,
+      "all_pass": true,
+      "max_abs_error": 4.0,
+      "max_rel_error": 0.012397765182,
+      "failed": [],
+      "max_arith_max_ratio": 0.249954783156,
+      "ok_close_vs_ref_all": false
+    },
+    "saved": "/root/code/cuda/experiments/gemv/correctness/v0.5/gemv_vec4_row.json"
+  },
+  "negative": {
+    "n_total": 24,
+    "n_reject_expected": 18,
+    "n_reject_ok": 18,
+    "n_pass_expected": 6,
+    "n_pass_ok": 6,
+    "n_skipped": 0,
+    "n_passed": 24,
+    "all_pass": true
+  },
+  "negative_incumbent_variant": {
+    "variant": "gemv_vec4_row",
+    "file": "/root/code/cuda/experiments/gemv/correctness/v0.5/invalid_inputs_gemv_vec4_row.json",
+    "summary": {
+      "n_total": 24,
+      "n_reject_expected": 18,
+      "n_reject_ok": 18,
+      "n_pass_expected": 6,
+      "n_pass_ok": 6,
+      "n_skipped": 0,
+      "n_passed": 24,
+      "all_pass": true
+    }
+  },
+  "modes": {
+    "streaming": {
+      "parent_median_us": 91.826,
+      "candidate_median_us": 59.84,
+      "valid_rounds": 9,
+      "speedups": [
+        1.5263756100822357,
+        1.530920942670901,
+        1.5265858754701211,
+        1.5345254010695186,
+        1.5326203208556148,
+        1.536898395721925,
+        1.537777629226064,
+        1.5358288770053474,
+        1.5384833901477175
+      ],
+      "bootstrap_ci_95": [
+        1.526586,
+        1.537778
+      ],
+      "filter_sensitive": false,
+      "decision_block": {
+        "correctness_pass": true,
+        "valid_rounds": 9,
+        "min_valid_rounds": 5,
+        "speedups": {
+          "n": 9,
+          "median": 1.534525,
+          "mean": 1.533335,
+          "min": 1.526376,
+          "max": 1.538483,
+          "faster_count": 9,
+          "faster_fraction": 1.0
+        },
+        "ci95": [
+          1.526586,
+          1.537778
+        ],
+        "rule": "median 1.5345 >= 1.05 AND 9/9 rounds faster (>= 70%) AND CI95 lower 1.5266 > 1.00 -> KEEP",
+        "decision": "KEEP",
+        "filter_sensitive": false,
+        "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）",
+        "statistical_relation": "FASTER",
+        "policy_decision": "KEEP"
+      }
+    },
+    "hot": {
+      "parent_median_us": 92.809,
+      "candidate_median_us": 59.779,
+      "valid_rounds": 9,
+      "speedups": [
+        1.5462620652737582,
+        1.5521129588115232,
+        1.5521746403479424,
+        1.5524625267665952,
+        1.5526130888650962,
+        1.5527209461833145,
+        1.5594682718836217,
+        1.560151821693113,
+        1.5603063391468657
+      ],
+      "bootstrap_ci_95": [
+        1.552113,
+        1.560152
+      ],
+      "filter_sensitive": false,
+      "decision_block": {
+        "correctness_pass": true,
+        "valid_rounds": 9,
+        "min_valid_rounds": 5,
+        "speedups": {
+          "n": 9,
+          "median": 1.552613,
+          "mean": 1.554253,
+          "min": 1.546262,
+          "max": 1.560306,
+          "faster_count": 9,
+          "faster_fraction": 1.0
+        },
+        "ci95": [
+          1.552113,
+          1.560152
+        ],
+        "rule": "median 1.5526 >= 1.05 AND 9/9 rounds faster (>= 70%) AND CI95 lower 1.5521 > 1.00 -> KEEP",
+        "decision": "KEEP",
+        "filter_sensitive": false,
+        "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）",
+        "statistical_relation": "FASTER",
+        "policy_decision": "KEEP"
+      }
+    }
+  },
+  "pytorch_context": {
+    "available": true,
+    "api": "torch.mv(W, x)（cuBLAS Gemv; fp16 输入 FP32 compute —— 成熟库实现, 非本项目的候选 kernel）",
+    "median_us": 61.192,
+    "min_us": 60.988,
+    "n_samples": 200,
+    "note": "PyTorch framework context（带宽参照, 不作决策依据）"
+  }
+}

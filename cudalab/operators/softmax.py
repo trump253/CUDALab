@@ -195,7 +195,9 @@ print("profile driver done")
         s = summarize(results)
         return {"all_pass": s["all_pass"], "summary": s, "saved": str(saved)}
 
-    def run_negative(self, ext) -> dict:
+    def run_negative(self, ext, variant: str | None = None) -> dict:
+        # 本套件是单跑设计（对所有变体同一组用例）, variant 参数被忽略
+        # （签名与 base.Operator 协议一致, v0.5 独立审查 MAJOR-1）。
         from ..softmax_negative import run_negative_suite
         out = self.experiments_dir / "correctness" / "v0.3" \
             / "invalid_inputs.json"
