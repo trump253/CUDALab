@@ -1,0 +1,5 @@
+{
+  "harness": "paired-streaming-v2.3",
+  "operator": "gemv",
+  "shape_winners": []
+}

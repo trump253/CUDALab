@@ -1,0 +1,29 @@
+{
+  "variant": "gemv_baseline",
+  "warmup": 200,
+  "n_windows": 10,
+  "launches_per_window": 64,
+  "window_median_us": [
+    109.88199710845947,
+    109.8880022764206,
+    109.82450097799301,
+    109.82400178909302,
+    109.8880022764206,
+    110.1284995675087,
+    109.62250083684921,
+    109.06899720430374,
+    109.11250114440918,
+    109.1184988617897
+  ],
+  "median_us": 109.82425138354301,
+  "min_us": 109.06899720430374,
+  "max_us": 110.1284995675087,
+  "mean_us": 109.63575020432472,
+  "note": "与 API-path（bench_matrix 9-round paired）及 NCU kernel duration 为三种独立口径, 不混用",
+  "shape": [
+    4096,
+    4096
+  ],
+  "dtype": "float16",
+  "caliber": "native kernel-loop: 单次 Python 调用, C++ 内连续 64 次 raw launch × 10 windows, CUDA events, window 中位数"
+}
