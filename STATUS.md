@@ -1,8 +1,39 @@
 # CUDALab — 状态
 
 **日期：** 2026-09-21
-**阶段：** v0.5 — FP16 GEMV 优化（第四算子）
-**状态：** 分支 `v0.5-gemv`（基线 main = v0.4.1 = 4eb520b），**不 merge 回 main**；停止条件全部达成：正确性 + per-variant 负例、三口径（API / native kernel loop / NCU kernel duration）分开记录且冲突已调查定性（DVFS ramp，报告 §5）、4 个自主实验（GEMV-0001..0004，3 KEEP + 1 REJECT，失败实验保留）、全形状矩阵（gemv_vec4_row 20 格全胜）、最终 incumbent 复核 v1 + v2、RMSNorm/Softmax/RoPE smoke 回归 **6/6 PASS**、最终报告 `docs/report_v0.5_result.md`（12 节，含 §12 独立审查处置表）定稿；两个独立 subagent review（CUDA correctness + Benchmark methodology）双双 **PASS WITH CAVEATS**、全部 findings 已处置；**v0.5 merge review 4 项修复完成**（splitk4 隔离 + 历史 artifact 恢复 + negative 套件语义统一 + 2^-24 文档修正，3 个 fix commit，见下）；`v0.5-gemv` 已 push 等外部 review。
+**阶段：** v0.6 — INT8 Weight-Only GEMV（第五算子）
+**状态：** 分支 `v0.6-qgemv`（基线 main = v0.5.1 = d635903），**不 merge 回 main**（用户指定）；停止条件全部达成：两层正确性（kernel vs 量化参考 50/50 × 5 变体，固定算术误差界 + finiteness 门；保真度 vs FP16 **report-only 不作门**）+ per-variant 负例 29/29 × 5（含 3 例逐位一致回退回归）、三口径（API / native kernel loop / NCU kernel duration）分开记录且一致性已调查（无冲突：API vs native <2.5%，NCU +14.8% = NCU profiling 固定开销 +
+base 锁频贡献 ~0.8%，已按 v0.5 clkbase/clknone 受控对解释）、4 个自主实验（QGEMV-0001..0004，1 KEEP + 3 NEUTRAL，失败/中性实验全部保留）、全形状矩阵（向量化变体 10/10 全胜 baseline）、最终 incumbent `qgemv_warp_vec16` 两次 fresh head-to-head CI95 同向 + 9-round 复核 **2.6937×**、五算子 smoke 回归 **all PASS**、最终报告 `docs/report_v0.6_result.md`（12 节，§10 含独立 review 结论与处置表）定稿；两个独立 subagent review（CUDA correctness + Benchmark methodology）——结论与处置见报告 §10；`v0.6-qgemv` 已 push 等外部 review。**不 merge main、不 force push。**
+
+## v0.6 完成摘要（2026-09-21）
+
+核心问题：**权重从 FP16 2B → INT8 1B 后，能否把 v0.5 已接近 DRAM
+ceiling 的 GEMV 继续加速？** 用户指定 out of scope：INT4、group-wise、
+GPTQ/AWQ、activation quant、Tensor Core GEMM。最终报告：
+`docs/report_v0.6_result.md`（定稿，12 节，§10 含独立 review 结论与
+逐条处置表）。
+
+| 项目 | v0.6 结果 |
+|---|---|
+| QGEMV 算子 | `kernels/qgemv/` 5 变体：`qgemv_baseline`（标量，每行一 block 256 线程，两级归约）/ `qgemv_vec16_row`（16B 向量 load：uint4 int8×16，x 同步向量化）/ `qgemv_vec16_scale`（x·q 累加后行末一次 ×scale，省 K 次 fp32 mul）/ `qgemv_warp_vec16`（8 warp/block，warp-per-row，ILP=2 双累加器 stride 64 向量，5 步 warp shuffle，**无 shared/barrier**）/ `qgemv_warp_vec16_ilp4`（ILP=4 stride 128）；`qgemv_common.h` 单一来源 `qgemv_scalar_kernel`（回退与 baseline 位级一致）+ `qgemv_vec_contract_ok`。`W_q int8 [N,K]` + `scale fp32 [N]` + x fp16 `[K]` → y fp16 `[N]`，FP32 累加；每行对称 INT8（zero_point=0，`scale=amax/127`，`q=clamp(round(W/scale),±127)` round-half-even，scale=0 行安全）；**量化在池构造期完成、严格位于计时区外**（`cudalab/qgemv_quantize.py`）。主目标 (4096,4096)，5 形状 {(1024,4096),(4096,1024),(4096,4096),(11008,4096),(4096,11008)} |
+| 对齐契约 | W_q 基址 16B ∧ x 基址 16B ∧ K%16==0；host 侧 launch 前显式检查，不满足 → 标量回退（不拒绝调用、无静默向量化路径）；负例含 3 例 per-variant 回退位级一致回归（W_q 错位 / x 错位 / K=13） |
+| 正确性（层 a，门） | 5 变体各 **50/50**（5 输入模式 × (4 形状 + 4 边界 (1,1)/(1,4096)/(4096,1)/(16,13)/(8,7) 中 5 组合)；**固定算术误差界** tol = 2·(3K·2⁻²⁴·S_n + 0.5·ulp16(|y|) + 0.5·ulp16(|exact|)，S_n = Σ\|W_q\|·scale·\|x\| **双因子取绝对值**——开发期发现 x 未取绝对值 bug 已修复；finiteness 门 y ∧ ref；非 per-variant 调参） |
+| 保真度（层 b，report-only 不作门） | 每元素误差 ≤ 0.5·量化步长（实测 0.500002 = round-half-even 上界，scale 无关）；主目标 normal：cos 0.9999617（5 形状 min 0.9999594）/ max_abs 2.57 / RMSE 0.551（\|y\| ≈ 4027）；suite 最差 mixed_sign：cos **0.9998970**；5 形状 × 2 模式全档记录（`quantization_fidelity.json`） |
+| 负例 | 5 变体各 **29/29**（23 reject + 6 pass，含 3 位级一致回退回归 + 3 control；post_check_ok 验证 CUDA context 无污染） |
+| 三口径 | 分开记录不混用（"算法带宽 ≠ 实测 DRAM BW"）。主目标 µs：API 84.96（baseline）/ **31.513**（warp_vec16）；native w200 104.575 / 32.185、w5000 84.389 / 32.103；NCU@base ccall 109.152（dram 27.18%）/ **36.16**（dram 87.24%）、ccnone 35.88（86.57%）。**一致性（用户要求冲突必查）**：API vs native 差 <2.5%；NCU +14.8% = NCU profiling 固定开销（~4.4 µs，同 v0.5 ~3.8 µs 量级）+ base 锁频 ~0.8%（v0.5 受控对：DRAM-bound clkbase/clknone +0.77%、latency-bound +15.9%；负载下实测 boost 1815–1920 MHz；与 v0.5 口径模型同构，非测量冲突）；warp_vec16 无 post-idle DVFS ramp 效应（w200 ≈ w5000，DRAM 饱和对时钟不敏感，同 v0.5 vec4_row 行为） |
+| Baseline NCU | (4096,4096) @base：kernel 109.152 µs、DRAM 27.18%、long_scoreboard 77.2%——标量 int8 load 延迟受限（每线程在途仅 1–2 B） |
+| 自主优化实验 | **4/4**（paired v2.3 streaming 9r，链式 parent）：QGEMV-0001 `qgemv_vec16_row` **KEEP** 84.96→31.8–31.9 µs，**2.6614×** [2.657,2.669] 9/9（dram 27.2%→86.02%）；QGEMV-0002 `qgemv_vec16_scale` **NEUTRAL 0.9901×**（统计 SLOWER）[0.9885,0.9906] 0/9——假设证伪：计算削减反噬 occupancy（82.62%→68.42%），dequant 乘加在延迟路径外；QGEMV-0003 `qgemv_warp_vec16` **NEUTRAL 1.0107×（统计 FASTER）** [1.0099,1.0108] 9/9——barrier 7.3%→0、dram 87.24%、occ 90.43% 全变体最佳；QGEMV-0004 `qgemv_warp_vec16_ilp4` **NEUTRAL 0.9984×（统计 SLOWER）** [0.9977,0.9990] 0/9——ILP4 假设证伪（dram/occ 持平，regs 41→43，指令开销）。**最终 incumbent = `qgemv_warp_vec16`**：两次 fresh head-to-head（QGEMV-0003 轮 1.0107× + final_incumbent 轮 1.0094× [1.0086,1.0101]）CI95 均排除 1.0 且方向一致 → **最终裁决规则：CI95 显著性优先于 5% 政策带**（决策链明文记录） |
+| Winner NCU | warp_vec16（ccall @base）：DRAM **87.24%**、occ **90.43%**、barrier 0、long_scoreboard 84.1%（18.53 cyc/iss）、regs 41；ccnone：35.88 µs / 86.57%——DRAM 饱和形态 |
+| 最终复核 | fresh 9-round（`final_incumbent_reval.json`）：baseline 84.885 → warp_vec16 **31.513 µs = 2.6937×** CI95 [2.688,2.700] 9/9；算法带宽 533.4 GB/s = **86.6%** 规格峰值（616 GB/s），理想 27.29 µs 的 1.16× |
+| INT8 vs FP16（核心问题） | 31.513 vs 59.933 µs（`gemv_vec4_row` 本 session 重测，vs 其 baseline 91.927 = 1.5343×）= **1.90×**——逻辑 IO 减半（16.81 vs 33.57 MB）的收益拿到 **95% of 理论 2.0×**；瓶颈仍在 DRAM（dram 27%→87.24%），dequant 乘加免费（QGEMV-0002 反证） |
+| 全矩阵 | 5 形状 × {hot,streaming} × 4 向量化变体：vs baseline **2.2–2.9× 全胜 10/10**；长 K 格变体间差 ≤~2%，短 1-dim 格差异达 regime 级 2.05×。按格 winner：**warp_vec16 6/10**（含主目标双模式 + (4096,1024) 对 vec16_row **2.0×** 结构性优势——短 K 下 block-per-row 75% 线程空转）、**vec16_row 4/10**（两个 11008 形状 CI 显著 +0.4–0.6%，**已披露**）、ilp4 无统计显著胜格 |
+| PyTorch 参照 | `torch.mv` 61.235 µs（fp16 W）/ 62.297 µs（dequant W），(4096,4096)——context only 不决策；INT8 QGEMV 31.5 µs ≈ 1.95–1.98× 于两者 |
+| Evaluator | v2.3 decision/bench/profiler **零改动**（v0.6 未动评估层一行） |
+| CPU 测试 | test_evaluator_v23_cpu 36/36、test_evaluator_cpu 18/18、test_softmax_cpu 20/20、test_dispatch 6/6（无需 GPU，推送前复验） |
+| Smoke 回归 | **5 算子 all PASS**（`experiments/regression/v0.6/`，append-only）：gemv 100/100×4 + 24/24×4；rmsnorm 76/76×5 + 29/30×5；softmax 72/72×4 + 14/15×4；rope 384/384×5 + 36/37×5；qgemv 50/50×5 + 29/29×5（每算子 skipped=1 为预存环境 skip，all_pass 仍 True）；隔离审计：gemv_splitk4 / softmax_hsplit2 正常变体列表缺席、all_variants 在列，qgemv 隔离集为空（机制保留） |
+| 独立 review | 2 个独立 subagent（CUDA correctness + Benchmark methodology）——结论与逐条处置见报告 §10 |
+| git | 分支 `v0.6-qgemv`（10 commit）：4fab683（算子 + 量化器 + 适配 + 50/50×5 + 29/29×5）→ 7ff05db（baseline Phase 4 记录）→ c62cdd6（QGEMV-0001/0002）→ 3e4009a（QGEMV-0003）→ d52f0b2（QGEMV-0004，4/4 实验完）→ 10c3000（final incumbent + 复核 + 三口径）→ 5e5880c（FP16 参照重测）→ 5d80d4e（全矩阵 + winner）→ 5fa4e4b（五算子回归 + 隔离审计）→ (末) 报告定稿 + README/STATUS + review 处置；**不 merge main、不 force push** |
+| 未做 / v0.7 | INT4、group-wise 量化（报告 §11 Q7 结论：per-row scale 在 4-bit 下保真度不足，group-wise(128/256) 为共需项；IO 16.81 → 8.93 MB / 下界 27.29 → 14.50 µs，理论 1.88×，效率折损后预期再 ~1.7–1.8×，值得作为单个 v0.7 项目）、GEMM、Attention、CUDALM 集成（用户指定 out of scope） |
 
 ## v0.5 完成摘要（2026-09-21）
 

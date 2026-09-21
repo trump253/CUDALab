@@ -85,7 +85,9 @@ def fidelity_metrics(W: torch.Tensor, x: torch.Tensor,
         max_dequant_abs_err:  max_{n,k} |W[n,k] − q·scale|（应 ≤
             scale[n]/2, 全零行为 0）
         max_dequant_step_err: max_{n,k} |W − q·scale| / scale[n]
-            （应 ≤ 0.5, 构造性保证; 全零行贡献 0）
+            （精确算术意义下 ≤ 0.5 的构造性界; FP32 实现路径因 scale 与
+            q·scale 两次舍入实测 ≈ 0.5000019, 偏差 O(2^-24·127) 量级;
+            本量为 report-only 自检量, 不参与任何判定; 全零行贡献 0）
     """
     xf = x.float()
     y_orig = torch.mv(W.float(), xf)
