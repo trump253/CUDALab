@@ -1,0 +1,136 @@
+{
+  "revalidation_of": "GEMV-0001 (gemv_vec4_row, KEEP)",
+  "harness": "paired-streaming-v2.3",
+  "operator": "gemv",
+  "shape": [
+    4096,
+    4096
+  ],
+  "dtype": "float16",
+  "ts": "2026-09-21T04:03:01.752338+00:00",
+  "correctness": {
+    "all_pass": true,
+    "summary": {
+      "n_total": 100,
+      "n_pass": 100,
+      "n_fail": 0,
+      "all_pass": true,
+      "max_abs_error": 4.0,
+      "max_rel_error": 0.012178619392,
+      "failed": [],
+      "max_arith_max_ratio": 0.249954783156,
+      "ok_close_vs_ref_all": false
+    },
+    "saved": "/root/code/cuda/experiments/gemv/correctness/v0.5/gemv_vec4_row.json"
+  },
+  "negative": {
+    "n_total": 24,
+    "n_reject_expected": 18,
+    "n_reject_ok": 18,
+    "n_pass_expected": 6,
+    "n_pass_ok": 6,
+    "n_skipped": 0,
+    "n_passed": 24,
+    "all_pass": true
+  },
+  "modes": {
+    "streaming": {
+      "parent_median_us": 92.754,
+      "candidate_median_us": 59.879,
+      "valid_rounds": 9,
+      "speedups": [
+        1.5404841053739373,
+        1.5405698824158203,
+        1.545372596153846,
+        1.549256722899616,
+        1.5517178026823444,
+        1.5475936007481381,
+        1.5518796239082149,
+        1.5526355333678394,
+        1.5520899356173066
+      ],
+      "bootstrap_ci_95": [
+        1.54057,
+        1.55209
+      ],
+      "filter_sensitive": false,
+      "decision_block": {
+        "correctness_pass": true,
+        "valid_rounds": 9,
+        "min_valid_rounds": 5,
+        "speedups": {
+          "n": 9,
+          "median": 1.549257,
+          "mean": 1.547956,
+          "min": 1.540484,
+          "max": 1.552636,
+          "faster_count": 9,
+          "faster_fraction": 1.0
+        },
+        "ci95": [
+          1.54057,
+          1.55209
+        ],
+        "rule": "median 1.5493 >= 1.05 AND 9/9 rounds faster (>= 70%) AND CI95 lower 1.5406 > 1.00 -> KEEP",
+        "decision": "KEEP",
+        "filter_sensitive": false,
+        "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）",
+        "statistical_relation": "FASTER",
+        "policy_decision": "KEEP"
+      }
+    },
+    "hot": {
+      "parent_median_us": 92.736,
+      "candidate_median_us": 59.84,
+      "valid_rounds": 9,
+      "speedups": [
+        1.536898395721925,
+        1.5422292780748663,
+        1.5479039914421342,
+        1.5497326203208557,
+        1.5436497326203207,
+        1.5501395317748106,
+        1.5489069623741212,
+        1.54821047008547,
+        1.5527428275435695
+      ],
+      "bootstrap_ci_95": [
+        1.542229,
+        1.55014
+      ],
+      "filter_sensitive": false,
+      "decision_block": {
+        "correctness_pass": true,
+        "valid_rounds": 9,
+        "min_valid_rounds": 5,
+        "speedups": {
+          "n": 9,
+          "median": 1.54821,
+          "mean": 1.546713,
+          "min": 1.536898,
+          "max": 1.552743,
+          "faster_count": 9,
+          "faster_fraction": 1.0
+        },
+        "ci95": [
+          1.542229,
+          1.55014
+        ],
+        "rule": "median 1.5482 >= 1.05 AND 9/9 rounds faster (>= 70%) AND CI95 lower 1.5422 > 1.00 -> KEEP",
+        "decision": "KEEP",
+        "filter_sensitive": false,
+        "filter_sensitive_reason": "在阈值内（|log 差| 0.0000 <= 0.0953）",
+        "statistical_relation": "FASTER",
+        "policy_decision": "KEEP"
+      }
+    }
+  },
+  "pytorch_context": {
+    "available": true,
+    "api": "torch.mv(W, x)（cuBLAS Gemv; fp16 输入 FP32 compute —— 成熟库实现, 非本项目的候选 kernel）",
+    "median_us": 61.229,
+    "min_us": 61.034,
+    "n_samples": 200,
+    "note": "PyTorch framework context（带宽参照, 不作决策依据）"
+  }
+}
