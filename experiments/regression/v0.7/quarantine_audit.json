@@ -1,0 +1,54 @@
+{
+  "int4gemv": {
+    "variants()": [
+      "int4gemv_baseline",
+      "int4gemv_rowtile4",
+      "int4gemv_rowtile4_hx",
+      "int4gemv_rowtile8",
+      "int4gemv_vec16_row"
+    ],
+    "all_variants()": [
+      "int4gemv_baseline",
+      "int4gemv_rowtile4",
+      "int4gemv_rowtile4_hx",
+      "int4gemv_rowtile8",
+      "int4gemv_vec16_row"
+    ],
+    "quarantined_variants()": []
+  },
+  "gemv": {
+    "variants()": [
+      "gemv_baseline",
+      "gemv_vec4_row",
+      "gemv_warp_vec4_b256",
+      "gemv_warp_vec4_b512"
+    ],
+    "all_variants()": [
+      "gemv_baseline",
+      "gemv_splitk4",
+      "gemv_vec4_row",
+      "gemv_warp_vec4_b256",
+      "gemv_warp_vec4_b512"
+    ],
+    "quarantined_variants()": [
+      "gemv_splitk4"
+    ]
+  },
+  "qgemv": {
+    "variants()": [
+      "qgemv_baseline",
+      "qgemv_vec16_row",
+      "qgemv_vec16_scale",
+      "qgemv_warp_vec16",
+      "qgemv_warp_vec16_ilp4"
+    ],
+    "all_variants()": [
+      "qgemv_baseline",
+      "qgemv_vec16_row",
+      "qgemv_vec16_scale",
+      "qgemv_warp_vec16",
+      "qgemv_warp_vec16_ilp4"
+    ],
+    "quarantined_variants()": []
+  }
+}

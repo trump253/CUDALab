@@ -1,0 +1,104 @@
+{
+  "int4gemv": {
+    "variants_run": {
+      "int4gemv_baseline": {
+        "correctness_all_pass": true,
+        "correctness_n_pass": 50,
+        "negative_all_pass": true,
+        "negative_n_passed": 30
+      },
+      "int4gemv_rowtile4": {
+        "correctness_all_pass": true,
+        "correctness_n_pass": 50,
+        "negative_all_pass": true,
+        "negative_n_passed": 30
+      },
+      "int4gemv_rowtile4_hx": {
+        "correctness_all_pass": true,
+        "correctness_n_pass": 50,
+        "negative_all_pass": true,
+        "negative_n_passed": 30
+      },
+      "int4gemv_rowtile8": {
+        "correctness_all_pass": true,
+        "correctness_n_pass": 50,
+        "negative_all_pass": true,
+        "negative_n_passed": 30
+      },
+      "int4gemv_vec16_row": {
+        "correctness_all_pass": true,
+        "correctness_n_pass": 50,
+        "negative_all_pass": true,
+        "negative_n_passed": 30
+      }
+    },
+    "all_pass": true,
+    "quarantine_leaked_into_normal": []
+  },
+  "gemv": {
+    "variants_run": {
+      "gemv_baseline": {
+        "correctness_all_pass": true,
+        "correctness_n_pass": 100,
+        "negative_all_pass": true,
+        "negative_n_passed": 24
+      },
+      "gemv_vec4_row": {
+        "correctness_all_pass": true,
+        "correctness_n_pass": 100,
+        "negative_all_pass": true,
+        "negative_n_passed": 24
+      },
+      "gemv_warp_vec4_b256": {
+        "correctness_all_pass": true,
+        "correctness_n_pass": 100,
+        "negative_all_pass": true,
+        "negative_n_passed": 24
+      },
+      "gemv_warp_vec4_b512": {
+        "correctness_all_pass": true,
+        "correctness_n_pass": 100,
+        "negative_all_pass": true,
+        "negative_n_passed": 24
+      }
+    },
+    "all_pass": true,
+    "quarantine_leaked_into_normal": []
+  },
+  "qgemv": {
+    "variants_run": {
+      "qgemv_baseline": {
+        "correctness_all_pass": true,
+        "correctness_n_pass": 50,
+        "negative_all_pass": true,
+        "negative_n_passed": 29
+      },
+      "qgemv_vec16_row": {
+        "correctness_all_pass": true,
+        "correctness_n_pass": 50,
+        "negative_all_pass": true,
+        "negative_n_passed": 29
+      },
+      "qgemv_vec16_scale": {
+        "correctness_all_pass": true,
+        "correctness_n_pass": 50,
+        "negative_all_pass": true,
+        "negative_n_passed": 29
+      },
+      "qgemv_warp_vec16": {
+        "correctness_all_pass": true,
+        "correctness_n_pass": 50,
+        "negative_all_pass": true,
+        "negative_n_passed": 29
+      },
+      "qgemv_warp_vec16_ilp4": {
+        "correctness_all_pass": true,
+        "correctness_n_pass": 50,
+        "negative_all_pass": true,
+        "negative_n_passed": 29
+      }
+    },
+    "all_pass": true,
+    "quarantine_leaked_into_normal": []
+  }
+}
