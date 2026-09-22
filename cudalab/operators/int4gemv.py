@@ -85,6 +85,7 @@ v0.5 FP16 ~54.5us）。
 """
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import torch
@@ -288,13 +289,24 @@ print("profile driver done")
         results = run_suite(variant, ext)
         saved = save_results(results, out_dir / f"{variant}.json")
         s = summarize(results)
-        fid = run_fidelity_suite()
-        fid_saved = save_fidelity(fid, out_dir / "quantization_fidelity.json")
+        # 量化保真度是 variant 无关层（只报告）: append-only 约定 ——
+        # 同一 out_dir 已有记录时不重跑、不刷新（避免每次变体正确性
+        # 运行改写历史 artifact 的时间戳）; 新目录（如 regression
+        # out_dir）仍会生成。
+        fid_path = out_dir / "quantization_fidelity.json"
+        if fid_path.exists():
+            with open(fid_path, "r", encoding="utf-8") as f:
+                fid_summary = json.load(f).get("summary")
+            fid_saved = fid_path
+        else:
+            fid = run_fidelity_suite()
+            fid_saved = save_fidelity(fid, fid_path)
+            fid_summary = fid["summary"]
         return {"all_pass": bool(s["all_pass"]),
                 "summary": s, "saved": str(saved),
                 "quantization_fidelity": {
                     "saved": str(fid_saved),
-                    "summary": fid["summary"],
+                    "summary": fid_summary,
                 }}
 
     def run_negative(self, ext, variant: str | None = None,
