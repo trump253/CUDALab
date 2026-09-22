@@ -5,39 +5,39 @@
     4096
   ],
   "ncu_version": "2022.3.0.0",
-  "cache_control": "all",
+  "cache_control": "none",
   "clock_control": "base",
   "clock_lock_warning": null,
   "kernel_name": "void <unnamed>::gemv_vec4_row_kernel<__half>(const T1 *, const T1 *, T1 *, long, long)",
-  "kernel_duration_us": 64.192,
+  "kernel_duration_us": 64.008,
   "l1_hit_rate": {
     "value": 49.14,
     "unit": "%"
   },
   "l2_read_hit_rate": {
-    "value": 1.71,
+    "value": 1.7,
     "unit": "%"
   },
-  "dram_throughput_pct": 87.89,
-  "sm_throughput_pct": 18.91,
-  "achieved_occupancy_pct": 92.83,
+  "dram_throughput_pct": 89.1,
+  "sm_throughput_pct": 19.16,
+  "achieved_occupancy_pct": 91.92,
   "registers_per_thread": 26,
   "shared_memory_bytes": 32,
   "warp_stalls": {
     "long_scoreboard": {
-      "stalled_cycles_per_issue": 30.742,
-      "pct_of_stalls": 82.8
-    },
-    "barrier": {
-      "stalled_cycles_per_issue": 1.555,
-      "pct_of_stalls": 4.2
+      "stalled_cycles_per_issue": 30.515,
+      "pct_of_stalls": 82.9
     },
     "wait": {
       "stalled_cycles_per_issue": 1.48,
       "pct_of_stalls": 4.0
     },
+    "barrier": {
+      "stalled_cycles_per_issue": 1.425,
+      "pct_of_stalls": 3.9
+    },
     "short_scoreboard": {
-      "stalled_cycles_per_issue": 1.113,
+      "stalled_cycles_per_issue": 1.12,
       "pct_of_stalls": 3.0
     },
     "selected": {
@@ -45,15 +45,15 @@
       "pct_of_stalls": 2.7
     },
     "not_selected": {
-      "stalled_cycles_per_issue": 0.512,
-      "pct_of_stalls": 1.4
+      "stalled_cycles_per_issue": 0.535,
+      "pct_of_stalls": 1.5
     },
     "math_pipe_throttle": {
-      "stalled_cycles_per_issue": 0.26,
+      "stalled_cycles_per_issue": 0.265,
       "pct_of_stalls": 0.7
     },
     "branch_resolving": {
-      "stalled_cycles_per_issue": 0.175,
+      "stalled_cycles_per_issue": 0.173,
       "pct_of_stalls": 0.5
     },
     "dispatch_stall": {
@@ -61,7 +61,7 @@
       "pct_of_stalls": 0.4
     },
     "no_instruction": {
-      "stalled_cycles_per_issue": 0.103,
+      "stalled_cycles_per_issue": 0.1,
       "pct_of_stalls": 0.3
     },
     "drain": {
@@ -69,11 +69,11 @@
       "pct_of_stalls": 0.1
     },
     "lg_throttle": {
-      "stalled_cycles_per_issue": 0.018,
-      "pct_of_stalls": 0.0
+      "stalled_cycles_per_issue": 0.02,
+      "pct_of_stalls": 0.1
     },
     "mio_throttle": {
-      "stalled_cycles_per_issue": 0.005,
+      "stalled_cycles_per_issue": 0.007,
       "pct_of_stalls": 0.0
     },
     "sleeping": {
@@ -86,13 +86,13 @@
     }
   },
   "n_launches_profiled": 4,
-  "raw_report": "/root/code/cuda/profiles/gemv/raw/gemv_vec4_row_M4096_H4096_ccall_clkbase.ncu.txt",
+  "raw_report": "/root/code/cuda/profiles/gemv/raw/gemv_vec4_row_M4096_H4096_ccnone_clkbase.ncu.txt",
   "kernels": [
     {
       "kernel_name": "void <unnamed>::gemv_vec4_row_kernel<__half>(const T1 *, const T1 *, T1 *, long, long)",
       "n_launches": 4,
-      "duration_us": 64.192,
-      "dram_throughput_pct": 87.89
+      "duration_us": 64.008,
+      "dram_throughput_pct": 89.1
     }
   ]
 }

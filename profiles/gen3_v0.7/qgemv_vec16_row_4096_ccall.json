@@ -9,7 +9,7 @@
   "clock_control": "base",
   "clock_lock_warning": null,
   "kernel_name": "<unnamed>::qgemv_vec16_row_kernel(const signed char *, const float *, const __half *, __half *, long, long)",
-  "kernel_duration_us": 36.368,
+  "kernel_duration_us": 36.432,
   "l1_hit_rate": {
     "value": 79.36,
     "unit": "%"
@@ -18,39 +18,39 @@
     "value": 4.12,
     "unit": "%"
   },
-  "dram_throughput_pct": 86.02,
-  "sm_throughput_pct": 39.94,
-  "achieved_occupancy_pct": 82.62,
+  "dram_throughput_pct": 86.55,
+  "sm_throughput_pct": 39.86,
+  "achieved_occupancy_pct": 82.91,
   "registers_per_thread": 40,
   "shared_memory_bytes": 32,
   "warp_stalls": {
     "long_scoreboard": {
-      "stalled_cycles_per_issue": 7.76,
-      "pct_of_stalls": 51.4
+      "stalled_cycles_per_issue": 7.975,
+      "pct_of_stalls": 52.2
     },
     "short_scoreboard": {
-      "stalled_cycles_per_issue": 1.477,
-      "pct_of_stalls": 9.8
+      "stalled_cycles_per_issue": 1.46,
+      "pct_of_stalls": 9.5
     },
     "wait": {
       "stalled_cycles_per_issue": 1.41,
-      "pct_of_stalls": 9.3
+      "pct_of_stalls": 9.2
     },
     "barrier": {
-      "stalled_cycles_per_issue": 1.103,
-      "pct_of_stalls": 7.3
+      "stalled_cycles_per_issue": 1.125,
+      "pct_of_stalls": 7.4
     },
     "selected": {
       "stalled_cycles_per_issue": 1.0,
-      "pct_of_stalls": 6.6
+      "pct_of_stalls": 6.5
     },
     "not_selected": {
-      "stalled_cycles_per_issue": 0.953,
-      "pct_of_stalls": 6.3
+      "stalled_cycles_per_issue": 0.938,
+      "pct_of_stalls": 6.1
     },
     "math_pipe_throttle": {
-      "stalled_cycles_per_issue": 0.338,
-      "pct_of_stalls": 2.2
+      "stalled_cycles_per_issue": 0.325,
+      "pct_of_stalls": 2.1
     },
     "mio_throttle": {
       "stalled_cycles_per_issue": 0.263,
@@ -62,11 +62,11 @@
     },
     "dispatch_stall": {
       "stalled_cycles_per_issue": 0.22,
-      "pct_of_stalls": 1.5
+      "pct_of_stalls": 1.4
     },
     "branch_resolving": {
       "stalled_cycles_per_issue": 0.16,
-      "pct_of_stalls": 1.1
+      "pct_of_stalls": 1.0
     },
     "no_instruction": {
       "stalled_cycles_per_issue": 0.14,
@@ -91,8 +91,8 @@
     {
       "kernel_name": "<unnamed>::qgemv_vec16_row_kernel(const signed char *, const float *, const __half *, __half *, long, long)",
       "n_launches": 4,
-      "duration_us": 36.368,
-      "dram_throughput_pct": 86.02
+      "duration_us": 36.432,
+      "dram_throughput_pct": 86.55
     }
   ]
 }
