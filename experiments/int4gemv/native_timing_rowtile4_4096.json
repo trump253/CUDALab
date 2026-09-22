@@ -1,0 +1,53 @@
+{
+  "variant": "int4gemv_rowtile4",
+  "shape": "4096x4096x4096",
+  "harness": "native kernel-loop: C++ continuous raw launches, CUDA events / 64, 10 windows",
+  "windows": 10,
+  "launches_per_window": 64,
+  "w200": {
+    "variant": "int4gemv_rowtile4",
+    "warmup": 200,
+    "n_windows": 10,
+    "launches_per_window": 64,
+    "window_median_us": [
+      24.317000061273575,
+      24.27849918603897,
+      24.28000047802925,
+      24.4159996509552,
+      24.224499240517616,
+      24.224000051617622,
+      24.288000538945198,
+      24.288000538945198,
+      24.308500811457634,
+      24.447999894618988
+    ],
+    "median_us": 24.288000538945198,
+    "min_us": 24.224000051617622,
+    "max_us": 24.447999894618988,
+    "mean_us": 24.307250045239925,
+    "note": "原生 kernel-loop 口径: C++ 内连续 launch, CUDA events / N; 不含 Python 边界开销（区别于 bench 引擎 API 路径口径与 NCU kernel duration）"
+  },
+  "w5000": {
+    "variant": "int4gemv_rowtile4",
+    "warmup": 5000,
+    "n_windows": 10,
+    "launches_per_window": 64,
+    "window_median_us": [
+      24.710500612854958,
+      24.30500090122223,
+      24.252999573946,
+      24.152999743819237,
+      24.224000051617622,
+      24.288000538945198,
+      24.224000051617622,
+      24.243999272584915,
+      24.232499301433563,
+      24.219999089837074
+    ],
+    "median_us": 24.23824928700924,
+    "min_us": 24.152999743819237,
+    "max_us": 24.710500612854958,
+    "mean_us": 24.285399913787842,
+    "note": "原生 kernel-loop 口径: C++ 内连续 launch, CUDA events / N; 不含 Python 边界开销（区别于 bench 引擎 API 路径口径与 NCU kernel duration）"
+  }
+}
