@@ -133,8 +133,9 @@ def _print_winners(winners: list[dict]):
         print(f"M={w['shape'][0]:<5} H={w['shape'][1]:<5} {w['dtype']:<8} "
               f"{w['cache_mode']:<10} winner={w['winner']} "
               f"runner_up={w['runner_up']} "
-              f"ratio={w['median_ratio_runner_over_winner']} "
-              f"CI95={w['bootstrap_ci_95']}")
+              f"ratio={w['median_ratio']} CI95={w['bootstrap_ci_95']} "
+              f"stat={w['statistical_relation']} "
+              f"policy={w['policy_decision']} status={w['status']}")
 
 
 def main() -> int:

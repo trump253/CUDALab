@@ -463,6 +463,50 @@ def test_classify_cell_emits_relation_and_policy():
     assert out_d["policy_decision"] is None
 
 
+def test_analyze_shape_winners_delegates_to_classify_cell():
+    """v0.6 merge-review 更正: 矩阵 summary 逐格统一走 classify_cell。
+
+    旧版 analyze_shape_winners 自维护统计, 且 raw 侧误用"跨 round
+    中位数之比"（与 filtered 侧的 per-round 比值中位数约定混用）, 并
+    缺少 statistical_relation / policy_decision / status 双字段。修复后:
+    (a) 输出与 classify_cell 逐字段一致（单一来源）;
+    (b) <5% 的候选即使 CI 排除 1.00 也 policy NEUTRAL /
+        NO_UNIQUE_WINNER（统一政策, 无事后裁决规则）。
+    """
+    from cudalab.evaluator.bench import analyze_shape_winners
+
+    # 背离格: winner 10.0 vs runner-up 10.08（per-round 比值恒 1.008,
+    # CI [1.008, 1.008] 排除 1.00）→ 统计 FASTER, 但 <5% → policy NEUTRAL
+    rec = {
+        "shape": [128, 256], "dtype": "float32", "cache_mode": "streaming",
+        "variants": ["a", "b"],
+        "rounds": [
+            {"valid": True,
+             "us": {"a": 10.0, "b": 10.08},
+             "us_raw": {"a": 10.0, "b": 10.08}}
+            for _ in range(9)
+        ],
+    }
+    winners = analyze_shape_winners([rec])
+    assert len(winners) == 1
+    w = winners[0]
+    expected = E.classify_cell(rec["variants"], rec["rounds"])
+    for k in ("winner", "runner_up", "median_ratio", "bootstrap_ci_95",
+              "statistical_relation", "policy_decision", "decision",
+              "decision_rule", "status", "faster_rounds",
+              "valid_rounds", "filter_sensitive", "filter_sensitive_reason",
+              "all_variants_median_us", "winner_raw"):
+        assert w[k] == expected[k], f"字段 {k} 与 classify_cell 不一致"
+    assert (w["shape"], w["dtype"], w["cache_mode"]) == \
+        (rec["shape"], rec["dtype"], rec["cache_mode"])
+    assert (w["winner"], w["runner_up"]) == ("a", "b")
+    assert w["statistical_relation"] == D.FASTER
+    assert w["policy_decision"] == D.NEUTRAL
+    assert w["status"] == E.NO_UNIQUE_WINNER
+    # 旧版混合口径的字段名已废止（raw 侧同用 paired 约定, 见 classify_cell）
+    assert "raw_ratio_runner_over_winner" not in w
+
+
 # ---- runner --------------------------------------------------------------------
 
 if __name__ == "__main__":

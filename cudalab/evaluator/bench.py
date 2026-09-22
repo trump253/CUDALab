@@ -151,6 +151,7 @@ import torch
 
 from . import stats as _stats
 from .gpu import now_iso, gpu_state
+from .experiment import classify_cell  # v0.6 merge-review: matrix winner 单一来源
 
 HARNESS_VERSION = "paired-streaming-v2.3"
 
@@ -733,69 +734,29 @@ def bench_matrix(op, ext, variants: list[str], M: int, H: int,
 def analyze_shape_winners(records: list[dict]) -> list[dict]:
     """从矩阵记录生成 shape-specific winner（v0.2 要求: 不只报 global best）。
 
-    winner = valid round 跨轮中位数最小的 variant；paired 对比用
-    runner-up 与 winner 的 per-round 中位数之比（round-level paired），
-    附 bootstrap CI。
+    v0.6 merge-review 更正: 逐格分类**统一委托**
+    `cudalab.evaluator.experiment.classify_cell`（单一来源, v0.3/v0.4.1
+    语义），不再在本函数内自维护一套统计:
+    - winner = valid round 跨轮中位数最小的 variant（**观测中位数排名**,
+      不等于统计/政策意义上的"胜者"）;
+    - winner vs runner-up 用 round-level paired 比值（per-round
+      runner/winner 比值的中位数）+ bootstrap CI;
+    - `statistical_relation`（只看 CI95 是否排除 1.00）与
+      `policy_decision`（5% 政策带 + filter gate）分列输出 —— 差距 <5%
+      时 policy 一律 NEUTRAL / NO_UNIQUE_WINNER, 即使 CI 排除 1.00;
+    - raw 轨与 filter-sensitivity 判据与 classify_cell 一致（raw 侧与
+      filtered 侧同一 paired 聚合约定, v0.4 review 更正; 旧版在本函数
+      内对 raw 侧误用"跨 round 中位数之比", 与 filtered 侧的
+      "per-round 比值中位数"约定混用, 已废止）。
     """
     out = []
     for rec in records:
-        pv = rec["per_variant"]
-        ranked = sorted(
-            (v for v in pv if pv[v]["median_us"] is not None),
-            key=lambda v: pv[v]["median_us"])
-        if len(ranked) < 2:
-            continue
-        winner, runner = ranked[0], ranked[1]
-        # round-level paired: 只取两个 variant 都有效的 round（矩阵模式下
-        # round 有效即全部 variant 有效）
-        ratios = []
-        for r in rec["rounds"]:
-            if r["valid"] and winner in r["us"] and runner in r["us"]:
-                ratios.append(r["us"][runner] / r["us"][winner])
-        s = _stats.summarize(ratios)
-        # v2.3: raw 轨 winner + filter-sensitivity（判据同 bench_matrix:
-        # winner flip 显式判；否则共同 top-2 比值差 >10% 判敏感）。
-        # 旧 v2.2 记录无 raw_median_us → 未评估，不假装可信。
-        has_raw = all(pv[v].get("raw_median_us") is not None for v in pv)
-        if has_raw:
-            ranked_r = sorted((v for v in pv
-                               if pv[v]["raw_median_us"] is not None),
-                              key=lambda v: pv[v]["raw_median_us"])
-            winner_raw = ranked_r[0]
-            if winner_raw != winner:
-                fs, fs_reason = True, (
-                    f"winner flip: raw winner {winner_raw!r} != filtered "
-                    f"winner {winner!r}（guard 改变了结论）")
-                raw_speedup = None
-            else:
-                raw_speedup = (pv[runner]["raw_median_us"]
-                               / pv[winner]["raw_median_us"])
-                f_speedup = pv[runner]["median_us"] / pv[winner]["median_us"]
-                fs, fs_reason = _stats.filter_sensitive(raw_speedup,
-                                                        f_speedup)
-        else:
-            raw_speedup = None
-            fs, fs_reason, winner_raw = (
-                False, "无 raw 数据（v2.3 之前 harness）", None)
+        cell = classify_cell(rec["variants"], rec["rounds"])
         out.append({
             "shape": rec["shape"],
             "dtype": rec["dtype"],
             "cache_mode": rec["cache_mode"],
-            "winner": winner,
-            "runner_up": runner,
-            "winner_median_us": pv[winner]["median_us"],
-            "runner_up_median_us": pv[runner]["median_us"],
-            "median_ratio_runner_over_winner": s["median"],
-            "bootstrap_ci_95": _stats.bootstrap_ci(ratios),
-            "valid_rounds": rec["valid_rounds"],
-            "all_variants_median_us": {v: pv[v]["median_us"]
-                                       for v in rec["variants"]},
-            # v2.3: raw 轨（guard 前）winner 与 filter-sensitivity
-            "winner_raw": winner_raw,
-            "raw_ratio_runner_over_winner":
-                round(raw_speedup, 6) if raw_speedup else None,
-            "filter_sensitive": fs,
-            "filter_sensitive_reason": fs_reason,
+            **cell,
         })
     return out
 

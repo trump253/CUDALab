@@ -205,8 +205,9 @@ def cmd_bench_winners(a) -> int:
         print(f"M={w['shape'][0]:<5} H={w['shape'][1]:<5} "
               f"{w['dtype']:<8} {w['cache_mode']:<10} "
               f"winner={w['winner']} runner_up={w['runner_up']} "
-              f"ratio={w['median_ratio_runner_over_winner']} "
-              f"CI95={w['bootstrap_ci_95']}")
+              f"ratio={w['median_ratio']} CI95={w['bootstrap_ci_95']} "
+              f"stat={w['statistical_relation']} "
+              f"policy={w['policy_decision']} status={w['status']}")
     print(f"保存 -> {out}")
     return 0
 
