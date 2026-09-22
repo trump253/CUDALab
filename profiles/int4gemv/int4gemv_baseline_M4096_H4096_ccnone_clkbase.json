@@ -1,0 +1,98 @@
+{
+  "variant": "int4gemv_baseline",
+  "shape": [
+    4096,
+    4096
+  ],
+  "ncu_version": "2022.3.0.0",
+  "cache_control": "none",
+  "clock_control": "base",
+  "clock_lock_warning": null,
+  "kernel_name": "int4gemv_scalar_kernel(const unsigned char *, const __half *, const __half *, __half *, long, long)",
+  "kernel_duration_us": 66.6,
+  "l1_hit_rate": {
+    "value": 88.92,
+    "unit": "%"
+  },
+  "l2_read_hit_rate": {
+    "value": 40.77,
+    "unit": "%"
+  },
+  "dram_throughput_pct": 25.42,
+  "sm_throughput_pct": 46.17,
+  "achieved_occupancy_pct": 90.75,
+  "registers_per_thread": 26,
+  "shared_memory_bytes": 32,
+  "warp_stalls": {
+    "long_scoreboard": {
+      "stalled_cycles_per_issue": 9.808,
+      "pct_of_stalls": 64.2
+    },
+    "wait": {
+      "stalled_cycles_per_issue": 1.93,
+      "pct_of_stalls": 12.6
+    },
+    "selected": {
+      "stalled_cycles_per_issue": 1.0,
+      "pct_of_stalls": 6.5
+    },
+    "not_selected": {
+      "stalled_cycles_per_issue": 0.677,
+      "pct_of_stalls": 4.4
+    },
+    "short_scoreboard": {
+      "stalled_cycles_per_issue": 0.64,
+      "pct_of_stalls": 4.2
+    },
+    "math_pipe_throttle": {
+      "stalled_cycles_per_issue": 0.432,
+      "pct_of_stalls": 2.8
+    },
+    "barrier": {
+      "stalled_cycles_per_issue": 0.33,
+      "pct_of_stalls": 2.2
+    },
+    "branch_resolving": {
+      "stalled_cycles_per_issue": 0.13,
+      "pct_of_stalls": 0.9
+    },
+    "lg_throttle": {
+      "stalled_cycles_per_issue": 0.105,
+      "pct_of_stalls": 0.7
+    },
+    "no_instruction": {
+      "stalled_cycles_per_issue": 0.08,
+      "pct_of_stalls": 0.5
+    },
+    "dispatch_stall": {
+      "stalled_cycles_per_issue": 0.08,
+      "pct_of_stalls": 0.5
+    },
+    "mio_throttle": {
+      "stalled_cycles_per_issue": 0.062,
+      "pct_of_stalls": 0.4
+    },
+    "drain": {
+      "stalled_cycles_per_issue": 0.01,
+      "pct_of_stalls": 0.1
+    },
+    "sleeping": {
+      "stalled_cycles_per_issue": 0.0,
+      "pct_of_stalls": 0.0
+    },
+    "membar": {
+      "stalled_cycles_per_issue": 0.0,
+      "pct_of_stalls": 0.0
+    }
+  },
+  "n_launches_profiled": 4,
+  "raw_report": "/root/code/cuda/profiles/int4gemv/raw/int4gemv_baseline_M4096_H4096_ccnone_clkbase.ncu.txt",
+  "kernels": [
+    {
+      "kernel_name": "int4gemv_scalar_kernel(const unsigned char *, const __half *, const __half *, __half *, long, long)",
+      "n_launches": 4,
+      "duration_us": 66.6,
+      "dram_throughput_pct": 25.42
+    }
+  ]
+}

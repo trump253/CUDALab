@@ -1,0 +1,56 @@
+{
+  "variant": "int4gemv_baseline",
+  "shape": [
+    4096,
+    4096
+  ],
+  "harness": "native kernel-loop: C++ continuous raw launches, CUDA events / 64, 10 windows",
+  "windows": 10,
+  "launches_per_window": 64,
+  "w200": {
+    "variant": "int4gemv_baseline",
+    "warmup": 200,
+    "n_windows": 10,
+    "launches_per_window": 64,
+    "window_median_us": [
+      61.90349906682968,
+      61.983998864889145,
+      61.859000474214554,
+      61.88800185918808,
+      61.88949942588806,
+      61.879001557826996,
+      61.88800185918808,
+      61.873000115156174,
+      61.918001621961594,
+      61.85949966311455
+    ],
+    "median_us": 61.88800185918808,
+    "min_us": 61.859000474214554,
+    "max_us": 61.983998864889145,
+    "mean_us": 61.89415045082569,
+    "note": "\u539f\u751f kernel-loop \u53e3\u5f84: C++ \u5185\u8fde\u7eed launch, CUDA events / N; \u4e0d\u542b Python \u8fb9\u754c\u5f00\u9500\uff08\u533a\u522b\u4e8e bench \u5f15\u64ce API \u8def\u5f84\u53e3\u5f84\u4e0e NCU kernel duration\uff09"
+  },
+  "w5000": {
+    "variant": "int4gemv_baseline",
+    "warmup": 5000,
+    "n_windows": 10,
+    "launches_per_window": 64,
+    "window_median_us": [
+      50.87999999523163,
+      50.84799975156784,
+      50.72949826717377,
+      50.572000443935394,
+      50.540000200271606,
+      50.55899918079376,
+      50.56000128388405,
+      50.592001527547836,
+      50.586998462677,
+      50.52800104022026
+    ],
+    "median_us": 50.5794994533062,
+    "min_us": 50.52800104022026,
+    "max_us": 50.87999999523163,
+    "mean_us": 50.639550015330315,
+    "note": "\u539f\u751f kernel-loop \u53e3\u5f84: C++ \u5185\u8fde\u7eed launch, CUDA events / N; \u4e0d\u542b Python \u8fb9\u754c\u5f00\u9500\uff08\u533a\u522b\u4e8e bench \u5f15\u64ce API \u8def\u5f84\u53e3\u5f84\u4e0e NCU kernel duration\uff09"
+  }
+}
