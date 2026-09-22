@@ -177,8 +177,9 @@ MHz）。三者不混用, 冲突时记录并调查。
   -8.3%）。**两口径排序在所有变体间完全一致**（hx < rowtile4 <
   rowtile8 < vec16_row < baseline, 三口径全同序）, 决策不受口径
   选择影响。
-- **NCU vs native**: rowtile4_hx 25.176 vs 22.208 = **+13.0 µs**
-  （observed NCU profiling perturbation, 本 workload 观测值, 不声称
+- **NCU vs native**: rowtile4_hx 25.176 vs 22.208 µs,
+  observed NCU profiling perturbation ≈ **+2.97 µs / +13.4%**
+  （本 workload 观测值, 不声称
   跨 workload 固定常数 —— v0.5 ~3.8 µs / v0.6 ~4.4 µs 仅量级参照）。
 - 所有实验记录同时保存三口径原始数据; 无任何「挑最好看数字」路径
   （decision 只用 API pair 口径, 固定）。
