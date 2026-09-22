@@ -21,8 +21,10 @@ INT4 的 nibble unpack / group scale 查找 / 指令开销代价多大?
 - 三代对比（本 session fresh 测量, 不沿用历史数字）:
   **INT4 20.50 µs vs INT8 `qgemv_vec16_row` 31.93 µs = 1.557×**
   —— 理论 2.0× 的 **78%**; **vs FP16 `gemv_vec4_row` 59.98 µs =
-  2.925×**。INT4 未接近 INT8 理论 2×, 缺口完全在 DRAM 效率
-  （68.84% vs 86.55%, NCU 实测）—— 分解与量化见 §8/§11。
+  2.925×**。INT4 未接近 INT8 理论 2×: algorithmic 视图（逻辑 IO
+  减半 1.940×, 理论流量削减）与 measured NCU 物理视图（物理流量削减
+  1.796× × 物理带宽比 0.806× = NCU 1.447×）见 §8 两层分解;
+  API 1.557× 单独口径单独报告, 不用 NCU 分解精确解释。
 - 正确性: 层 A（kernel vs CPU 解包+反量化 FP32 参考, 固定算术界
   TOL_K=2）5 变体各 50/50; 层 B（CPU 量化+pack nibble 互逆）39/39;
   层 C（量化保真度）report-only; per-variant 负例 30/30 × 5
@@ -202,6 +204,12 @@ N·4B = 16,384 B）而 INT4/INT8 = **1.940×**、INT8/FP16 = 1.997×。
 | INT8 `qgemv_vec16_row`（v0.6 incumbent） | 31.931 | 31.486 | 36.432 (86.55%) | 526.4 GB/s | 85.5% |
 | **INT4 `int4gemv_rowtile4_hx`（v0.7 incumbent）** | **20.503** | **22.208** | **25.176 (68.84%)** | **422.7 GB/s** | **68.6%** |
 
+表中三代 NCU 值均为 **v0.7 fresh pass**（`profiles/gen3_v0.7/`,
+2026-09-22）。v0.7.1 merge 修复后 `profiles/gemv|qgemv/` 历史路径已恢复
+v0.5/v0.6 发布原值（gemv ccall 64.192 µs / 87.89%、ccnone 63.808 µs /
+87.91%; qgemv ccall 36.368 µs / 86.02%）—— 见
+`profiles/gen3_v0.7/README.md`。
+
 **主结果**:
 - **INT4 vs INT8 = 1.557×**（API）/ 1.418×（native）/ 1.447×（NCU）
   —— **理论 2.0× 的 78%, 未接近 2×**。
@@ -209,35 +217,54 @@ N·4B = 16,384 B）而 INT4/INT8 = **1.940×**、INT8/FP16 = 1.997×。
 - INT8 vs FP16 = 1.878×（API; 理论 2.0× 的 94% —— v0.6 结论
   1.90× 的 fresh 复测确认）。
 
-**INT4 距理论 2× 的缺口分解（量化, 因子分解可复算）**:
-对 DRAM-bound kernel, `speedup = (IO 比)⁻¹ × (DRAM 效率比)`, 其中
-IO 比 = 逻辑字节比, DRAM 效率比 = NCU dram_throughput_pct 之比。
-- **因子 1 — IO 减半（利好）**: 全逻辑 IO 比 INT8/INT4 =
-  16,809,984/8,667,136 = **1.940×**（W 字节单独 = 恰好 2.0×; 差
-  0.06× 来自 INT4 group-scale 262,144 B ≫ INT8 行 scale 16,384 B）。
-- **因子 2 — DRAM 效率（不利）**: 68.84% / 86.55% = **0.795×**。
-  INT4 只拿到 INT8 DRAM 吞吐效率的 79.5%。
-- **合成**: 1.940 × 0.795 = **1.543×** ≈ 实测 1.557×（API; 小残差 =
-  API 边界开销 + 实测/逻辑字节差）。**结论: 缺口几乎全部在因子 2
-  （DRAM 效率）, 不在流量减半本身** —— W 字节减半的红利（1.94×）
-  大部分被 DRAM 效率损失（×0.795）吃掉。距 W-only 理论 2.0×:
-  2.0/1.557 = 1.284, 其中 3% 来自 group-scale 全 IO 折损、~26% 来自
-  DRAM 效率。
+**INT4 距理论 2× 的缺口分解（两层视图, 全部可从 raw 归档复算）**:
 
-缺口归因（因子 2 为什么低）:
-1. **实测 DRAM 流量超逻辑 18.4%**: NCU `dram__bytes.sum`
-   INT4 10.26 MB vs 逻辑 8.667 MB（+1.6 MB; FP16 +4.8% / INT8
-   +9.7%, 同 pass 对照; pass 原始 CSV 归档
+*层 1 — Algorithmic 视图（理论流量削减, 不等同于任何实测 speedup）*:
+全逻辑 IO INT8/INT4 比 = 16,809,984/8,667,136 = **1.940×**
+（W 字节单独 = 恰好 2.0×; 差 0.06× 来自 INT4 group-scale 262,144 B
+≫ INT8 行 scale 16,384 B）。
+
+*层 2 — Measured NCU 物理视图（同口径分解, NCU kernel duration）*:
+指令构成 pass raw CSV（`profiles/int4gemv/gen3_pipe_{qgemv,int4}.csv`,
+12 指标 × 4 launch, ncu CSV export, 以下均为 4-launch 均值）:
+- 物理 DRAM 流量 `dram__bytes.sum`: INT8 = **18,435,144 B**
+  （逻辑 16,809,984 B, +9.7%）; INT4 = **10,262,584 B**
+  （逻辑 8,667,136 B, +18.4%）;
+- **物理流量削减 = 18,435,144/10,262,584 = 1.7963×**;
+- 实际物理带宽（物理流量 ÷ NCU 主 pass duration,
+  `profiles/gen3_v0.7/`）: INT8 = 18,435,144 B/36.432 µs =
+  **506.0 GB/s**; INT4 = 10,262,584 B/25.176 µs = **407.6 GB/s**;
+  物理带宽比（INT8/INT4）= **1.2413×**（即 INT4/INT8 = 0.8056×）;
+- **物理流量削减 × 物理带宽比 = 1.7963 × 0.8056 = 1.4471× =
+  NCU duration speedup 36.432/25.176 = 1.4471×**（同口径恒等式,
+  可从 raw 数据直接复算）。若改用 CSV pass 自身 duration（4-launch
+  均值 36.448/25.496 µs）: 物理带宽 505.8/402.5 GB/s, NCU speedup
+  1.4296× —— 方向与结论不变。
+
+*API 路径（单独口径, 不做跨口径精确分解）*: INT4 vs INT8 API =
+20.503/31.931 = **1.557×**（native 1.418×）。API 口径含 Python↔C++
+边界与 streaming 池（W L2-cold）regime, 与 NCU kernel duration 不同
+（§7 已给出 API/native/NCU 三口径差及解释）。上节 NCU 物理分解解释
+**NCU 口径** speedup,
+**不用于**精确解释 API latency。
+
+物理带宽差距（INT4 407.6 vs INT8 506.0 GB/s）的候选组成（标注事实
+与假设）:
+1. **实测 DRAM 流量超逻辑 18.4%（实测事实）**: NCU
+   `dram__bytes.sum` INT4 10.26 MB vs 逻辑 8.67 MB（+1.59 MB; FP16
+   +4.8% / INT8 +9.7%, 同 pass 对照; pass 原始 CSV 归档
    `profiles/int4gemv/gen3_pipe_*.csv`, 12 指标 × 4 launch, 百分比
-   为 4-launch 均值, 可复算）。归因: x (8 KB) 被 1024 个 block 各读一次,
-   W 流 (8.4 MB > L2 5.5 MB) 以 streaming 方式穿过 L2 将 x 反复逐出
-   → x 的 DRAM 再取（~196 block 量级）。这是 v0.8 的可攻击项
-   （L2 访问策略窗口: W streaming / x 驻留）。
-2. **指令开销压低在飞字节**: 整数线程指令 INT4 46.33M vs INT8
-   38.93M = **+19%**（每 product 2.76 vs 2.32 条; 增量 = 32 nibble
-   解包/向量（2 整数指令/nibble）+ group scale 索引）; ALU pipe
-   36.58%（INT8 相当管线上移但未饱和）。更长的整数指令流 → 每 SM
-   单位时间可维持的在飞 W load 减少 → DRAM 效率下降的组成因素。
+   为 4-launch 均值, 可复算）。**归因是假设而非结论**: 与 x (8 KB)
+   被 1024 个 block 各读一次、W 流 (8.4 MB > L2 5.5 MB) streaming
+   逐出 x 导致 DRAM 再取（~196 block 量级）的假设一致; 也可能包含
+   DRAM transaction / cache-line 粒度等额外流量, 需控制实验确认
+   （v0.8 调查项见 §11 Q7）。
+2. **指令开销（指令数为实测事实, 机制为假设）**: 整数线程指令
+   INT4 46.33M vs INT8 38.93M = **+19%**（每 product 2.76 vs 2.32
+   条; 增量 = 32 nibble 解包/向量（2 整数指令/nibble）+ group scale
+   索引）; ALU pipe 36.58%（INT8 相当管线上移但未饱和）。更长的整数
+   指令流可能降低每 SM 单位时间可维持的在飞 W load（未独立验证）,
+   是物理带宽差距的候选组成因素。
 
 ## 9. 全 shape 矩阵与回归
 
@@ -357,7 +384,7 @@ dispatch 政策选择, 不影响正确性结论, 不处置。
 | NIT-1 | NIT | 0004 hypothesis「rowtile4 … issue 45.80%」不见于任何归档 profile（归档 rowtile4 sm_throughput = 46.95%）, 推测来自某次未归档 NCU pass 的 SM Issue 读数 | **不修复**（证据文件不可变）: 该数为 hypothesis 中的次要引用, 不参与决策（0004 决策依据 = 80→64 寄存器 / 占用率 62.83%→82.78% / DRAM 62.34%→68.84%, 全部归档且经本审计核验）; INT4GEMV-0004.json 作为预注册证据保留原样 |
 | NIT-2 | NIT | §8 「逻辑 BW」列与正文字节行口径漂移 ≤0.1% | **已修复**: §8 口径声明统一为「算法 BW = 全逻辑 IO（W(+scale)+x+out）/ 时间」, 表列与正文一致 |
 | 过程 a | 过程 | 报告曾写「分支已 push」, 早于实际 push | **已修复**（本 commit 修正 §1/§12 措辞; 本 commit 即首次 push） |
-| 过程 b | 过程 | b2580d6 就地重写了 3 个 v0.5/v0.6 时代 profile JSON（gemv_vec4_row ccall 64.192→64.24, ccnone 同步; qgemv_vec16_row ccall→36.432） | 符合「fresh 测量不沿用历史」协议（三代对比必须同 session 测量）; **已补溯源注**（§12: v0.5 时代数值仅存 git 历史 blob 6a04f10 等） |
+| 过程 b | 过程 | b2580d6 就地重写了 3 个 v0.5/v0.6 时代 profile JSON（gemv_vec4_row ccall 64.192→64.24, ccnone 同步; qgemv_vec16_row ccall→36.432） | 就地覆盖违反 historical-artifact 不可变约定; **v0.7.1 merge 修复已处置**: 3 个历史文件恢复为 main 原版本, fresh 值迁移至 `profiles/gen3_v0.7/`（append-only, 见该目录 README）; 本报告三代 NCU 数字一律以 `profiles/gen3_v0.7/` fresh 值为口径 |
 
 **审计确认的关键不变量**: 决策链证据完整且可复现（4/4 pair
 decision 含 seed 20260919 bootstrap 逐位复算、10/10 winners 格
@@ -370,11 +397,15 @@ decision 含 seed 20260919 bootstrap 逐位复算、10/10 winners 格
 **Q1: INT4 vs INT8 实际加速比?**
 **1.557×**（API, 4096² streaming, 本 session fresh: 20.503 vs
 31.931 µs; native 1.418×; NCU 1.447×）。**未达到理论 2×（78%）**。
-缺口分解（§8 因子分解: 1.940× IO 减半 × 0.795× DRAM 效率 =
-1.543× ≈ 实测）: DRAM 效率 68.84% vs 86.55% 是大头（若效率持平则
-~1.94× = 全逻辑 IO 理想值, W-only 2.0×）, 其中实测 DRAM 流量超逻辑
-18.4%（+1.6 MB, x 被 W 流逐出 L2 后 DRAM 再取）是已量化、v0.8 可
-攻击的子项; 指令开销（+19% 整数线程指令）是次级因素。
+两层视图（§8）: (1) algorithmic 视图 —— 逻辑 IO 减半 **1.940×**
+（W-only 2.0×）是理论流量削减; (2) measured NCU 物理视图 ——
+物理流量削减 **1.7963×**（18,435,144 B vs 10,262,584 B, raw CSV
+4-launch 均值）× 物理带宽比 **0.8056×**（506.0 vs 407.6 GB/s）=
+NCU **1.4471×**。API 1.557× 单独报告（与 NCU 不同口径, 不用 NCU
+分解精确解释）。物理带宽差距的候选组成: 实测流量超逻辑 18.4%
+（+1.59 MB; 归因为假设: x 跨 block 重读 / W streaming 的 L2 再取,
+亦可能含 transaction 级流量, 需控制实验确认, 见 §11 Q7）+ 指令开销
+（+19% 整数线程指令; 机制为假设）。
 
 **Q2: INT4 vs FP16 实际加速比?**
 **2.925×**（API: 20.503 vs 59.977 µs; native 2.687×; NCU 2.552×）。
@@ -420,7 +451,8 @@ NCU 轨迹（4096², ccall clkbase, 本 session）:
 驻留（0002）; （2）long_scoreboard（W DRAM 延迟）→ 占用率（0004,
 0003 证明同方向走 MLP 无效）。DRAM 吞吐单调 25.4→49.0→62.3→62.6→
 68.8%。**当前墙 = DRAM ~69%**, 距 INT8 的 86.55% 仍有 18 点空间,
-已量化成两项（§8: +18.4% 流量冗余 + 指令开销压低在飞字节）。
+候选组成两项（§8: +18.4% 实测流量冗余[归因为假设] + +19% 整数指令
+开销[机制为假设]）。
 
 **Q6: K=1024/4096/11008 各适合哪种结构?**
 - **K=4096（nvec=128, 128 线程全活）**: `rowtile4_hx` 最优
@@ -447,8 +479,13 @@ INT4 结构性优化在 v0.7 收尾。依据:
 1. 高 ROI 结构 lever 已耗尽 —— 4 组实验收益递减 2.0× → 1.188× →
    1.087×, 且 0003 证明 MLP 方向已死;
 2. 剩余已量化 lever 的期望收益有限或需新机制: （a）+18.4% DRAM
-   流量冗余（x L2 驻留窗口, cudaAccessPolicyWindow —— 运行时 API
-   改动, 期望 5–10%）; （b）指令开销（解包 ALU 融合, 需编译器级
+   流量冗余 —— 归因尚未证实（假设: x 跨 block 重读 / W streaming
+   的 L2 再取; 亦可能含 transaction/cache-line 额外流量）。**当前
+   硬件 Turing sm_75 不支持 Ampere+ 的 cudaAccessPolicyWindow /
+   persisting-L2, 不可直接执行** —— v0.8 该项 = Turing 兼容的
+   cache 行为调查: 区分 x refetch vs transaction 开销、NCU 检查
+   load/cache 行为、如有依据再考虑 PTX/cache-policy hint（期望
+   5–10%, 不保证）; （b）指令开销（解包 ALU 融合, 需编译器级
    控制, 期望 <5%）; （c）K=1024 线程利用率（需新结构, 仅影响
    1/5 形状）;
 3. incumbent 稳定（6/10 格 SIGNIFICANT_WINNER, 9/10 格最低中位数,
@@ -471,16 +508,24 @@ profile 驱动原则重开实验。
   `v0.7_shape_winners.json`）; 三代参照 `benchmarks/gemv/v0.7.json` /
   `benchmarks/qgemv/v0.7.json` + 两侧 native timing JSON
 - NCU: `profiles/int4gemv/*_M4096_H4096_ccall_clkbase.json`（5 变体;
-  raw 目录 gitignored）+ 三代参照 `profiles/gemv|qgemv/..._clkbase.json`
-     + 指令构成补充 pass 原始 CSV `profiles/int4gemv/
-   gen3_pipe_{gemv,qgemv,int4}.csv`（12 指标 × 4 launch, ncu CSV
-   export; ncu 命令行 + driver 见 commit b2580d6 消息）
+  raw 目录 gitignored）+ **三代 v0.7 fresh 参照
+  `profiles/gen3_v0.7/`（5 JSON + README, append-only; §8/§11 三代
+  NCU 数字一律以该目录为口径）** + 指令构成补充 pass 原始 CSV
+  `profiles/int4gemv/gen3_pipe_{gemv,qgemv,int4}.csv`（12 指标 ×
+  4 launch, ncu CSV export; ncu 命令行 + driver 见 commit b2580d6
+  消息）。`profiles/gemv|qgemv/` 历史路径保留 v0.5/v0.6 发布原值
+  （v0.7.1 恢复）
 - 回归: `experiments/regression/v0.7/`（README + summary.json +
   quarantine_audit.json + 3 算子子目录）+ `scripts/regression_v07.py`
 - 三代测量: `scripts/gen3_native_timing.py`
 - git: 分支 `v0.7-int4-gemv`（未 merge main; 本 commit 后 push 即
   STOP 等外部评审）
-- 溯源注: commit b2580d6（三代对比）按「fresh 测量不沿用历史」协议
-  就地重写了 v0.5/v0.6 时代 3 个 profile JSON（gemv_vec4_row ccall
-  64.192→64.24 µs, ccnone 同步; qgemv_vec16_row ccall→36.432 µs）;
-  v0.5 时代数值（如 64.192 µs）仅存于 git 历史（blob 6a04f10 等）
+- 溯源注（v0.7.1 更新）: commit b2580d6（三代对比）当时按「fresh
+  测量不沿用历史」协议就地重写了 3 个 v0.5/v0.6 时代 profile JSON
+  （gemv_vec4_row ccall 64.192→64.24 µs, ccnone 同步; qgemv_vec16_row
+  ccall→36.432 µs）; **v0.7.1 merge 修复已把这 3 个文件恢复为 main
+  原版本**（gemv ccall 64.192 / ccnone 63.808 / qgemv ccall 36.368
+  µs 等）, v0.7 fresh 值迁移至 `profiles/gen3_v0.7/`（append-only,
+  详见该目录 README）。两个版本在 git 历史中均可追溯（fresh 值见
+  b2580d6, 历史原值见 main）。**约定: historical artifacts =
+  immutable; fresh cross-generation measurements = append-only。**

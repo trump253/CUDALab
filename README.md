@@ -59,16 +59,24 @@ v0.7 交付：
   历史数字）**：@4096² streaming fp16，2026-09-22：FP16
   `gemv_vec4_row` 59.977 / INT8 `qgemv_vec16_row` 31.931 / **INT4 hx
   20.503 µs**（API；native 59.673/31.486/22.208；NCU 64.24/36.432/
-  25.176 µs，DRAM 89.3/86.55/68.84%）。**INT4 vs INT8 = 1.557×——理论
+  25.176 µs，DRAM 89.3/86.55/68.84%——三代 NCU 值均为 v0.7 fresh pass，
+  归档 `profiles/gen3_v0.7/`；v0.7.1 已把 `profiles/gemv|qgemv/` 历史
+  路径恢复为 v0.5/v0.6 发布原值）。**INT4 vs INT8 = 1.557×——理论
   2.0× 的 78%，未接近 2×**；INT4 vs FP16 = **2.925×**；INT8 vs FP16 =
-  1.878×（v0.6 结论 1.90× 的 fresh 复测确认）。缺口量化（报告 §8/§11）：
-  (1) DRAM 效率 68.84% vs 86.55% 是大头（因子分解 1.940× IO 减半 ×
-  0.795× DRAM 效率 = 1.543× ≈ 实测; 效率持平则 ~1.94× = 全逻辑 IO
-  理想值）；
-  (2) 实测 DRAM 流量超逻辑 18.4%（+1.6 MB：x 8 KB 被 1024 block 各读
-  一次，W 流 8.4 MB > L2 5.5 MB streaming 逐出 x → DRAM 再取，v0.8
-  可经 L2 访问策略窗口攻击）；(3) 整数线程指令 46.33M vs INT8 38.93M
-  = +19%（每 product 2.76 vs 2.32 条；nibble 解包 + group scale 索引）。
+  1.878×（v0.6 结论 1.90× 的 fresh 复测确认）。缺口两层视图（报告
+  §8/§11）：**(1) algorithmic 视图**——逻辑 IO 减半 **1.940×**
+  （W-only 2.0×），理论流量削减，不等同于实测 speedup；**(2) measured
+  NCU 物理视图**——物理流量削减 **1.7963×**（`dram__bytes.sum`
+  4-launch 均值 18,435,144 B vs 10,262,584 B，raw CSV
+  `profiles/int4gemv/gen3_pipe_*.csv`）× 物理带宽比 **0.8056×**
+  （506.0 vs 407.6 GB/s）= NCU **1.4471×**（= duration 36.432/25.176
+  µs，同口径恒等式，可复算）；**API 1.557× 单独报告**（与 NCU 不同
+  口径，不用 NCU 分解精确解释）。物理带宽差距候选组成：(a) 实测流量
+  超逻辑 18.4%（+1.59 MB；**归因为假设非结论**——与 x 跨 block 重读 /
+  W streaming 的 L2 再取假设一致，亦可能含 transaction/cache-line
+  额外流量，需控制实验确认）；(b) 整数线程指令 46.33M vs INT8 38.93M
+  = +19%（每 product 2.76 vs 2.32 条；nibble 解包 + group scale 索引；
+  指令数为事实，机制为假设）。
   **group scale 查找不是瓶颈**（单 group 引理 g=v>>2：每 16B W 向量恒
   在单个 128-group 内；short_scoreboard 仅 4.5%）。
 - **三层正确性**：(a) kernel vs CPU 解包+反量化 FP32 参考：**50/50 × 5
@@ -96,9 +104,12 @@ v0.7 交付：
   methodology）——结论与逐条处置见报告 §10。
 - **建议（报告 §11 Q7）**：INT4 结构性优化在 v0.7 收尾（收益递减
   2.0→1.188→1.087×，MLP 方向已证伪）；v0.8 backlog = (a) +18.4% DRAM
-  流量冗余（L2 访问策略窗口，期望 5–10%）/ (b) 解包指令开销（<5%）/
-  (c) K=1024 线程利用率；**建议启动 CUDALM 集成**，以
-  `int4gemv_rowtile4_hx` 为交付内核。
+  流量冗余（归因未证实，见上）——**Turing 兼容的 cache 行为调查**：
+  区分 x refetch vs transaction 开销、NCU 检查 load/cache 行为、如有
+  依据再考虑 PTX/cache-policy hint（当前硬件 sm_75 不支持
+  cudaAccessPolicyWindow / persisting-L2；期望 5–10%，不保证）/
+  (b) 解包指令开销（<5%）/ (c) K=1024 线程利用率；**建议启动 CUDALM
+  集成**，以 `int4gemv_rowtile4_hx` 为交付内核。
 
 ## 当前状态：v0.6（INT8 Weight-Only GEMV）
 
