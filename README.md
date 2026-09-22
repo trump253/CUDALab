@@ -40,19 +40,24 @@ v0.6 交付：
   | QGEMV-0004 | `qgemv_warp_vec16_ilp4` | ILP 2→4（在途字节再翻倍） | **NEUTRAL 0.9984×（统计 SLOWER）** [0.9977,0.9990] 0/9——假设被证伪（DRAM/occ 持平，regs 41→43，指令开销） |
 
   失败/中性实验全部保留。
-- **最终 incumbent = `qgemv_warp_vec16`**：两次 fresh head-to-head
-  （vec16_row vs warp_vec16）CI95 均排除 1.0 且方向一致（1.0107× /
-  1.0094× [1.0086,1.0101]，均在 5% 政策带内）→ 最终裁决规则
-  **CI95 显著性优先于 5% 政策带**（已在决策链中明文记录）。
-  主目标三口径分开报告：API-path **31.513 µs**（vs baseline 84.885 =
-  **2.6937×** CI95 [2.688,2.700] 9/9；533.4 GB/s = **86.6%** 规格峰值
-  616 GB/s，理想 27.29 µs 的 1.16×）/ native kernel-loop 32.185（w200）+
-  32.103（w5000）/ NCU kernel duration 36.16 µs（base 锁频，DRAM 87.24%、
-  occ 90.43%、barrier 0、long_scoreboard 84.1%）+ 35.88 µs（@none）。
-  三口径一致：API vs native 差 <2.5%；NCU +14.8% = NCU profiling 固定
-  开销（~4.4 µs 量级，同 v0.5 ~3.8 µs）+ base 锁频贡献 ~0.8%（v0.5
-  clkbase/clknone 受控对：DRAM-bound +0.77%；负载下实测 boost
-  1815–1920 MHz），与 v0.5 口径模型一致（冲突已调查，未挑数字）。
+- **政策 incumbent = `qgemv_vec16_row`**（QGEMV-0001 唯一 KEEP 2.6614×；
+  统一政策: 候选须达 ≥5% 实质性阈值才能替换 incumbent）。**
+  `qgemv_warp_vec16` = 主目标 best-observed 候选**: 两次 fresh
+  head-to-head（vec16_row vs warp_vec16）CI95 均排除 1.0 且方向一致
+  （1.0107× / 1.0094× [1.0086,1.0101]）, 统计 FASTER 但仅 ~1%,
+  policy NEUTRAL —— 不替换 incumbent（早期稿「CI95 显著性优先于 5%
+  政策带」裁决规则为事后规则, 已移除; 两次 head-to-head 数据保留为
+  统计证据）。主目标 best-observed 三口径分开报告：API-path
+  **31.513 µs**（vs baseline 84.885 = **2.6937×** CI95 [2.688,2.700]
+  9/9；533.4 GB/s = **86.6%** 规格峰值 616 GB/s，理想 27.29 µs 的
+  1.16×）/ native kernel-loop 32.185（w200）+ 32.103（w5000）/ NCU
+  kernel duration 36.16 µs（base 锁频，DRAM 87.24%、occ 90.43%、
+  barrier 0、long_scoreboard 84.1%）+ 35.88 µs（@none）。
+  三口径一致：API vs native 差 <2.5%；NCU +14.8% = observed NCU
+  profiling perturbation（本 workload 观测差 ~4.4–4.7 µs，不声称跨
+  workload 固定常数）+ base 锁频贡献 ~0.8%（v0.5 clkbase/clknone
+  受控对：DRAM-bound +0.77%；负载下实测 boost 1815–1920 MHz），
+  与 v0.5 口径模型一致（冲突已调查，未挑数字）。
 - **INT8 vs FP16（核心问题答案）**：31.513 vs 59.933 µs（gemv_vec4_row
   本 session 重测）= **1.90×**——逻辑 IO 减半的收益拿到 95%（理论 2.0×）；
   瓶颈仍在 DRAM（dram 27.2% → 87.24%），dequant 乘加"免费"（QGEMV-0002
@@ -71,18 +76,22 @@ v0.6 交付：
   16B∧16B∧K%16，不满足 → 与 baseline 同一份 `qgemv_scalar_kernel`）。
 - **全 shape matrix**（5 形状 × {hot,streaming}，4 向量化变体 vs
   baseline 2.2–2.9× 全胜 10/10；长 K 格变体间差 ≤~2%，短 1-dim 格差异
-  达 regime 级 2.05×（(4096,1024) streaming））：按格 winner
-  **warp_vec16 6/10、vec16_row 4/10**（两个 11008 形状 vec16_row
-  CI 显著 +0.4–0.6%，已披露；(4096,1024) warp 对 vec16_row **2.0×**
-  结构性优势——短 K 下 block-per-row 75% 线程空转）、ilp4 无统计显著
-  胜格。
+  达 regime 级 2.05×（(4096,1024) streaming））：`classify_cell` 逐格
+  重新派生, 三口径拆分（报告 §9.1）—— **最低观测中位数: warp_vec16
+  5/10、vec16_row 4/10、ilp4 1/10**；**统计显著更快（CI95 排除 1.00）:
+  8/10**（(1024,4096) streaming 与 (4096,1024) streaming UNRESOLVED,
+  后一格 ilp4 最低中位数但 CI [0.9817,1.0164] 跨 1.0, 不宣称 winner）；
+  **policy 显著胜者（≥5%）: 0/10**（全部格 policy NEUTRAL /
+  NO_UNIQUE_WINNER, incumbent 不变）。两个 11008 形状 vec16_row CI
+  显著 +0.4–0.6%；(4096,1024) warp 对 vec16_row **2.0×** 结构性优势
+  （短 K 下 block-per-row 75% 线程空转）。
 - **PyTorch context**：`torch.mv` 61.235 µs（fp16 W）/ 62.297 µs
   （dequant W，(4096,4096)）——仅参照，不作决策依据（INT8 QGEMV 31.5 µs
   ≈ 1.9–2.0× 于两者）。
 - **回归**（`experiments/regression/v0.6/`，append-only）：gemv /
   rmsnorm / softmax / rope / qgemv 五算子 **all PASS**（历史 artifact
   不可变 + 隔离审计：gemv_splitk4 / softmax_hsplit2 仍在隔离、qgemv
-  隔离集为空）；CPU 测试 36/36 + 18/18 + 20/20 + 6/6。
+  隔离集为空）；CPU 测试 37/37 + 18/18 + 20/20 + 6/6。
 - **独立 review**：2 路独立 subagent（CUDA correctness + benchmark
   methodology）双双 **PASS WITH CAVEATS**（benchmark：2 MAJOR + 4 MINOR +
   6 NIT；CUDA：0 MAJOR + 1 MINOR + 2 NIT）；无记录造假类发现；逐条处置
@@ -1005,11 +1014,12 @@ final_reval/ + best.json）、`benchmarks/softmax/`、`profiles/softmax/`、
   失败实验保留；不 merge main）。
 - ~~v0.6 建议：Quantized GEMV~~ —— **已在 v0.6 完成**（分支
   `v0.6-qgemv`，基线 main = v0.5.1 = d635903，不 merge main，等待外部
-  review）：INT8 每行对称量化 + 内核内 dequant，final incumbent
+  review）：INT8 每行对称量化 + 内核内 dequant，best-observed
   `qgemv_warp_vec16` 31.513 µs = **2.69× vs INT8 baseline、1.90× vs
-  FP16**（95% of 理论 2×），4 实验（1 KEEP + 3 NEUTRAL，保留）、
-  50/50×5 + 29/29×5 两层正确性、三口径无冲突、全矩阵 10/10 全胜
-  baseline。
+  FP16**（95% of 理论 2×；政策 incumbent `qgemv_vec16_row` 31.808 µs =
+  2.66×/1.88×，warp_vec16 对其统计快 ~1% 但 policy NEUTRAL），4 实验
+  （1 KEEP + 3 NEUTRAL，保留）、50/50×5 + 29/29×5 两层正确性、三口径
+  无冲突、全矩阵 10/10 全胜 baseline。
 - **v0.7 建议：INT4 + group-wise 量化**（报告 §11 Q7 结论：per-row scale
   在 4-bit 下保真度不足，group-wise（128/256）scale 为共需项；逻辑 IO
   16.81 → 8.93 MB / 下界 27.29 → 14.50 µs，理论 1.88×，效率折损后

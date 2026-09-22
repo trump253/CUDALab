@@ -8,7 +8,7 @@
  "windows": 10,
  "launches_per_window": 64,
  "data_seed": "W=101234, x=1234 (bench engine SEED=1234 + W \u504f\u79fb 100000, \u4e0e paired bench \u540c\u6570\u636e)",
- "final_incumbent_decision": "\u4e24\u6b21 fresh head-to-head (QGEMV-0003 \u8f6e + final_incumbent \u8f6e) CI95 \u5747\u6392\u9664 1.0 \u4e14\u65b9\u5411\u4e00\u81f4: warp_vec16 \u66f4\u5feb (1.0107x / 1.0094x, \u5747\u5728 5% \u653f\u7b56\u5e26\u5185); \u6309\u6700\u7ec8\u88c1\u51b3\u89c4\u5219 (CI95 \u663e\u8457\u6027\u4f18\u5148\u4e8e\u653f\u7b56\u5e26) \u9009 warp_vec16 \u4e3a\u6700\u7ec8 incumbent",
+ "final_incumbent_decision": "\u4e24\u6b21 fresh head-to-head (QGEMV-0003 \u8f6e + final_incumbent \u8f6e) CI95 \u5747\u6392\u9664 1.0 \u4e14\u65b9\u5411\u4e00\u81f4: warp_vec16 \u7edf\u8ba1\u5feb vec16_row ~1% (1.0107x / 1.0094x)\u3002\u4e24\u6b21 statistical_relation=FASTER, \u4f46 policy_decision=NEUTRAL\uff08~1% \u672a\u8fbe \u22655% \u5b9e\u8d28\u6027\u9608\u503c\uff09; \u6309\u9879\u76ee\u7edf\u4e00\u653f\u7b56 (statistical_relation \u2260 policy_decision, \u66ff\u6362 incumbent \u987b\u8fbe 5% \u9608\u503c) \u4e0d\u66ff\u6362\u653f\u7b56 incumbent qgemv_vec16_row (QGEMV-0001 \u552f\u4e00 KEEP 2.6614x)\u3002warp_vec16 \u8bb0\u5f55\u4e3a\u4e3b\u76ee\u6807 best-observed \u5019\u9009; \u4e24\u6b21 head-to-head \u6570\u636e\u4fdd\u7559\u4e3a\u7edf\u8ba1\u8bc1\u636e\u3002\uff08\u65e9\u671f\u7a3f\u300cCI95 \u663e\u8457\u6027\u4f18\u5148\u4e8e\u653f\u7b56\u5e26\u300d\u7684\u88c1\u51b3\u89c4\u5219\u4e3a\u4e8b\u540e\u89c4\u5219, \u975e\u9879\u76ee\u56fa\u5b9a\u653f\u7b56, \u5df2\u4e8e v0.6 merge-review \u8f6e\u79fb\u9664\u3002\uff09",
  "w200": {
   "variant": "qgemv_warp_vec16",
   "warmup": 200,
