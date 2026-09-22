@@ -12,6 +12,94 @@ CUDALab 闭环自动化内核优化：
 
 外层 LLM 智能体（开发者的编码代理）提供优化假设与内核代码；**客观、非 LLM 的评估层** —— 正确性校验框架、配对 CUDA 事件基准框架（含 DVFS guard）、Nsight Compute 集成、以及固定的 KEEP/REJECT/NEUTRAL/UNSTABLE 判定规则 —— 提供证据。智能体不能自封胜者；只有框架的数字才算数。见 [docs/design.md](docs/design.md)。
 
+## 当前状态：v0.7（W4A16 Group-wise INT4 GEMV）
+
+v0.7 回答一个问题：**权重从 INT8 1B → INT4 0.5B（W4A16, G=128
+group-wise, fp16 scale）后，GEMV 能否拿到逻辑 IO 减半的 ~2× 收益？
+INT4 的 nibble unpack / group scale 查找 / 指令开销代价多大？**
+分支 `v0.7-int4-gemv`（基线 main = v0.6.1 = b0c5c7d = tag v0.6.1），
+本 commit 后 push 即 STOP 等外部 review，**不 merge main、不 force
+push**（用户指定）。
+最终报告：`docs/report_v0.7_result.md`（12 节，§10 独立 review 处置，
+§11 用户 7 问，§12 产物索引）。
+
+**CUDALab Operators：RMSNorm / Softmax / RoPE / GEMV / QGEMV /
+INT4GEMV**。INT4GEMV：`y = (unpack(W_packed) · scale) @ x`（`W_packed
+uint8 [N,K/2]`，2×INT4/byte：低 nibble = k=2b、高 nibble = k=2b+1，
+4-bit 补码 q∈[-7,7]；`scale fp16 [N,K/128]`；x fp16 `[K]` → y fp16
+`[N]`，**FP32 累加**；symmetric G=128：`scale = amax/7`，
+`q = clamp(round(W/scale), ±7)`；K%128==0 硬合同；**量化 + packing
+严格计时区外**（`cudalab/int4gemv_quantize.py`，CPU 39/39）。测试形状
+(N,K)：1024×4096 / 4096×1024 / **4096×4096（主目标）** / 11008×4096 /
+4096×11008。范围排除：activation quant、GPTQ/AWQ、Tensor Core GEMM、
+CUDALM 集成（用户指定）。
+
+v0.7 交付：
+- **4 个预注册优化实验**（NCU → 假设，paired v2.3，(4096,4096)
+  streaming，parent 链式）：
+
+  | 实验 | 变体 | 假设（来自剖析） | 判定 |
+  |---|---|---|---|
+  | INT4GEMV-0001 | `int4gemv_vec16_row` | baseline DRAM 25.4% / long_scoreboard 64.2% → 16B 向量 load（U32I4×4，在途字节 16×） | **KEEP 2.000×** [1.9975,2.0105] 9/9；DRAM 48.98%；新瓶颈 lg_throttle 43.9% = x 每行重发 |
+  | INT4GEMV-0002 | `int4gemv_rowtile4` | x 片段寄存器驻留跨 R=4 行复用（内存指令 768→384/行，4 独立 FMA 链） | **KEEP 1.188×** [1.1827,1.1909] 9/9；lg_throttle 43.9%→2.3%；新瓶颈 long_sb 44.3% = W DRAM 延迟；80 regs / occ 62.83% |
+  | INT4GEMV-0003 | `int4gemv_rowtile8` | R=8 把每线程在途 W load 加倍（MLP 4→8） | **NEUTRAL 0.9781×**（统计 SLOWER）0/9——**MLP 假设证伪**：long_sb cpi 4.31→3.343 但 DRAM 62.34%→62.55% 不动；117 regs → occ 43.09% 塌方（80/117 ≈ 43.09/62.83）。**MLP per thread 不是比 resident thread 更强的 DRAM 杠杆** |
+  | INT4GEMV-0004 | `int4gemv_rowtile4_hx` | 0003 的对照：保持 R=4 结构（MLP 4），x 片段 float→`__half2` 驻留（32→16 regs），逐行 `__half22float2` 换回 | **KEEP 1.0869×** [1.0822,1.0887] 9/9——ptxas 80→64 regs 无 spill、转换未 hoist → occ 62.83%→82.78%、在飞 W 字节 +24%、DRAM 62.34%→68.84%；三口径同向 1.087/1.092/1.095× |
+
+  失败/中性实验全部保留（rowtile8 归档为失败结构，正确但慢）。
+- **政策 incumbent = `int4gemv_rowtile4_hx`**（自 INT4GEMV-0004 KEEP 起；
+  链 baseline 51.7 → vec16_row 25.721 → rowtile4 21.600 → hx 19.894 µs，
+  累计 2.599×）。主目标三口径（streaming）：API **20.503 µs**（矩阵
+  口径）/ native kernel-loop **22.208 µs**（w5000）/ NCU kernel
+  duration **25.176 µs**（cc=all @base，DRAM 68.84%、occ 82.78%、64
+  regs）。三口径排序完全一致（hx < rowtile4 < rowtile8 < vec16_row <
+  baseline）；API vs native regime 差（streaming 池 W L2-cold vs 连续
+  循环部分 L2-warm）已调查；NCU vs native +13% = observed profiling
+  perturbation（本 workload ~3 µs 量级，不声称跨 workload 常数）。
+- **三代对比（核心问题答案，本 session fresh 同 session 测量，不沿用
+  历史数字）**：@4096² streaming fp16，2026-09-22：FP16
+  `gemv_vec4_row` 59.977 / INT8 `qgemv_vec16_row` 31.931 / **INT4 hx
+  20.503 µs**（API；native 59.673/31.486/22.208；NCU 64.24/36.432/
+  25.176 µs，DRAM 89.3/86.55/68.84%）。**INT4 vs INT8 = 1.557×——理论
+  2.0× 的 78%，未接近 2×**；INT4 vs FP16 = **2.925×**；INT8 vs FP16 =
+  1.878×（v0.6 结论 1.90× 的 fresh 复测确认）。缺口量化（报告 §8/§11）：
+  (1) DRAM 效率 68.84% vs 86.55% 是大头（因子分解 1.940× IO 减半 ×
+  0.795× DRAM 效率 = 1.543× ≈ 实测; 效率持平则 ~1.94× = 全逻辑 IO
+  理想值）；
+  (2) 实测 DRAM 流量超逻辑 18.4%（+1.6 MB：x 8 KB 被 1024 block 各读
+  一次，W 流 8.4 MB > L2 5.5 MB streaming 逐出 x → DRAM 再取，v0.8
+  可经 L2 访问策略窗口攻击）；(3) 整数线程指令 46.33M vs INT8 38.93M
+  = +19%（每 product 2.76 vs 2.32 条；nibble 解包 + group scale 索引）。
+  **group scale 查找不是瓶颈**（单 group 引理 g=v>>2：每 16B W 向量恒
+  在单个 128-group 内；short_scoreboard 仅 4.5%）。
+- **三层正确性**：(a) kernel vs CPU 解包+反量化 FP32 参考：**50/50 × 5
+  变体**（固定算术界 TOL_K=2，`max_arith_max_ratio = 0.245053042161`
+  5 变体一致 = 同一 term 序，层 A 独立核验不依赖交叉等价假设）；
+  (b) CPU 量化+pack nibble 互逆：**39/39**（位序/补码 round-trip/group
+  边界/K%128 拒绝/scale=0 安全）；(c) 量化保真度：**report-only 不作
+  门**（per-element ≤ 0.5·量化步长；normal cos ≥ 0.999）。
+- **负例 30/30 × 5 变体**（25 reject + 5 pass，含 2 个对齐回退
+  **逐位一致**钉死：W_packed 错位 / x 错位——向量化契约 16B∧16B∧K%32，
+  不满足 → 与 baseline 同一份标量 kernel，绝不拒绝）。
+- **全 shape matrix**（5 形状 × {hot,streaming} × 5 变体 × 9 轮，tag
+  `v0.7`）：hx **6/10 格 SIGNIFICANT_WINNER**（(4096,1024)/(4096,4096)/
+  (4096,11008) 双 mode, 1.054–1.166×）、**9/10 格最低中位数**（唯一
+  例外 (1024,4096) hot: rowtile4 低 0.31%）；(11008,4096) 双 mode
+  +4.7% < 5% 政策带 → NEUTRAL → NO_UNIQUE_WINNER；(1024,4096) 双 mode
+  rowtile4≈hx ±0.3% 打平（K=1024 时 nvec=32 < 128 线程，平地区域）→
+  NO_UNIQUE_WINNER。单一 `rowtile4_hx` 覆盖全部 5 形状。
+- **回归**（`experiments/regression/v0.7/`，append-only，
+  `scripts/regression_v07.py` 可复现）：int4gemv 5 变体（50/50 + 30/30）
+  + gemv 4 正常变体（100/100 + 24/24）+ qgemv 5 变体（50/50 + 29/29）
+  **all PASS**；隔离审计零泄漏（gemv_splitk4 仅 all_variants 在列；
+  softmax_hsplit2 与本分支算子集无关，以 main 上 v0.5/v0.6 审计为准）。
+- **独立 review**：2 路独立 subagent（CUDA correctness + benchmark
+  methodology）——结论与逐条处置见报告 §10。
+- **建议（报告 §11 Q7）**：INT4 结构性优化在 v0.7 收尾（收益递减
+  2.0→1.188→1.087×，MLP 方向已证伪）；v0.8 backlog = (a) +18.4% DRAM
+  流量冗余（L2 访问策略窗口，期望 5–10%）/ (b) 解包指令开销（<5%）/
+  (c) K=1024 线程利用率；**建议启动 CUDALM 集成**，以
+  `int4gemv_rowtile4_hx` 为交付内核。
+
 ## 当前状态：v0.6（INT8 Weight-Only GEMV）
 
 v0.6 回答一个问题：**权重从 FP16 2B → INT8 1B 后，能否把 v0.5 已接近
