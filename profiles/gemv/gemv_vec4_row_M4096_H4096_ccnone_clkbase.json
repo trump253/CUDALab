@@ -9,47 +9,47 @@
   "clock_control": "base",
   "clock_lock_warning": null,
   "kernel_name": "void <unnamed>::gemv_vec4_row_kernel<__half>(const T1 *, const T1 *, T1 *, long, long)",
-  "kernel_duration_us": 63.808,
+  "kernel_duration_us": 64.008,
   "l1_hit_rate": {
-    "value": 49.15,
+    "value": 49.14,
     "unit": "%"
   },
   "l2_read_hit_rate": {
     "value": 1.7,
     "unit": "%"
   },
-  "dram_throughput_pct": 87.91,
-  "sm_throughput_pct": 19.2,
-  "achieved_occupancy_pct": 91.72,
+  "dram_throughput_pct": 89.1,
+  "sm_throughput_pct": 19.16,
+  "achieved_occupancy_pct": 91.92,
   "registers_per_thread": 26,
   "shared_memory_bytes": 32,
   "warp_stalls": {
     "long_scoreboard": {
-      "stalled_cycles_per_issue": 30.23,
-      "pct_of_stalls": 82.7
+      "stalled_cycles_per_issue": 30.515,
+      "pct_of_stalls": 82.9
     },
     "wait": {
       "stalled_cycles_per_issue": 1.48,
       "pct_of_stalls": 4.0
     },
     "barrier": {
-      "stalled_cycles_per_issue": 1.455,
-      "pct_of_stalls": 4.0
+      "stalled_cycles_per_issue": 1.425,
+      "pct_of_stalls": 3.9
     },
     "short_scoreboard": {
-      "stalled_cycles_per_issue": 1.118,
-      "pct_of_stalls": 3.1
+      "stalled_cycles_per_issue": 1.12,
+      "pct_of_stalls": 3.0
     },
     "selected": {
       "stalled_cycles_per_issue": 1.0,
       "pct_of_stalls": 2.7
     },
     "not_selected": {
-      "stalled_cycles_per_issue": 0.522,
-      "pct_of_stalls": 1.4
+      "stalled_cycles_per_issue": 0.535,
+      "pct_of_stalls": 1.5
     },
     "math_pipe_throttle": {
-      "stalled_cycles_per_issue": 0.258,
+      "stalled_cycles_per_issue": 0.265,
       "pct_of_stalls": 0.7
     },
     "branch_resolving": {
@@ -61,7 +61,7 @@
       "pct_of_stalls": 0.4
     },
     "no_instruction": {
-      "stalled_cycles_per_issue": 0.105,
+      "stalled_cycles_per_issue": 0.1,
       "pct_of_stalls": 0.3
     },
     "drain": {
@@ -91,8 +91,8 @@
     {
       "kernel_name": "void <unnamed>::gemv_vec4_row_kernel<__half>(const T1 *, const T1 *, T1 *, long, long)",
       "n_launches": 4,
-      "duration_us": 63.808,
-      "dram_throughput_pct": 87.91
+      "duration_us": 64.008,
+      "dram_throughput_pct": 89.1
     }
   ]
 }
